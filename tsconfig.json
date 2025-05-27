@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "es6",
+    "module": "commonjs",
+    "rootDir": "./",
+    "outDir": "./dist",
+    "esModuleInterop": true,
+    "strict": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["*"],
+      "@shared/*": ["shared/*"]
+    }
+  },
+  "include": ["index.ts", "lib/**/*.ts", "shared/**/*.ts"],
+  "exclude": ["node_modules"]
+}

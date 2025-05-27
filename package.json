@@ -1,0 +1,36 @@
+{
+  "name": "test",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"tsx watch index.ts\" \"cd client-web && pnpm dev\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "dev:scrape": "NODE_ENV=development tsx watch manual-scrape.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.6.4",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "csv-writer": "^1.6.0",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "googleapis": "^150.0.1",
+    "papaparse": "^5.5.2",
+    "puppeteer": "^24.8.2",
+    "tsx": "^4.19.3"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/node": "^22.10.0",
+    "@types/express": "^5.0.1",
+    "@types/papaparse": "^5.3.16",
+    "add": "^2.0.6",
+    "concurrently": "^9.1.2",
+    "pnpm": "^10.10.0",
+    "vitest": "^3.2.4"
+  }
+}
