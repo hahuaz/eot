@@ -1,0 +1,15 @@
+metricName	2019/12/30	2020/12/30	2021/12/30	2022/12/30	2023/12/30	2024/12/30	2025/3/30	2025/6/30
+Balance sheet								
+Cash & cash equivalents								
+Short term liabilities								
+Long term liabilities								4840
+Equity	4530	5380	6300	7020	8350	9790	10300	11600
+Total assets	10820	12330	14680	15330	16530	21440	22900	25670
+Income statement								
+Revenue	8230	8600	10880	12620	12550	15220	16420	18030
+Operating income	1640	1650	2180	2610	2590	3280	3666	4328
+Net income	1160	1200	1590	1900	1930	2420	2609	3175
+Statistics								
+Price	27.07	32.46	43.51	38.07	48.42	69.50	65.59	98.75
+Dividend		0.8000	0.0073	0.0106	0.0086	0.0079		
+#config	nyse:aph	1220921000	1000000	Equity|Total assets|Revenue|Operating income|Net income				

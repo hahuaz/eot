@@ -1,0 +1,15 @@
+metricName	2019/12/30	2020/12/30	2021/12/30	2022/12/30	2023/12/30	2024/12/30	2025/3/30	2025/6/30
+Balance sheet								
+Cash & cash equivalents	65	331	674	1190	1140	1610	1410	1340
+Short term liabilities								
+Long term liabilities								
+Equity	612	1010	1530	2120	2160	2950	2720	2700
+Total assets	1730	2750	3580	4380	4890	6110	5710	5960
+Income statement								
+Revenue	661	836	1200	1580	1950	2440	2565	2675
+Operating income	112	144	124	113	200	427	453	475
+Net income	108	242	137	53	178	393	412	417
+Statistics								
+Price	25.27	81.80	94.27	44.83	70.59	120.17	54.72	71.99
+Dividend								
+#config	nasdaq:ttd	445667000	1000000	Equity|Total assets|Revenue|Operating income				

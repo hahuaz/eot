@@ -1,0 +1,15 @@
+metricName	2019/12/30	2020/12/30	2021/12/30	2022/12/30	2023/12/30	2024/12/30	2025/3/30	2025/6/30
+Balance sheet								
+Cash & cash equivalents	8	4	10	1	15	33	43	46
+Short term liabilities								
+Long term liabilities								
+Equity	12	17	23	22	43	79	84	100
+Total assets	17	28	44	41	65	111	125	140
+Income statement								
+Revenue	11	17	27	27	61	130	148	164
+Operating income	3	5	10	6	33	82	86	96
+Net income	3	4	10	4	30	73	77	86
+Statistics								
+Price	5.81	13.15	29.59	14.61	48.17	137.49	108.38	157.99
+Dividend		0.0012	0.0007	0.0008	0.0003	0.0003		
+#config	nasdaq:nvda	24300000000	1000000000	Equity|Total assets|Revenue|Operating income|Net income				

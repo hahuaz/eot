@@ -1,0 +1,15 @@
+metricName	2019/12/30	2020/12/30	2021/12/30	2022/12/30	2023/12/30	2024/12/30	2025/3/30	2025/6/30
+Balance sheet								
+Cash & cash equivalents								
+Short term liabilities								
+Long term liabilities	1220	1810	2360	2120	2430	3330	3530	3140
+Equity	1340	1100	1120	19	175	81	28	164
+Total assets	3240	3390	4880	2450	2970	4040	4270	4100
+Income statement								
+Revenue	585	370	335	722	1190	1750	1925	2154
+Operating income	65	47	99	157	356	552	610	678
+Net income	225	-88	-104	-193	243	8	71	455
+Statistics								
+Price	16.72	19.31	24.43	17.12	45.33	126.51	111.03	115.04
+Dividend		0.0563	0.0456	0.0754	0.0259	0.0083		
+#config	nasdaq:ftai	102571000	1000000	Total assets|Revenue|Operating income				

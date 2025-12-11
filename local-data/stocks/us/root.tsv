@@ -1,0 +1,15 @@
+metricName	2019/12/30	2020/12/30	2021/12/30	2022/12/30	2023/12/30	2024/12/30	2025/3/30	2025/6/30
+Balance sheet								
+Cash & cash equivalents	225	935	692	464	380	398	414	445
+Short term liabilities								
+Long term liabilities								
+Equity	186	1000	648	389	277	315	340	356
+Total assets	685	1520	1060	1090	1170	1320	1410	1430
+Income statement								
+Revenue	290	346	345	310	455	1180	1275	1368
+Operating income	-260	-285	-485	-242	-90	78	96	119
+Net income	-282	-363	-521	-297	-147	30	54	83
+Statistics								
+Price		297.90	55.62	4.49	10.47	73.39	133.44	127.97
+Dividend								
+#config	NASDAQ:ROOT	13619000	1000000	Equity|Revenue				

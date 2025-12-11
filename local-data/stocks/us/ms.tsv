@@ -1,0 +1,15 @@
+metricName	2019/12/30	2020/12/30	2021/12/30	2022/12/30	2023/12/30	2024/12/30	2025/3/30	2025/6/30
+Balance sheet								
+Cash & cash equivalents								
+Short term liabilities								
+Long term liabilities								
+Equity	81	101	105	100	99	104	106	109
+Total assets	896	1120	1190	1180	1200	1220	1300	1350
+Income statement								
+Revenue	53	52	61	65	92	107	110	112
+Operating income	11	14	19	14	12	17	19	19
+Net income	9	11	15	11	9	13	14	15
+Statistics								
+Price	50.96	67.84	98.80	85.02	93.90	125.75	116.67	140.86
+Dividend		0.0204	0.0214	0.0347	0.0349	0.0282		
+#config	nyse:ms	1596336000	1000000000	Revenue|Operating income|Net income				

@@ -1,0 +1,15 @@
+metricName	2019/12/30	2020/12/30	2021/12/30	2022/12/30	2023/12/30	2024/12/30	2025/3/30	2025/6/30
+Balance sheet								
+Cash & cash equivalents								
+Short term liabilities								
+Long term liabilities								
+Equity	2080	1650	1530	1830	3070	4350	5000	5710
+Total assets	4780	6530	10100	13740	17610	25200	27680	32950
+Income statement								
+Revenue	2300	3970	7070	10540	15110	20780	22390	24110
+Operating income	-153	127	449	1060	2210	2630	2865	2964
+Net income	-172	-700	83	482	987	1910	2060	2052
+Statistics								
+Price	583.85	1712.94	1356.46	846.24	1529.16	1721.80	1950.87	2613.63
+Dividend								
+#config	nasdaq:meli	50697000	1000000	Equity|Total assets|Revenue				

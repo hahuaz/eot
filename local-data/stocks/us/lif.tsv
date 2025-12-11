@@ -1,0 +1,15 @@
+metricName	2019/12/30	2020/12/30	2021/12/30	2022/12/30	2023/12/30	2024/12/30	2025/3/30	2025/6/30
+Balance sheet								
+Cash & cash equivalents								
+Short term liabilities								
+Long term liabilities								
+Equity	72	65	251	244	247	358	376	366
+Total assets	88	86	351	442	426	441	455	753
+Income statement								
+Revenue	58	80	112	228	304	371	396	427
+Operating income	-29	-16	-28	-94	-25	-7	1	5
+Net income	-28	-16	-33	-91	-28	-4	9	26
+Statistics								
+Price					25.00	41.83	38.39	65.25
+Dividend								
+#config	nasdaq:lif	77549000	1000000	Equity|Total assets|Revenue				

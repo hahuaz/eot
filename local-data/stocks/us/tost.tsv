@@ -1,0 +1,15 @@
+metricName	2019/12/30	2020/12/30	2021/12/30	2022/12/30	2023/12/30	2024/12/30	2025/3/30	2025/6/30
+Balance sheet								
+Cash & cash equivalents							1470	1680
+Short term liabilities								
+Long term liabilities								
+Equity	-330	-470	1090	1100	1190	1540	1670	1820
+Total assets	305	775	1740	1760	1960	2460	2560	2770
+Income statement								
+Revenue	665	823	1710	2730	3870	4960	5230	5540
+Operating income	-212	-220	-223	-380	-272	67	132	204
+Net income	-209	-248	-487	-275	-246	19	158	224
+Statistics								
+Price			36.76	18.03	18.06	36.88	33.17	44.29
+Dividend								
+#config	nyse:tost	510000000	1000000	Total assets|Revenue				

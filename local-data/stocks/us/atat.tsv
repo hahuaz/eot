@@ -1,0 +1,15 @@
+metricName	2019/12/30	2020/12/30	2021/12/30	2022/12/30	2023/12/30	2024/12/30	2025/3/30	2025/6/30
+Balance sheet								
+Cash & cash equivalents	100	107	145		231	431	431	489
+Short term liabilities								
+Long term liabilities				79				
+Equity	75	86	88	170	291	405	454	458
+Total assets	236	303	352	685	928	1080	1090	1170
+Income statement								
+Revenue	226	226	332	336	658	1010	1067	1160
+Operating income	21	15	31	20	120	215	218	249
+Net income	9	6	22	14	104	177	175	192
+Statistics								
+Price				18.02	16.82	26.56	28.35	32.51
+Dividend					0.0076	0.0156		
+#config	nasdaq:atat	139470000	1000000	Equity|Total assets|Revenue|Operating income				

@@ -1,0 +1,221 @@
+{
+  "amzn": {
+    "price": 232,
+    "color": "green",
+    "notes": [
+      "AWS revenue portion (Q1 '25): Rev 19%, OI 67%. (Q1 '24): Rev 17%, OI 62%."
+    ]
+  },
+  "v": {
+    "price": 340
+  },
+  "dis": {
+    "price": 113,
+    "notes": [
+      "Q2 '25 Rev: Disney/Hulu 22.4%, TV Affiliates 17%, Ads 13%, Parks 12%, Food 10%, Resorts 9%."
+    ]
+  },
+  "plmr": {
+    "price": 116,
+    "notes": ["Insurance. Q2 '25: Insider sells; only 3.7% ownership."]
+  },
+  "sezl": {
+    "price": 90,
+    "notes": ["Buy Now Pay Later (BNPL) app."]
+  },
+  "tmdx": {
+    "price": 124,
+    "notes": ["Organ preservation for transplants."]
+  },
+  "lif": {
+    "price": 100,
+    "notes": ["Location sharing app."]
+  },
+  "adma": {
+    "price": 16.5,
+    "notes": ["Biopharma. Constant share dilution."]
+  },
+  "main": {
+    "price": 65,
+    "color": "yellow",
+    "notes": ["Invests in small and mid-sized companies."]
+  },
+  "sym": {
+    "price": 56,
+    "notes": ["Robotics and automation."]
+  },
+  "well": {
+    "price": 166,
+    "notes": ["Senior housing."]
+  },
+  "pdd": {
+    "price": 131,
+    "notes": ["Temu parent company."]
+  },
+  "grbk": {
+    "price": 71,
+    "notes": ["Homebuilder."]
+  },
+  "anet": {
+    "price": 148,
+    "notes": ["Networking hardware/software."]
+  },
+  "shop": {
+    "price": 154,
+    "notes": ["20% share dilution since 2019."]
+  },
+  "scco": {
+    "price": 109,
+    "color": "green",
+    "notes": ["Copper mining."]
+  },
+  "vitl": {
+    "price": 44,
+    "notes": ["Egg producer."]
+  },
+  "exel": {
+    "price": 40,
+    "notes": [
+      "90% rev from single drug. Q1 '25: Insider selling. Share buybacks active."
+    ]
+  },
+  "ttd": {
+    "price": 43,
+    "notes": ["Digital ads. 50% rev from Connected TV (netflix,appletv)."]
+  },
+  "acgl": {
+    "price": 88,
+    "notes": ["Global operations. 50% insurance, 50% reinsurance"]
+  },
+  "halo": {
+    "price": 76,
+    "color": "yellow",
+    "notes": [
+      "Revenue through primarily royalties/licensing from ENHANZE tech."
+    ]
+  },
+  "lpla": {
+    "price": 326,
+    "notes": ["Largest US financial advisory firm."]
+  },
+  "tost": {
+    "price": 41,
+    "notes": [
+      "Cloud-based restaurant management platform. Q1 '25 insider sells. Constant dilution."
+    ]
+  },
+  "nvda": {
+    "price": 175
+  },
+  "tw": {
+    "price": 111,
+    "color": "green",
+    "notes": [
+      "trading platform for institutional clients (bonds, ETFs, derivatives)."
+    ]
+  },
+  "ymm": {
+    "price": 13,
+    "notes": [
+      "China's largest digital freight platform, connecting shippers and truck drivers via app."
+    ]
+  },
+  "crwd": {
+    "price": 500,
+    "notes": ["Cybersecurity."]
+  },
+  "se": {
+    "price": 192,
+    "notes": ["Ecommerce/Gaming. Diluting shares. Rev: 70% SE Asia, 30% LatAm."]
+  },
+  "aph": {
+    "price": 123,
+    "notes": ["Electronics manufacturing."]
+  },
+  "ms": {
+    "price": 160,
+    "color": "yellow"
+  },
+  "lly": {
+    "price": 751,
+    "color": "green",
+    "notes": ["Pharma. Growing international revenue."]
+  },
+  "lkncy": {
+    "price": 38,
+    "notes": ["Coffee chain in China."]
+  },
+  "meli": {
+    "price": 2448,
+    "color": "green",
+    "notes": ["Ecommerce. Income: 67% Brazil, 27% Mexico."]
+  },
+  "atat": {
+    "price": 40,
+    "color": "green",
+    "notes": ["China hotel chain."]
+  },
+  "frhc": {
+    "price": 166,
+    "color": "green",
+    "notes": [
+      "71% closely held (Q3 '25). Fin-services in E. Europe/Central Asia."
+    ]
+  },
+  "jpm": {
+    "price": 314,
+    "color": "green"
+  },
+  "eqx": {
+    "price": 10.6,
+    "color": "red",
+    "notes": ["Mining. Constant share dilution."]
+  },
+  "futu": {
+    "price": 177,
+    "color": "green",
+    "notes": ["Tech platform for Chinese stock investors."]
+  },
+  "ftai": {
+    "price": 178,
+    "color": "yellow",
+    "notes": ["Global aircraft engine repair."]
+  },
+  "snex": {
+    "price": 95,
+    "color": "green",
+    "notes": ["70% rev from agricultural Commodities. 91% rev from ME/Asia."]
+  },
+  "root": {
+    "price": 103,
+    "notes": ["High IPO price. Q1 '25: Insider selling."]
+  },
+  "ntra": {
+    "price": 180,
+    "color": "green"
+  },
+  "aapl": {
+    "price": 245
+  },
+  "wmt": {
+    "price": 102
+  },
+  "msft": {
+    "price": 510,
+    "notes": [
+      "2024 Rev: Cloud 40%, Office 22%, Windows 9.5%, Gaming 8.8%, LinkedIn 6.7%."
+    ],
+    "color": "yellow"
+  },
+  "goog": {
+    "price": 254
+  },
+  "byddf": {
+    "price": 14,
+    "notes": [
+      "Top EV maker. Rev: 71% China, 29% Overseas.",
+      "Q2 '25: 50% capacity usage, demand dropping in China, night shifts closed."
+    ],
+    "color": "red"
+  }
+}

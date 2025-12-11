@@ -1,0 +1,15 @@
+metricName	2019/12/30	2020/12/30	2021/12/30	2022/12/30	2023/12/30	2024/12/30	2025/3/30	2025/6/30
+Balance sheet								
+Cash & cash equivalents								173
+Short term liabilities								
+Long term liabilities								
+Equity	726	406	807	953	1370	1790	1890	2100
+Total assets	1400	1430	1930	1510	2580	3160	3270	3770
+Income statement								
+Revenue	437	584	1240	1970	3510	4790	5137	5687
+Operating income	-424	-294	152	221	439	481	597	687
+Net income	-537	-809	89	72	401	407	490	542
+Statistics								
+Price	37.78	8.25	9.72	22.02	26.25	24.62	34.59	37.27
+Dividend								
+#config	OTCMKTS:LKNCY	275910000	1000000	Equity|Total assets|Revenue				

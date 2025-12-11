@@ -1,0 +1,15 @@
+metricName	2019/12/30	2020/12/30	2021/12/30	2022/12/30	2023/12/30	2024/12/30	2025/3/30	2025/6/30
+Balance sheet								
+Cash & cash equivalents								
+Short term liabilities								
+Long term liabilities		29	135	1140	1160	940	759	960
+Equity	91	151	196	169	83	363	482	332
+Total assets	565	579	1100	1840	1730	2160	2200	2050
+Income statement								
+Revenue	195	267	443	660	829	1020	1089	1183
+Operating income	-36	144	275	289	337	551	597	682
+Net income	-72	129	402	202	281	444	486	558
+Statistics								
+Price	17.83	42.59	40.32	56.90	37.39	47.99	63.81	52.02
+Dividend								
+#config	nasdaq:halo	116966000	1000000	Total assets|Revenue				

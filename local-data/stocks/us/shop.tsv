@@ -1,0 +1,15 @@
+metricName	2019/12/30	2020/12/30	2021/12/30	2022/12/30	2023/12/30	2024/12/30	2025/3/30	2025/6/30
+Balance sheet								
+Cash & cash equivalents	2300	5480	6590	3650	3840	4350	4380	4690
+Short term liabilities								
+Long term liabilities								
+Equity	3020	6400	11120	8240	9020	11550	11050	12150
+Total assets	3490	7760	13320	10750	11240	13920	13400	14590
+Income statement								
+Revenue	1610	3080	4570	5380	7190	8450	8950	9630
+Operating income	-139	136	324	-637	88	1300	1447	1540
+Net income	-127	336	2890	-3320	135	1920	1512	2262
+Statistics								
+Price	39.64	116.30	139.82	34.71	73.83	106.69	95.48	115.35
+Dividend								
+#config	nasdaq:shop	1220419000	1000000	Equity|Total assets|Revenue				

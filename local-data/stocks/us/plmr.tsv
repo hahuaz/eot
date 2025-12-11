@@ -1,0 +1,15 @@
+metricName	2019/12/30	2020/12/30	2021/12/30	2022/12/30	2023/12/30	2024/12/30	2025/3/30	2025/6/30
+Balance sheet								
+Cash & cash equivalents								
+Short term liabilities								
+Long term liabilities								
+Equity	218	363	394	384	471	729	790	847
+Total assets	356	597	725	908	1170	1590	1740	2060
+Income statement								
+Revenue	113	168	247	327	376	553	609	681
+Operating income	20	6	57	68	108	151	169	196
+Net income	10	6	45	52	79	117	133	154
+Statistics								
+Price	48.60	86.90	63.76	45.16	56.67	104.45	137.08	154.25
+Dividend								
+#config	nasdaq:plmr	26783000	1000000	Equity|Total assets|Revenue|Operating income|Net income				

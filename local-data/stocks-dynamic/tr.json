@@ -1,0 +1,286 @@
+{
+  "mgros": {
+    "price": 524.5,
+    "color": "yellow",
+    "notes": [
+      "Track assets/revenue only.",
+      "Online revenue share: 18.5% ('24) -> 21.1% (Q1 '25) -> 20.4% (Q3 '25)."
+    ]
+  },
+  "froto": {
+    "price": 94.65
+  },
+  "banvt": {
+    "price": 168.5,
+    "color": "green"
+  },
+  "raysg": {
+    "price": 239.5,
+    "color": "yellow"
+  },
+  "rgyas": {
+    "price": 149.9,
+    "notes": ["EV/BV irrelevant without profitability."]
+  },
+  "pgsus": {
+    "price": 205
+  },
+  "tabgd": {
+    "price": 225.1,
+    "color": "yellow"
+  },
+  "ttkom": {
+    "price": 55.55,
+    "color": "yellow"
+  },
+  "httbt": {
+    "price": 47.24,
+    "color": "yellow"
+  },
+  "ccola": {
+    "price": 53.1
+  },
+  "kboru": {
+    "price": 14.39,
+    "color": "green",
+    "notes": [
+      "Targets: '25 (125m Rev. 16m EBITDA), '26 (320m Rev. 51m EBITDA)."
+    ]
+  },
+  "kimmr": {
+    "price": 14.82
+  },
+  "oyakc": {
+    "price": 22.9
+  },
+  "agesa": {
+    "price": 216.9
+  },
+  "cimsa": {
+    "price": 46.54,
+    "color": "yellow"
+  },
+  "asels": {
+    "price": 184.1
+  },
+  "thyao": {
+    "price": 274.5
+  },
+  "ansgr": {
+    "price": 22.1
+  },
+  "anhyt": {
+    "price": 96.05
+  },
+  "ykbnk": {
+    "price": 34.2
+  },
+  "garan": {
+    "price": 136,
+    "color": "yellow"
+  },
+  "tavhl": {
+    "price": 272.5,
+    "color": "yellow"
+  },
+  "tuprs": {
+    "price": 193.7
+  },
+  "ttrak": {
+    "price": 519.5
+  },
+  "toaso": {
+    "price": 229
+  },
+  "mpark": {
+    "price": 330.5,
+    "color": "yellow"
+  },
+  "arclk": {
+    "price": 105.7
+  },
+  "tursg": {
+    "price": 12.15,
+    "color": "yellow"
+  },
+  "ekgyo": {
+    "price": 20.28
+  },
+  "ulker": {
+    "price": 111.5,
+    "notes": [
+      "High FX debt risk (8.5% USD, 10.5% EUR). Sensitive to TRY depreciation, as it earns revenue in a weakening currency but must repay debt in stronger foreign currencies.."
+    ],
+    "color": "red"
+  },
+  "bobet": {
+    "price": 18.74,
+    "color": "green"
+  },
+  "rysas": {
+    "price": 14.03,
+    "color": "green"
+  },
+  "cvkmd": {
+    "price": 17.28
+  },
+  "trgyo": {
+    "price": 71.5,
+    "notes": ["2025 Net Income target 20b vs Q1 actual 0.76b."]
+  },
+  "brsan": {
+    "price": 457,
+    "color": "green"
+  },
+  "enkai": {
+    "price": 77.1,
+    "notes": ["Heavy cash and non-current investment position."],
+    "color": "yellow"
+  },
+  "eggub": {
+    "price": 97.1
+  },
+  "basgz": {
+    "price": 41.42
+  },
+  "penta": {
+    "price": 13.78
+  },
+  "tarkm": {
+    "price": 336.75
+  },
+  "eregl": {
+    "price": 24
+  },
+  "megmt": {
+    "price": 42.86
+  },
+  "zrgyo": {
+    "price": 22.54
+  },
+  "tcell": {
+    "price": 94.65
+  },
+  "vakko": {
+    "price": 57.1
+  },
+  "paseu": {
+    "price": 138.5
+  },
+  "glyho": {
+    "price": 11.54
+  },
+  "ofsym": {
+    "price": 59.35
+  },
+  "sokm": {
+    "price": 45.64
+  },
+  "rygyo": {
+    "price": 20.66
+  },
+  "marbl": {
+    "price": 12.86
+  },
+  "bsoke": {
+    "price": 15.49,
+    "color": "red",
+    "notes": ["3 paid capital increases in last 10 years."]
+  },
+  "lmkdc": {
+    "price": 28.2
+  },
+  "gubrf": {
+    "price": 334.5
+  },
+  "tborg": {
+    "price": 163.4,
+    "color": "yellow"
+  },
+  "aksen": {
+    "price": 51.45
+  },
+  "bimas": {
+    "price": 544.5
+  },
+  "suwen": {
+    "price": 10.02,
+    "color": "yellow"
+  },
+  "ktlev": {
+    "price": 16.31
+  },
+  "vestl": {
+    "price": 33.92
+  },
+  "tgsas": {
+    "price": 170
+  },
+  "doas": {
+    "price": 184.2
+  },
+  "alfas": {
+    "price": 42.46,
+    "color": "green"
+  },
+  "ahgaz": {
+    "price": 27.84,
+    "color": "yellow",
+    "notes": ["Buy after Q3 to capture strong winter seasonality."]
+  },
+  "grsel": {
+    "price": 313.25
+  },
+  "desa": {
+    "price": 11.18,
+    "notes": ["Q1 '25: 42% of equity is cash/bonds."]
+  },
+  "orge": {
+    "price": 67.65
+  },
+  "kontr": {
+    "price": 33
+  },
+  "genil": {
+    "price": 187.1
+  },
+  "koton": {
+    "price": 14.88,
+    "color": "green"
+  },
+  "selec": {
+    "price": 68.2
+  },
+  "kfein": {
+    "price": 9.13
+  },
+  "gesan": {
+    "price": 44.4
+  },
+  "eupwr": {
+    "price": 29.06
+  },
+  "pltur": {
+    "price": 20.4,
+    "color": "yellow"
+  },
+  "sekur": {
+    "price": 3.82
+  },
+  "goknr": {
+    "price": 20.92,
+    "notes": ["Heavily export-dependent revenue."]
+  },
+  "segmn": {
+    "price": 18.29
+  },
+  "suntk": {
+    "price": 37.42
+  },
+  "astor": {
+    "price": 92.5
+  },
+  "test": {
+    "price": 27.63
+  }
+}

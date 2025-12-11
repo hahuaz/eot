@@ -1,0 +1,15 @@
+metricName	2019/12/30	2020/12/30	2021/12/30	2022/12/30	2023/12/30	2024/12/30	2025/3/30	2025/6/30
+Balance sheet								
+Cash & cash equivalents				386	277	714		
+Short term liabilities								
+Long term liabilities	164	1270	687				265	129
+Equity	327	1070	2690	2670	3150	3610	3890	4240
+Total assets	2750	9200	13020	12110	12440	20440	23220	25270
+Income statement								
+Revenue	135	426	915	972	1280	1740	2012	2292
+Operating income	35	231	457	493	755	1060	1273	1512
+Net income	21	170	361	373	546	697	840	1014
+Statistics								
+Price		42.50	43.02	40.65	51.49	80.52	102.35	123.59
+Dividend								
+#config	nasdaq:futu	138041611	1000000	Equity|Total assets|Revenue|Operating income|Net income				

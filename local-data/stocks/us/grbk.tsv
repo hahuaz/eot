@@ -1,0 +1,15 @@
+metricName	2019/12/30	2020/12/30	2021/12/30	2022/12/30	2023/12/30	2024/12/30	2025/3/30	2025/6/30
+Balance sheet								
+Cash & cash equivalents								
+Short term liabilities								
+Long term liabilities								
+Equity	550	662	910	1110	1350	1700	1690	1790
+Total assets	876	989	1420	1660	1900	2250	2270	2320
+Income statement								
+Revenue	791	976	1400	1760	1780	2100	2150	2140
+Operating income	70	122	227	359	355	476	479	454
+Net income	58	113	190	291	284	381	373	350
+Statistics								
+Price	11.50	23.44	30.10	24.23	51.84	56.10	58.31	62.88
+Dividend								
+#config	nyse:grbk	50760000	1000000	Equity|Total assets|Revenue|Operating income|Net income				

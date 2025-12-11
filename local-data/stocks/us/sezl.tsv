@@ -1,0 +1,15 @@
+metricName	2019/12/30	2020/12/30	2021/12/30	2022/12/30	2023/12/30	2024/12/30	2025/3/30	2025/6/30
+Balance sheet								
+Cash & cash equivalents								
+Short term liabilities								
+Long term liabilities								
+Equity	27	59	37	8	22	87	125	130
+Total assets	64	174	223	172	212	299	298	350
+Income statement								
+Revenue	15	58	114	125	159	271	329	372
+Operating income	-11	-27	-68	-39	22	82	118	138
+Net income	-13	-32	-75	-38	7	78	106	104
+Statistics								
+Price					3.57	42.50	34.89	179.25
+Dividend								
+#config	nasdaq:sezl	34023000	1000000	Equity|Total assets|Revenue				

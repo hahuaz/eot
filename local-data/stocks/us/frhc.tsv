@@ -1,0 +1,15 @@
+metricName	2019/12/30	2020/12/30	2021/12/30	2022/12/30	2023/12/30	2024/12/30	2025/3/30	2025/6/30
+Balance sheet								
+Cash & cash equivalents								
+Short term liabilities								
+Long term liabilities							173	200
+Equity	129	275	546	770	1170	1210	1230	1240
+Total assets	325	2100	3230	5080	8300	9910	9690	10000
+Income statement								
+Revenue	120	264	685	808	1590	1970	2081	2093
+Operating income	40	161	440	389	854	580	570	444
+Net income	24	142	227	231	375	84	80	-24
+Statistics								
+Price	14.62	51.67	69.89	58.22	79.84	130.97	132.17	146.05
+Dividend								
+#config	nasdaq:frhc	61222000	1000000	Equity|Total assets|Revenue|Operating income				

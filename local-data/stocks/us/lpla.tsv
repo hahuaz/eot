@@ -1,0 +1,15 @@
+metricName	2019/12/30	2020/12/30	2021/12/30	2022/12/30	2023/12/30	2024/12/30	2025/3/30	2025/6/30
+Balance sheet								
+Cash & cash equivalents								
+Short term liabilities								
+Long term liabilities	1170	793	973		1380	3340	3380	1840
+Equity	1020	1310	1670	2170	2080	2930	3120	5070
+Total assets	6070	6800	8250	9650	10550	13620	13960	17470
+Income statement								
+Revenue	5620	5870	7720	8600	10050	12390	13230	14140
+Operating income	874	731	806	1240	1630	1770	1878	1996
+Net income	559	472	459	845	1070	1060	1090	1120
+Statistics								
+Price	92.59	104.00	161.87	216.17	230.75	326.98	327.14	374.97
+Dividend		0.0096	0.0062	0.0046	0.0053	0.0037		
+#config	nasdaq:lpla	80004000	1000000	Revenue|Operating income|Net income				

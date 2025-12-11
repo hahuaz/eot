@@ -1,0 +1,15 @@
+metricName	2019/12/30	2020/12/30	2021/12/30	2022/12/30	2023/12/30	2024/12/30	2025/3/30	2025/6/30
+Balance sheet								
+Cash & cash equivalents								
+Short term liabilities								
+Long term liabilities								
+Equity	12320	13990	13560	12920	18360	20820	21550	23000
+Total assets	32300	37550	37490	39630	49670	60220	63310	66000
+Income statement								
+Revenue	6810	8360	8880	9500	13360	16860	17640	18630
+Operating income	1870	1640	1830	1400	3300	3960	3577	3767
+Net income	1640	1410	2140	1480	4440	4310	3764	3734
+Statistics								
+Price	42.73	35.58	44.33	62.78	75.55	91.89	96.18	91.05
+Dividend								
+#config	nasdaq:acgl	373220000	1000000	Equity|Total assets|Revenue|Operating income|Net income				

@@ -1,0 +1,15 @@
+metricName	2019/12/30	2020/12/30	2021/12/30	2022/12/30	2023/12/30	2024/12/30	2025/3/30	2025/6/30
+Balance sheet								
+Cash & cash equivalents								
+Short term liabilities								
+Long term liabilities	196	216	39	625	683	1180	1210	1350
+Equity	403	1450	2580	2350	2430	3400	3320	5300
+Total assets	839	2670	3960	3850	4330	6710	6670	10040
+Income statement								
+Revenue	288	890	1070	914	1110	1440	1622	1839
+Operating income	56	195	152	10	36	226	235	320
+Net income	-18	23	550	-101	29	323	290	31
+Statistics								
+Price	7.75	10.46	6.64	3.28	4.70	4.97	6.88	5.75
+Dividend								
+#config	NYSEAMERICAN:EQX	781799000	1000000	Equity|Total assets				

@@ -1,0 +1,15 @@
+metricName	2019/12/30	2020/12/30	2021/12/30	2022/12/30	2023/12/30	2024/12/30	2025/3/30	2025/6/30
+Balance sheet								
+Cash & cash equivalents					2580	2860	2790	2340
+Short term liabilities								
+Long term liabilities								
+Equity	2090	3730	5150	4860	5060	5220	5270	5560
+Total assets	2430	4040	5600	5280	5550	5660	5850	5950
+Income statement								
+Revenue	357	373	722	999	1190	1560	1616	1682
+Operating income	-149	-526	-592	-31	135	340	457	537
+Net income	-220	-502	-566	60	312	426	520	579
+Statistics								
+Price			8.69	8.00	6.60	10.82	12.77	11.81
+Dividend					0.0180	0.0075		
+#config	nyse:ymm	18786020000	1000000	Equity|Total assets|Revenue				

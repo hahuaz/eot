@@ -1,0 +1,15 @@
+metricName	2019/12/30	2020/12/30	2021/12/30	2022/12/30	2023/12/30	2024/12/30	2025/3/30	2025/6/30
+Balance sheet								
+Cash & cash equivalents	801	1150	1410	1100	779	895	844	611
+Short term liabilities								
+Long term liabilities								
+Equity	1690	1880	2210	2490	2260	2240	2130	2030
+Total assets	1890	2150	2620	3070	3000	2990	2840	2680
+Income statement								
+Revenue	967	987	1430	1610	1830	2170	2300	2231
+Operating income	369	110	286	201	170	689	813	750
+Net income	321	111	231	182	207	521	643	601
+Statistics								
+Price	17.72	20.21	18.63	16.04	23.93	33.70	36.92	44.08
+Dividend								
+#config	nasdaq:exel	269203000	1000000	Equity|Total assets|Revenue|Operating income				

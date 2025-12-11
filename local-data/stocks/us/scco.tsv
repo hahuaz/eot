@@ -1,0 +1,15 @@
+metricName	2019/12/30	2020/12/30	2021/12/30	2022/12/30	2023/12/30	2024/12/30	2025/3/30	2025/6/30
+Balance sheet								
+Cash & cash equivalents								
+Short term liabilities								
+Long term liabilities	5980	4930	3980	4820	5280	3490	3630	3440
+Equity	6810	7220	8150	8080	7420	9170	9570	10050
+Total assets	16410	16950	18300	17280	16730	18710	19790	19550
+Income statement								
+Revenue	7290	7980	10930	10050	9900	11430	11950	11880
+Operating income	2750	3120	6070	4440	4190	5550	5900	6040
+Net income	1490	1570	3400	2640	2430	3380	3589	3612
+Statistics								
+Price	40.45	62.65	58.29	57.49	80.59	89.00	91.62	100.16
+Dividend		0.0230	0.0519	0.0580	0.0465	0.0227		
+#config	nyse:scco	812189000	1000000	Equity|Total assets|Revenue|Operating income|Net income				

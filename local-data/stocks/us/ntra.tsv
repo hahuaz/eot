@@ -1,0 +1,15 @@
+metricName	2019/12/30	2020/12/30	2021/12/30	2022/12/30	2023/12/30	2024/12/30	2025/3/30	2025/6/30
+Balance sheet								
+Cash & cash equivalents	285	456	517	452	436	781	796	819
+Short term liabilities								
+Long term liabilities								
+Equity	278	486	653	705	765	1200	1240	1250
+Total assets	589	957	1250	1410	1460	1690	1730	1760
+Income statement								
+Revenue	302	391	625	820	1080	1700	1834	1967
+Operating income	-129	-216	-432	-531	-443	-222	-227	-293
+Net income	-124	-229	-471	-547	-434	-190	-190	-253
+Statistics								
+Price	33.53	98.85	93.15	40.17	61.92	158.55	141.41	168.94
+Dividend								
+#config	ntra	137248000	1000000	Equity|Revenue				
