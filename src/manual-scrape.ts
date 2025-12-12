@@ -105,12 +105,11 @@ function updateCsvFile(
   }
 }
 
-
-
 async function main() {
   const now = new Date();
-  const currentDate = `${now.getFullYear()}/${now.getMonth() + 1
-    }/${now.getDate()}`;
+  const currentDate = `${now.getFullYear()}/${
+    now.getMonth() + 1
+  }/${now.getDate()}`;
 
   populateTrStockResources();
 

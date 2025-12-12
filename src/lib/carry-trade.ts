@@ -57,7 +57,7 @@ export const getCarryTrade = () => {
 
   if (!usd0Obj || !eur0Obj || !bgp0Obj) {
     throw new Error(
-      `Baseline date ${BASELINE_DATE} not found in one of the data sources.`
+      `Baseline date ${BASELINE_DATE} not found in one of the data sources.`,
     );
   }
 

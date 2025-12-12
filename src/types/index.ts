@@ -1,5 +1,3 @@
-
-
 export type Site = {
   // The domain of the site to scrape e.g., "https://fintables.com/"
   domain: string;
