@@ -16,7 +16,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatNumber } from "@/lib";
+import { formatNumber, API_URL } from "@/lib";
+
 
 import {
   DATES,
@@ -27,7 +28,7 @@ import {
   MetricNames,
 } from "@shared/types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 
 const TABLE_SECTION_HEADERS: MetricNames[] = [
   "Balance sheet",

@@ -27,7 +27,7 @@ const readDailyCsv = (filename: string) =>
 // ==== Helpers ====
 function ensureCommonDates(
   referenceDates: string[],
-  allHistory: PricePoint[][]
+  allHistory: PricePoint[][],
 ) {
   for (const symbolHistory of allHistory) {
     for (const date of referenceDates) {
@@ -47,7 +47,7 @@ export const getCarryTrade = () => {
   // USDTRY dates as reference
   let commonDates = usdtryHistory.data.map((d) => d.date);
   commonDates = commonDates.filter(
-    (d) => new Date(d) >= new Date(BASELINE_DATE)
+    (d) => new Date(d) >= new Date(BASELINE_DATE),
   );
   ensureCommonDates(commonDates, [eurtryHistory.data, bgpHistory.data]);
 

@@ -14,12 +14,12 @@ async function scrapeUrl(
   browser: Browser,
   url: string,
   querySelector: string,
-  isLocalTr: boolean | undefined = false
+  isLocalTr: boolean | undefined = false,
 ): Promise<ScrapeResult[0] | null> {
   const page = await browser.newPage();
   try {
     await page.setUserAgent(
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36"
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36",
     );
     await page.goto(url, { waitUntil: "networkidle2" });
 
@@ -30,7 +30,7 @@ async function scrapeUrl(
         return el && el.textContent && el.textContent.trim().length > 0;
       },
       { polling: "mutation", timeout: 55000 },
-      querySelector
+      querySelector,
     );
 
     let scrapeValue = await page.evaluate((qs) => {
@@ -90,7 +90,7 @@ export async function scrape(sites: Site[]): Promise<ScrapeResult> {
           browser,
           url,
           site.querySelector,
-          site.isLocalTr
+          site.isLocalTr,
         );
         if (result) {
           allResults.push(result);
@@ -98,7 +98,7 @@ export async function scrape(sites: Site[]): Promise<ScrapeResult> {
       } catch (error) {
         console.error(
           `Failed to scrape resource ${resource} from site ${site.domain}:`,
-          error
+          error,
         );
       }
     }

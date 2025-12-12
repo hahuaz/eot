@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import type { InferGetStaticPropsType, GetStaticProps } from "next";
+import { API_URL } from "@/lib";
 
 // Props type
 type DataPoint = {
@@ -26,10 +27,11 @@ interface CarryTradeChartProps {
   cumulativeBGP: DataPoint[];
 }
 
+
 export const getStaticProps: GetStaticProps<{
   carryTrade: CarryTradeChartProps;
 }> = async () => {
-  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
   const carryTrade = await fetch(`${API_URL}api/carry-trade`).then((res) =>
     res.json()
   );

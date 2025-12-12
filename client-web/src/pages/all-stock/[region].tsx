@@ -30,7 +30,8 @@ interface StockData {
   color: string | null;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+import { API_URL } from "@/lib";
+
 
 export const getStaticPaths: GetStaticPaths = async () => {
   const regions = ["us", "tr"];
@@ -259,9 +260,8 @@ const Home = ({
                   <th
                     key={header.id}
                     onClick={header.column.getToggleSortingHandler()}
-                    className={`px-3 py-2 border border-gray-200 cursor-pointer ${
-                      header.column.id === "Notes" ? "w-[300px]" : "w-[110px]"
-                    }`}
+                    className={`px-3 py-2 border border-gray-200 cursor-pointer ${header.column.id === "Notes" ? "w-[300px]" : "w-[110px]"
+                      }`}
                   >
                     {flexRender(
                       header.column.columnDef.header,
@@ -296,18 +296,17 @@ const Home = ({
                 return (
                   <td
                     key={cell.id}
-                    className={`px-2 py-1 border border-gray-100 ${
-                      cell.column.id === "stockName" && row.original.color
+                    className={`px-2 py-1 border border-gray-100 ${cell.column.id === "stockName" && row.original.color
                         ? "stock-name " + row.original.color
                         : ""
-                    } ${extraClass}`}
+                      } ${extraClass}`}
                   >
                     {cell.column.id === "rowIndex"
                       ? index + 1
                       : flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
                   </td>
                 );
               })}
@@ -320,9 +319,8 @@ const Home = ({
               {footerGroup.headers.map((header) => (
                 <th
                   key={header.id}
-                  className={`px-3 py-2 border border-gray-200 text-left ${
-                    header.column.id === "Notes" ? "w-[300px]" : "w-[110px]"
-                  }`}
+                  className={`px-3 py-2 border border-gray-200 text-left ${header.column.id === "Notes" ? "w-[300px]" : "w-[110px]"
+                    }`}
                 >
                   {flexRender(
                     header.column.columnDef.footer,

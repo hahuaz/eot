@@ -56,14 +56,14 @@ export async function monitor({
 
     // 3. check if the important resources are in increasing state
     const importantResourcesIncreasing = Object.values(
-      importantResourceState
+      importantResourceState,
     ).every((isIncreasing) => isIncreasing);
 
     // 4. trigger the alarm if all important resources are increasing and current resource is increasing
     if (importantResourcesIncreasing && curResourceIncreasing) {
       fs.appendFileSync(
         path.join(scrapedDataDirPath, "alarm.txt"),
-        `${scrapeItem.resource} is increasing, ${new Date().toLocaleString()}\n`
+        `${scrapeItem.resource} is increasing, ${new Date().toLocaleString()}\n`,
       );
       triggerAlarm();
     }
@@ -79,7 +79,7 @@ function isPriceIncreasing({
 }) {
   if (!prices || prices.length < 60) {
     console.log(
-      `Not enough prices to compare for ${resource} - ${prices.length}`
+      `Not enough prices to compare for ${resource} - ${prices.length}`,
     );
     return false;
   }
@@ -105,7 +105,7 @@ export function triggerAlarm() {
     process.cwd(),
     "src",
     "assets",
-    "notification.wav"
+    "notification.wav",
   );
   console.log("Playing sound:", soundPath);
 
