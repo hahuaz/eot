@@ -9,7 +9,8 @@
     "test:watch": "vitest",
     "dev:scrape": "NODE_ENV=development tsx watch src/manual-scrape.ts",
     "format": "prettier --write .",
-    "lint": "oxlint"
+    "lint": "oxlint",
+    "prepare": "husky"
   },
   "keywords": [],
   "author": "",
@@ -32,9 +33,17 @@
     "@types/papaparse": "^5.3.16",
     "add": "^2.0.6",
     "concurrently": "^9.1.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "oxlint": "^1.32.0",
     "pnpm": "^10.10.0",
     "prettier": "^3.7.4",
     "vitest": "^3.2.4"
+  },
+  "lint-staged": {
+    "**/*.{js,ts,tsx,json,md}": "prettier --write",
+    "**/*.{js,ts,tsx}": "oxlint",
+    "client-web/**/*.{ts,tsx}": "tsc --noEmit --project client-web/tsconfig.json",
+    "src/**/*.{ts,tsx}": "tsc --noEmit"
   }
 }
