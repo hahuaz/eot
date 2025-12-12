@@ -8,7 +8,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "dev:scrape": "NODE_ENV=development tsx watch src/manual-scrape.ts",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "lint": "oxlint"
   },
   "keywords": [],
   "author": "",
@@ -31,6 +32,7 @@
     "@types/papaparse": "^5.3.16",
     "add": "^2.0.6",
     "concurrently": "^9.1.2",
+    "oxlint": "^1.32.0",
     "pnpm": "^10.10.0",
     "prettier": "^3.7.4",
     "vitest": "^3.2.4"

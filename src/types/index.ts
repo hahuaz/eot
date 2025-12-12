@@ -1,5 +1,4 @@
-import { Request } from "express";
-import { Inflation, StockDynamic, Stock } from "@shared/types";
+
 
 export type Site = {
   // The domain of the site to scrape e.g., "https://fintables.com/"

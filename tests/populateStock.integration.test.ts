@@ -6,17 +6,13 @@ import {
   getStocksDynamic,
   populateStock,
   DATA_DIR,
-} from "../lib";
+} from "../src/lib";
 import type {
   Inflation,
-  StockDynamic,
-  Stock,
-  BaseMetric,
-  StockSymbol,
-} from "../shared/types";
-import { Region, regions } from "../types";
+} from "../src/shared/types";
+import { Region, regions } from "../src/types";
 
-import { parseCSV } from "../lib";
+import { parseCSV } from "../src/lib";
 
 function getMetric(metrics: any[], name: string) {
   const m = metrics.find((x) => x.metricName === name);

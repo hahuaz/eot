@@ -6,7 +6,7 @@ import type {
   GetStaticPaths,
 } from "next";
 
-import Link from "next/link";
+
 
 import {
   Table,
@@ -50,16 +50,7 @@ const NORMALIZED_METRIC_NAMES: MetricNames[] = [
 ];
 
 // force two digits for these metric names
-const TWO_DIGIT_METRIC_NAMES: MetricNames[] = [
-  "Price",
-  "Dividend",
-  "Yield",
-  "Net debt / operating income",
-  "EV / operating income",
-  "EV / net income",
-  "Market value / book value",
-  "Selected growth",
-];
+
 
 export const getStaticPaths: GetStaticPaths = async () => {
   const stockNamesTr = await fetch(`${API_URL}api/stock-names?region=tr`).then(
@@ -179,7 +170,7 @@ const AllPage = ({
             <TableRow>
               <TableHead key={0} className="text-left "></TableHead>
 
-              {[...GROWTH_COLUMNS, ...DATES]?.map((field, i) => (
+              {[...GROWTH_COLUMNS, ...DATES]?.map((field) => (
                 <TableHead key={field} className={`text-right w-[90px]`}>
                   {field}
                 </TableHead>

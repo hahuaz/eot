@@ -51,9 +51,19 @@ export const getCarryTrade = () => {
   );
   ensureCommonDates(commonDates, [eurtryHistory.data, bgpHistory.data]);
 
-  const usd0 = usdtryHistory.data.find((d) => d.date === BASELINE_DATE)?.value!;
-  const eur0 = eurtryHistory.data.find((d) => d.date === BASELINE_DATE)?.value!;
-  const bgp0 = bgpHistory.data.find((d) => d.date === BASELINE_DATE)?.value!;
+  const usd0Obj = usdtryHistory.data.find((d) => d.date === BASELINE_DATE);
+  const eur0Obj = eurtryHistory.data.find((d) => d.date === BASELINE_DATE);
+  const bgp0Obj = bgpHistory.data.find((d) => d.date === BASELINE_DATE);
+
+  if (!usd0Obj || !eur0Obj || !bgp0Obj) {
+    throw new Error(
+      `Baseline date ${BASELINE_DATE} not found in one of the data sources.`
+    );
+  }
+
+  const usd0 = usd0Obj.value;
+  const eur0 = eur0Obj.value;
+  const bgp0 = bgp0Obj.value;
 
   // ---- Direct cumulative returns from levels ----
   const cumulativeUsdtry: ReturnPoint[] = [];

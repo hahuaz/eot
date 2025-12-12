@@ -105,28 +105,12 @@ function updateCsvFile(
   }
 }
 
-async function scrapeTrStocks() {
-  const trScrapeResults = await scrape([TR_STOCK_SITES]);
 
-  const trStocksJson = fs.readFileSync(TR_STOCK_PATH, "utf-8");
-  const trStocks = JSON.parse(trStocksJson) as Record<string, any>;
-
-  for (const scrape of trScrapeResults) {
-    const resource = scrape.resource.replace("symbols/", "");
-    if (trStocks[resource]) {
-      trStocks[resource].price = Number(scrape.value);
-    }
-  }
-
-  const updatedTrStocksJson = JSON.stringify(trStocks, null, 2);
-  fs.writeFileSync(TR_STOCK_PATH, updatedTrStocksJson, "utf-8");
-}
 
 async function main() {
   const now = new Date();
-  const currentDate = `${now.getFullYear()}/${
-    now.getMonth() + 1
-  }/${now.getDate()}`;
+  const currentDate = `${now.getFullYear()}/${now.getMonth() + 1
+    }/${now.getDate()}`;
 
   populateTrStockResources();
 

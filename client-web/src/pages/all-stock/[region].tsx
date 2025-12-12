@@ -128,7 +128,6 @@ export const getStaticProps: GetStaticProps<{
 
 const Home = ({
   stocks,
-  adjustedBGPYield,
   region,
 }: InferGetStaticPropsType<typeof getStaticProps>) => {
   const [sorting, setSorting] = useState<SortingState>([
@@ -297,8 +296,8 @@ const Home = ({
                   <td
                     key={cell.id}
                     className={`px-2 py-1 border border-gray-100 ${cell.column.id === "stockName" && row.original.color
-                        ? "stock-name " + row.original.color
-                        : ""
+                      ? "stock-name " + row.original.color
+                      : ""
                       } ${extraClass}`}
                   >
                     {cell.column.id === "rowIndex"

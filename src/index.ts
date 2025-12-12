@@ -14,7 +14,8 @@ import {
   getStocksDynamic,
   getMoneyFundYield,
 } from "@/lib";
-import { Inflation, StockDynamic, Stock, BaseMetric } from "@shared/types";
+import { Inflation } from "@shared/types";
+
 import { Region, regions } from "@/types";
 
 import { getCarryTrade } from "@/lib/carry-trade";
