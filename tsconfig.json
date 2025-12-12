@@ -8,10 +8,15 @@
     "strict": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["*"],
-      "@shared/*": ["shared/*"]
+      "@/*": ["src/*"],
+      "@shared/*": ["src/shared/*"]
     }
   },
-  "include": ["index.ts", "lib/**/*.ts", "shared/**/*.ts"],
+  "include": [
+    "src/index.ts",
+    "src/lib/**/*.ts",
+    "src/shared/**/*.ts",
+    "src/manual-scrape.ts"
+  ],
   "exclude": ["node_modules"]
 }

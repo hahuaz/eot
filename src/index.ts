@@ -19,15 +19,18 @@ import { Region, regions } from "@/types";
 
 import { getCarryTrade } from "@/lib/carry-trade";
 
-const INFLATION = regions.reduce((acc, region) => {
-  const inflationPath = path.join(DATA_DIR, "inflation", `${region}.csv`);
-  const { data: inflationData } = parseCSV<Inflation>({
-    filePath: inflationPath,
-    header: true,
-  });
-  acc[region] = inflationData;
-  return acc;
-}, {} as Record<Region, Inflation[]>);
+const INFLATION = regions.reduce(
+  (acc, region) => {
+    const inflationPath = path.join(DATA_DIR, "inflation", `${region}.csv`);
+    const { data: inflationData } = parseCSV<Inflation>({
+      filePath: inflationPath,
+      header: true,
+    });
+    acc[region] = inflationData;
+    return acc;
+  },
+  {} as Record<Region, Inflation[]>,
+);
 
 // --- Express App Setup ---
 

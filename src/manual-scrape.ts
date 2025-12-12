@@ -2,20 +2,20 @@ import fs from "fs";
 import path from "path";
 
 // execute config to load environment variables
-import "./config.ts";
+import "./config";
 
-import type { Site } from "./types/index.ts";
-import { scrape } from "./lib/scrape.ts";
-import { updateSheet } from "./lib/save-to-sheet.ts";
+import type { Site } from "./types/index";
+import { scrape } from "./lib/scrape";
+import { updateSheet } from "./lib/save-to-sheet";
 import { parseCSV, unparseCSV } from "./lib/index";
 
-import { Daily } from "./types/index.ts";
+import { Daily } from "./types/index";
 
 const TR_STOCK_PATH = path.join(
-  __dirname,
+  process.cwd(),
   "local-data",
   "stocks-dynamic",
-  "tr.json"
+  "tr.json",
 );
 
 if (!fs.existsSync(TR_STOCK_PATH)) {
@@ -85,7 +85,7 @@ function populateTrStockResources() {
 function updateCsvFile(
   filePath: string,
   currentDate: string,
-  scrapeValue: string
+  scrapeValue: string,
 ) {
   if (fs.existsSync(filePath)) {
     const dailyCsvContent = parseCSV<Daily>({ filePath, header: true });
@@ -133,7 +133,7 @@ async function main() {
   const genericSiteResults = await scrape([GENERIC_SITES]);
   for (const scrape of genericSiteResults) {
     const fileName = `${scrape.resource}.csv`;
-    const filePath = path.join(__dirname, "local-data", "daily", fileName);
+    const filePath = path.join(process.cwd(), "local-data", "daily", fileName);
     updateCsvFile(filePath, currentDate, scrape.value);
   }
   console.log("updated locale daily data");
@@ -146,11 +146,16 @@ async function main() {
   const selectedTrFunds = ["BGP"];
   for (const fund of selectedTrFunds) {
     const scrapeResult = trFundsScrapeResult.find(
-      (scrape) => scrape.resource === fund
+      (scrape) => scrape.resource === fund,
     );
     if (scrapeResult) {
       const fileName = `${scrapeResult.resource}.csv`;
-      const filePath = path.join(__dirname, "local-data", "daily", fileName);
+      const filePath = path.join(
+        process.cwd(),
+        "local-data",
+        "daily",
+        fileName,
+      );
       updateCsvFile(filePath, currentDate, scrapeResult.value);
     } else {
       console.log(`no scrape result found for ${fund}`);

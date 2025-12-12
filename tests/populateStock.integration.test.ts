@@ -24,15 +24,18 @@ function getMetric(metrics: any[], name: string) {
   return m;
 }
 
-const INFLATION = regions.reduce((acc: any, region: Region) => {
-  const inflationPath = path.join(DATA_DIR, "inflation", `${region}.csv`);
-  const { data: inflationData } = parseCSV<Inflation>({
-    filePath: inflationPath,
-    header: true,
-  });
-  acc[region] = inflationData;
-  return acc;
-}, {} as Record<Region, Inflation[]>);
+const INFLATION = regions.reduce(
+  (acc: any, region: Region) => {
+    const inflationPath = path.join(DATA_DIR, "inflation", `${region}.csv`);
+    const { data: inflationData } = parseCSV<Inflation>({
+      filePath: inflationPath,
+      header: true,
+    });
+    acc[region] = inflationData;
+    return acc;
+  },
+  {} as Record<Region, Inflation[]>,
+);
 
 // TODO: test data belongs to q2 of 2025 and needs to be updated periodically
 describe("populateStock (pure calc)", () => {
@@ -70,20 +73,20 @@ describe("populateStock (pure calc)", () => {
     const yieldMetric = getMetric(result.derivedMetrics, "Yield");
     const netDebtOIMetric = getMetric(
       result.derivedMetrics,
-      "Net debt / operating income"
+      "Net debt / operating income",
     );
     const enterpriseValueMetric = getMetric(
       result.derivedMetrics,
-      "Enterprise value"
+      "Enterprise value",
     );
     const evToOIMetric = getMetric(
       result.derivedMetrics,
-      "EV / operating income"
+      "EV / operating income",
     );
     const evNIMetric = getMetric(result.derivedMetrics, "EV / net income");
     const mvToBVMetric = getMetric(
       result.derivedMetrics,
-      "Market value / book value"
+      "Market value / book value",
     );
     const selectedGrowth = getMetric(result.derivedMetrics, "Selected growth");
     const equity = getMetric(result.baseMetrics, "Equity");
