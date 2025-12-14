@@ -69,11 +69,11 @@ export const createEV = ({
       )![date] ?? 0;
     const shortTermLiabilities =
       baseMetrics.find((item) => item.metricName === "Short term liabilities")![
-      date
+        date
       ] ?? 0;
     const longTermLiabilities =
       baseMetrics.find((item) => item.metricName === "Long term liabilities")![
-      date
+        date
       ] ?? 0;
 
     if (price == null) {
@@ -116,7 +116,7 @@ export const createNDtoOIMetric = ({
       )?.[date] ?? 0;
     const longTermLiabilities =
       baseMetrics.find((item) => item.metricName === "Long term liabilities")?.[
-      date
+        date
       ] ?? 0;
     const operatingIncome = baseMetrics.find(
       (item) => item.metricName === "Operating income",
@@ -248,8 +248,8 @@ export const createMVtoBVMetric = ({
 
     mvToBVMetric[date] = round(
       (price * stockConfig.outstandingShares) /
-      stockConfig.trimDigit /
-      bookValue,
+        stockConfig.trimDigit /
+        bookValue,
     );
   }
 

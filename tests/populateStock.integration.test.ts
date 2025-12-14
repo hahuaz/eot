@@ -7,9 +7,7 @@ import {
   populateStock,
   DATA_DIR,
 } from "../src/lib";
-import type {
-  Inflation,
-} from "../src/shared/types";
+import type { Inflation } from "../src/shared/types";
 import { Region, regions } from "../src/types";
 
 import { parseCSV } from "../src/lib";

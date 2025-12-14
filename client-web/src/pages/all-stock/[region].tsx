@@ -32,7 +32,6 @@ interface StockData {
 
 import { API_URL } from "@/lib";
 
-
 export const getStaticPaths: GetStaticPaths = async () => {
   const regions = ["us", "tr"];
   const paths = regions.map((region: string) => ({
@@ -52,7 +51,7 @@ export const getStaticProps: GetStaticProps<{
   const { region } = params as { region: string };
 
   const allStock = await fetch(`${API_URL}api/all-stock?region=${region}`).then(
-    (res) => res.json()
+    (res) => res.json(),
   );
 
   const filteredStockData: StockData[] = allStock.map((data: any) => {
@@ -72,7 +71,7 @@ export const getStaticProps: GetStaticProps<{
     ];
 
     const filteredMetrics = allMetrics.filter((m: any) =>
-      selectedMetrics.includes(m.metricName)
+      selectedMetrics.includes(m.metricName),
     );
     console.log("filteredMetrics", filteredMetrics);
 
@@ -120,7 +119,7 @@ export const getStaticProps: GetStaticProps<{
   });
 
   const { adjustedBGPYield } = await fetch(
-    `${API_URL}api/money-fund?&region=tr`
+    `${API_URL}api/money-fund?&region=tr`,
   ).then((res) => res.json());
 
   return { props: { stocks: filteredStockData, adjustedBGPYield, region } };
@@ -259,12 +258,13 @@ const Home = ({
                   <th
                     key={header.id}
                     onClick={header.column.getToggleSortingHandler()}
-                    className={`px-3 py-2 border border-gray-200 cursor-pointer ${header.column.id === "Notes" ? "w-[300px]" : "w-[110px]"
-                      }`}
+                    className={`px-3 py-2 border border-gray-200 cursor-pointer ${
+                      header.column.id === "Notes" ? "w-[300px]" : "w-[110px]"
+                    }`}
                   >
                     {flexRender(
                       header.column.columnDef.header,
-                      header.getContext()
+                      header.getContext(),
                     )}
                     {{
                       asc: " 🔼",
@@ -295,17 +295,18 @@ const Home = ({
                 return (
                   <td
                     key={cell.id}
-                    className={`px-2 py-1 border border-gray-100 ${cell.column.id === "stockName" && row.original.color
-                      ? "stock-name " + row.original.color
-                      : ""
-                      } ${extraClass}`}
+                    className={`px-2 py-1 border border-gray-100 ${
+                      cell.column.id === "stockName" && row.original.color
+                        ? "stock-name " + row.original.color
+                        : ""
+                    } ${extraClass}`}
                   >
                     {cell.column.id === "rowIndex"
                       ? index + 1
                       : flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
+                        )}
                   </td>
                 );
               })}
@@ -318,12 +319,13 @@ const Home = ({
               {footerGroup.headers.map((header) => (
                 <th
                   key={header.id}
-                  className={`px-3 py-2 border border-gray-200 text-left ${header.column.id === "Notes" ? "w-[300px]" : "w-[110px]"
-                    }`}
+                  className={`px-3 py-2 border border-gray-200 text-left ${
+                    header.column.id === "Notes" ? "w-[300px]" : "w-[110px]"
+                  }`}
                 >
                   {flexRender(
                     header.column.columnDef.footer,
-                    header.getContext()
+                    header.getContext(),
                   )}
                 </th>
               ))}

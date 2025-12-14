@@ -27,13 +27,11 @@ interface CarryTradeChartProps {
   cumulativeBGP: DataPoint[];
 }
 
-
 export const getStaticProps: GetStaticProps<{
   carryTrade: CarryTradeChartProps;
 }> = async () => {
-
   const carryTrade = await fetch(`${API_URL}api/carry-trade`).then((res) =>
-    res.json()
+    res.json(),
   );
 
   return {
@@ -48,7 +46,7 @@ const mergeData = (
   cumulativeUsdtry: DataPoint[],
   cumulativeEurtry: DataPoint[],
   cumulativeMixed: DataPoint[],
-  cumulativeBGP: DataPoint[]
+  cumulativeBGP: DataPoint[],
 ): {
   date: string;
   tlref?: number;
@@ -66,7 +64,7 @@ const mergeData = (
   ]);
 
   const sortedDates = [...dateSet].sort(
-    (a, b) => new Date(a).getTime() - new Date(b).getTime()
+    (a, b) => new Date(a).getTime() - new Date(b).getTime(),
   );
 
   return sortedDates.map((date) => ({
@@ -89,7 +87,7 @@ const CarryTradeChart = ({
     cumulativeUsdtry,
     cumulativeEurtry,
     cumulativeMixed,
-    cumulativeBGP
+    cumulativeBGP,
   );
 
   return (

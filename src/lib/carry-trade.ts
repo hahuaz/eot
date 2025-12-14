@@ -16,7 +16,6 @@ const DATA_DIR = path.join(process.cwd(), "local-data");
 const DAILY_DIR = path.join(DATA_DIR, "daily");
 const BASELINE_DATE = "2024/12/30"; // buy date / start observation
 
-
 // ==== Helpers ====
 function ensureCommonDates(
   referenceDates: string[],

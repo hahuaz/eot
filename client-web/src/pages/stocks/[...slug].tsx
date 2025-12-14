@@ -6,8 +6,6 @@ import type {
   GetStaticPaths,
 } from "next";
 
-
-
 import {
   Table,
   TableBody,
@@ -18,7 +16,6 @@ import {
 } from "@/components/ui/table";
 import { formatNumber, API_URL } from "@/lib";
 
-
 import {
   DATES,
   GROWTH_COLUMNS,
@@ -27,8 +24,6 @@ import {
   BaseMetric,
   MetricNames,
 } from "@shared/types";
-
-
 
 const TABLE_SECTION_HEADERS: MetricNames[] = [
   "Balance sheet",
@@ -51,13 +46,12 @@ const NORMALIZED_METRIC_NAMES: MetricNames[] = [
 
 // force two digits for these metric names
 
-
 export const getStaticPaths: GetStaticPaths = async () => {
   const stockNamesTr = await fetch(`${API_URL}api/stock-names?region=tr`).then(
     (res) => {
       console.log("res", res);
       return res.json();
-    }
+    },
   );
 
   const pathsTr = stockNamesTr.map((stock: string) => ({
@@ -65,7 +59,7 @@ export const getStaticPaths: GetStaticPaths = async () => {
   }));
 
   const stockNamesUs = await fetch(`${API_URL}api/stock-names?region=us`).then(
-    (res) => res.json()
+    (res) => res.json(),
   );
 
   const pathsUs = stockNamesUs.map((stock: string) => ({
@@ -90,7 +84,7 @@ export const getStaticProps: GetStaticProps<{
   const [region, stock] = slug;
 
   const { stockConfig, baseMetrics, derivedMetrics } = await fetch(
-    `${API_URL}api/stock?stock=${stock}&region=${region}`
+    `${API_URL}api/stock?stock=${stock}&region=${region}`,
   ).then((res) => res.json());
 
   return {
@@ -111,16 +105,16 @@ const AllPage = ({
 
   // move price, dividend and yield to the end of the table before selected growth
   const priceIndex = allMetrics.findIndex(
-    (item) => item.metricName === "Price"
+    (item) => item.metricName === "Price",
   );
   const dividendIndex = allMetrics.findIndex(
-    (item) => item.metricName === "Dividend"
+    (item) => item.metricName === "Dividend",
   );
   const yieldIndex = allMetrics.findIndex(
-    (item) => item.metricName === "Yield"
+    (item) => item.metricName === "Yield",
   );
   const selectedGrowthIndex = allMetrics.findIndex(
-    (item) => item.metricName === "Selected growth"
+    (item) => item.metricName === "Selected growth",
   );
 
   const price = allMetrics[priceIndex];
@@ -132,7 +126,7 @@ const AllPage = ({
       item.metricName !== "Price" &&
       item.metricName !== "Dividend" &&
       item.metricName !== "Yield" &&
-      item.metricName !== "Selected growth"
+      item.metricName !== "Selected growth",
   );
   if (priceIndex !== -1) {
     allMetrics.push(price);
@@ -152,7 +146,7 @@ const AllPage = ({
   let trimNumber = 1;
   // if ev digit is more than 9 digit, set trim to 1000. if it's more than 12 digit, set trim to 1000000
   const evIndex = allMetrics.findIndex(
-    (item) => item.metricName === "Enterprise value"
+    (item) => item.metricName === "Enterprise value",
   );
   const ev = allMetrics[evIndex];
   const evValue = ev?.["current"] ?? 0;

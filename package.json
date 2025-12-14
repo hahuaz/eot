@@ -9,8 +9,11 @@
     "test:watch": "vitest",
     "dev:scrape": "NODE_ENV=development tsx watch src/manual-scrape.ts",
     "format": "prettier --write .",
-    "lint": "oxlint",
-    "prepare": "husky"
+    "prepare": "husky",
+    "check:ts": "tsc --noEmit && tsc --noEmit --project client-web/tsconfig.json",
+    "check:lint": "oxlint",
+    "check:prettier": "prettier --write .",
+    "check": "concurrently \"pnpm check:ts\" \"pnpm check:lint\" \"pnpm check:prettier\""
   },
   "keywords": [],
   "author": "",

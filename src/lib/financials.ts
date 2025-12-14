@@ -131,7 +131,7 @@ export const adjustForInflation = ({
 
       metric["Total growth"] = round(
         (metric["Total growth"] - accumulatedInflation) /
-        (1 + accumulatedInflation),
+          (1 + accumulatedInflation),
       );
 
       // yearly growth is derived from total growth
