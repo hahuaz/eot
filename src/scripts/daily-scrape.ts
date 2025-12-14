@@ -66,14 +66,10 @@ const TR_STOCK_SITES: Site = {
   resources: [],
 };
 
-/**
- * It will populate the resources of tr stocks from local json file.
- */
-function populateTrStockResources() {
+async function scrapeTrStocks() {
   const trStocksJson = fs.readFileSync(TR_STOCK_PATH, "utf-8");
   const trStocks = JSON.parse(trStocksJson) as Record<string, any>;
 
-  // Exclude "test" stock
   const trStockKeys = Object.keys(trStocks).filter((key) => key !== "test");
   if (trStockKeys.length === 0) {
     console.log("No TR stocks found, skipping.");
@@ -81,15 +77,11 @@ function populateTrStockResources() {
   }
 
   TR_STOCK_SITES.resources = trStockKeys.map((key) => `symbols/${key}`);
-}
 
-async function scrapeTrStocks() {
   const scrapeResult = await scrape([TR_STOCK_SITES]);
-  const trStocksJson = fs.readFileSync(TR_STOCK_PATH, "utf-8");
-  const trStocks = JSON.parse(trStocksJson) as Record<string, any>;
 
   for (const result of scrapeResult) {
-    const stockSymbol = result.resource.split("/")[1];
+    const stockSymbol = result.resource;
     if (trStocks[stockSymbol]) {
       trStocks[stockSymbol].price = Number(result.value);
     }
@@ -161,8 +153,6 @@ async function main() {
   const currentDate = `${now.getFullYear()}/${
     now.getMonth() + 1
   }/${now.getDate()}`;
-
-  populateTrStockResources();
 
   const genericSiteResults = await scrape([GENERIC_SITES]);
   await processGenericSites(genericSiteResults, currentDate);
