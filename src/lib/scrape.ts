@@ -1,6 +1,6 @@
 import puppeteer, { type Browser } from "puppeteer";
 
-import type { ScrapeResult, Site } from "../types/index.ts";
+import type { ScrapeResult, Site } from "@/types";
 
 /**
  * Scrapes a single URL and returns the result.

@@ -26,7 +26,7 @@ export const APP_CONFIG: AppConfig = {
   GOOGLE_CREDENTIAL_PATH: path.join(
     process.cwd(),
     "credentials",
-    "google.json"
+    "google.json",
   ),
 };
 

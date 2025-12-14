@@ -9,9 +9,13 @@ import {
 } from "@shared/types";
 import { Region, regions } from "@/types";
 import path from "path";
-import { parseCSV, readJsonFile } from "./file";
-import { DATA_DIR } from "./constants";
-import { CURRENT_DATE, getEarliestDefinedDate, getYearsPassed } from "./dates";
+import { parseCSV, readJsonFile } from "@/lib/file";
+import { DATA_DIR } from "@/lib/constants";
+import {
+  CURRENT_DATE,
+  getEarliestDefinedDate,
+  getYearsPassed,
+} from "@/lib/dates";
 import {
   createCurrentColumn,
   createYieldMetric,
@@ -21,8 +25,8 @@ import {
   createEVtoNI,
   createMVtoBVMetric,
   calcGrowths,
-} from "./metrics";
-import { adjustForInflation } from "./financials";
+} from "@/lib/metrics";
+import { adjustForInflation } from "@/lib/financials";
 
 export const INFLATION_DATA = regions.reduce(
   (acc, region) => {

@@ -8,7 +8,7 @@ import {
   BaseMetric,
   StockSymbol,
 } from "@shared/types";
-import { round } from "./utils";
+import { round } from "@/lib/utils";
 import {
   LAST_DATE,
   CURRENT_DATE,
@@ -16,9 +16,9 @@ import {
   PREVIOUS_FINISHED_YEAR_DATE,
   whichQuarter,
   getYearsPassed,
-} from "./dates";
-import { GROWTH_APPLIED_METRICS } from "./constants";
-import { getTaxByRegion } from "./financials";
+} from "@/lib/dates";
+import { GROWTH_APPLIED_METRICS } from "@/lib/constants";
+import { getTaxByRegion } from "@/lib/financials";
 
 export const createCurrentColumn = ({
   baseMetrics,

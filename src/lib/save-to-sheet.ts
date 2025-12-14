@@ -1,7 +1,7 @@
 import { google } from "googleapis";
 
-import type { ScrapeResult } from "../types/index";
-import { APP_CONFIG } from "../config";
+import type { ScrapeResult } from "@/types";
+import { APP_CONFIG } from "@/config";
 
 const { GOOGLE_SHEET_ID, GOOGLE_CREDENTIAL_PATH } = APP_CONFIG;
 

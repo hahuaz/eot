@@ -2,25 +2,16 @@ import fs from "fs";
 import path from "path";
 
 // execute config to load environment variables
-import "../config";
+import "@/config";
 
-import type { Site } from "../types/index";
-import { scrape } from "../lib/scrape";
-import { updateSheet } from "../lib/save-to-sheet";
-import { parseCSV, unparseCSV } from "../lib/index";
-
-import { Daily } from "../types/index";
-
-const TR_STOCK_PATH = path.join(
-  process.cwd(),
-  "local-data",
-  "stocks-dynamic",
-  "tr.json",
-);
-
-if (!fs.existsSync(TR_STOCK_PATH)) {
-  throw new Error(`File not found: ${TR_STOCK_PATH}`);
-}
+import type { Site, Daily } from "@/types";
+import {
+  scrape,
+  updateSheet,
+  parseCSV,
+  unparseCSV,
+  TR_DYNAMIC_PATH,
+} from "@/lib/index";
 
 const TR_FUND_SITES: Site = {
   domain: "https://fintables.com/",
@@ -66,7 +57,7 @@ const TR_STOCK_SITES: Site = {
 };
 
 async function scrapeTrStocks() {
-  const trStocksJson = fs.readFileSync(TR_STOCK_PATH, "utf-8");
+  const trStocksJson = fs.readFileSync(TR_DYNAMIC_PATH, "utf-8");
   const trStocks = JSON.parse(trStocksJson) as Record<string, any>;
 
   const trStockKeys = Object.keys(trStocks).filter((key) => key !== "test");
@@ -86,7 +77,7 @@ async function scrapeTrStocks() {
     }
   }
 
-  fs.writeFileSync(TR_STOCK_PATH, JSON.stringify(trStocks, null, 2));
+  fs.writeFileSync(TR_DYNAMIC_PATH, JSON.stringify(trStocks, null, 2));
 }
 
 function updateCsvFile(

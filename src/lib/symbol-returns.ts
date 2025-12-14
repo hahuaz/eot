@@ -1,5 +1,5 @@
 import path from "path";
-import { getTaxByRegion, parseCSV, DAILY_DIR, BASELINE_DATE } from "./index";
+import { getTaxByRegion, parseCSV, DAILY_DIR, BASELINE_DATE } from "@/lib";
 
 // ==== Types ====
 interface DailyPrice {
