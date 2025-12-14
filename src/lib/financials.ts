@@ -10,23 +10,24 @@ import { round } from "./utils";
 import { GROWTH_APPLIED_METRICS } from "./constants";
 import { LAST_DATE, CURRENT_DATE, lastDateObj } from "./dates";
 
-// %15 of dividend is tax in tr
-// %20 of dividend is tax in us(i have paid %20 tax in 2025/07/07 for vgk etf)
 export const getTaxByRegion = ({
   region,
 }: {
   region: string;
 }): {
-  dividendTaxRate: number;
+  withholdingTax: number;
+  dividendTax: number;
 } => {
   switch (region) {
     case "tr":
       return {
-        dividendTaxRate: 0.15,
+        withholdingTax: 0.175,
+        dividendTax: 0.15,
       };
     case "us":
       return {
-        dividendTaxRate: 0.2,
+        withholdingTax: 0.24,
+        dividendTax: 0.2,
       };
     default:
       throw new Error(`Region ${region} not supported for tax calculation`);
@@ -130,7 +131,7 @@ export const adjustForInflation = ({
 
       metric["Total growth"] = round(
         (metric["Total growth"] - accumulatedInflation) /
-          (1 + accumulatedInflation),
+        (1 + accumulatedInflation),
       );
 
       // yearly growth is derived from total growth

@@ -1,5 +1,5 @@
 import path from "path";
-import { parseCSV } from "./index";
+import { getTaxByRegion, parseCSV } from "./index";
 
 // ==== Types ====
 interface PricePoint {
@@ -15,14 +15,7 @@ interface ReturnPoint {
 const DATA_DIR = path.join(process.cwd(), "local-data");
 const DAILY_DIR = path.join(DATA_DIR, "daily");
 const BASELINE_DATE = "2024/12/30"; // buy date / start observation
-const TAX_RATE = 0.1;
 
-// ==== IO ====
-const readDailyCsv = (filename: string) =>
-  parseCSV<PricePoint>({
-    filePath: path.join(DAILY_DIR, filename),
-    header: true,
-  });
 
 // ==== Helpers ====
 function ensureCommonDates(
@@ -39,12 +32,20 @@ function ensureCommonDates(
 }
 
 export const getCarryTrade = () => {
-  // ---- Read inputs ----
-  const usdtryHistory = readDailyCsv("USDTRY.csv");
-  const eurtryHistory = readDailyCsv("EURTRY.csv");
-  const bgpHistory = readDailyCsv("BGP.csv");
+  const usdtryHistory = parseCSV<PricePoint>({
+    filePath: path.join(DAILY_DIR, "USDTRY.csv"),
+    header: true,
+  });
+  const eurtryHistory = parseCSV<PricePoint>({
+    filePath: path.join(DAILY_DIR, "EURTRY.csv"),
+    header: true,
+  });
+  const bgpHistory = parseCSV<PricePoint>({
+    filePath: path.join(DAILY_DIR, "BGP.csv"),
+    header: true,
+  });
 
-  // USDTRY dates as reference
+  // take USDTRY dates as reference
   let commonDates = usdtryHistory.data.map((d) => d.date);
   commonDates = commonDates.filter(
     (d) => new Date(d) >= new Date(BASELINE_DATE),
@@ -65,7 +66,7 @@ export const getCarryTrade = () => {
   const eur0 = eur0Obj.value;
   const bgp0 = bgp0Obj.value;
 
-  // ---- Direct cumulative returns from levels ----
+  // calculate cumulative returns from levels
   const cumulativeUsdtry: ReturnPoint[] = [];
   const cumulativeEurtry: ReturnPoint[] = [];
   const cumulativeMixed: ReturnPoint[] = [];
@@ -80,14 +81,16 @@ export const getCarryTrade = () => {
     if (usd == null || eur == null || bgp == null)
       throw new Error(`Missing data for date ${date}`);
 
-    const usdFactor = usd / usd0; // = Π(1+r_usd_i)
-    const eurFactor = eur / eur0; // = Π(1+r_eur_i)
-    const bgpFactor = bgp / bgp0; // = Π(1+r_bgp_i)
+    // this is the return multiplier (e.g., 1.05 means a 5% increase)
+    const usdFactor = usd / usd0;
+    const eurFactor = eur / eur0;
+    const bgpFactor = bgp / bgp0;
 
+    // this is the return percentage (e.g., 0.05 means a 5% increase)
     cumulativeUsdtry.push({ date, value: usdFactor - 1 });
     cumulativeEurtry.push({ date, value: eurFactor - 1 });
 
-    // Geometric mean of cumulative factors equals compounding of per-step geometric means
+    // use geometric mean to calculate basket currency increase
     const mixedReturn = Math.sqrt(usdFactor * eurFactor) - 1;
     cumulativeMixed.push({ date, value: mixedReturn });
 
@@ -97,7 +100,7 @@ export const getCarryTrade = () => {
   // calc net returns for some series
   const cumulativeBGP = cumulativeGrossBGP.map((point) => ({
     date: point.date,
-    value: point.value * (1 - TAX_RATE),
+    value: point.value * (1 - getTaxByRegion({ region: "tr" }).withholdingTax),
   }));
 
   return {

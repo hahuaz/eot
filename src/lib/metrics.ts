@@ -69,11 +69,11 @@ export const createEV = ({
       )![date] ?? 0;
     const shortTermLiabilities =
       baseMetrics.find((item) => item.metricName === "Short term liabilities")![
-        date
+      date
       ] ?? 0;
     const longTermLiabilities =
       baseMetrics.find((item) => item.metricName === "Long term liabilities")![
-        date
+      date
       ] ?? 0;
 
     if (price == null) {
@@ -116,7 +116,7 @@ export const createNDtoOIMetric = ({
       )?.[date] ?? 0;
     const longTermLiabilities =
       baseMetrics.find((item) => item.metricName === "Long term liabilities")?.[
-        date
+      date
       ] ?? 0;
     const operatingIncome = baseMetrics.find(
       (item) => item.metricName === "Operating income",
@@ -248,8 +248,8 @@ export const createMVtoBVMetric = ({
 
     mvToBVMetric[date] = round(
       (price * stockConfig.outstandingShares) /
-        stockConfig.trimDigit /
-        bookValue,
+      stockConfig.trimDigit /
+      bookValue,
     );
   }
 
@@ -306,7 +306,7 @@ export const createYieldMetric = ({
     metricName: "Yield",
   } as Partial<DerivedMetric>;
 
-  const { dividendTaxRate } = getTaxByRegion({ region });
+  const { dividendTax } = getTaxByRegion({ region });
 
   for (let i = 0; i < availableDates.length; i++) {
     // yield can't be calculated without older date. so break if it's the last date
@@ -316,7 +316,7 @@ export const createYieldMetric = ({
 
     const loopDate = availableDates[i];
     const dividendValue = dividendMetric[loopDate] ?? 0;
-    const netDividendYield = dividendValue * (1 - dividendTaxRate);
+    const netDividendYield = dividendValue * (1 - dividendTax);
     const priceValue = priceMetric[loopDate] ?? 0;
     const previousPriceValue = priceMetric[availableDates[i + 1]] ?? 0;
     const priceYield = (priceValue - previousPriceValue) / previousPriceValue;
