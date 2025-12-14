@@ -2,14 +2,14 @@ import fs from "fs";
 import path from "path";
 
 // execute config to load environment variables
-import "./config";
+import "../config";
 
-import type { Site } from "./types/index";
-import { scrape } from "./lib/scrape";
-import { updateSheet } from "./lib/save-to-sheet";
-import { parseCSV, unparseCSV } from "./lib/index";
+import type { Site } from "../types/index";
+import { scrape } from "../lib/scrape";
+import { updateSheet } from "../lib/save-to-sheet";
+import { parseCSV, unparseCSV } from "../lib/index";
 
-import { Daily } from "./types/index";
+import { Daily } from "../types/index";
 
 const TR_STOCK_PATH = path.join(
   process.cwd(),
@@ -73,13 +73,29 @@ function populateTrStockResources() {
   const trStocksJson = fs.readFileSync(TR_STOCK_PATH, "utf-8");
   const trStocks = JSON.parse(trStocksJson) as Record<string, any>;
 
-  const trStockKeys = Object.keys(trStocks);
+  // Exclude "test" stock
+  const trStockKeys = Object.keys(trStocks).filter((key) => key !== "test");
   if (trStockKeys.length === 0) {
     console.log("No TR stocks found, skipping.");
     return;
   }
 
   TR_STOCK_SITES.resources = trStockKeys.map((key) => `symbols/${key}`);
+}
+
+async function scrapeTrStocks() {
+  const scrapeResult = await scrape([TR_STOCK_SITES]);
+  const trStocksJson = fs.readFileSync(TR_STOCK_PATH, "utf-8");
+  const trStocks = JSON.parse(trStocksJson) as Record<string, any>;
+
+  for (const result of scrapeResult) {
+    const stockSymbol = result.resource.split("/")[1];
+    if (trStocks[stockSymbol]) {
+      trStocks[stockSymbol].price = Number(result.value);
+    }
+  }
+
+  fs.writeFileSync(TR_STOCK_PATH, JSON.stringify(trStocks, null, 2));
 }
 
 function updateCsvFile(
@@ -105,26 +121,19 @@ function updateCsvFile(
   }
 }
 
-async function main() {
-  const now = new Date();
-  const currentDate = `${now.getFullYear()}/${
-    now.getMonth() + 1
-  }/${now.getDate()}`;
-
-  populateTrStockResources();
-
-  const genericSiteResults = await scrape([GENERIC_SITES]);
+async function processGenericSites(
+  genericSiteResults: any[],
+  currentDate: string,
+) {
   for (const scrape of genericSiteResults) {
     const fileName = `${scrape.resource}.csv`;
     const filePath = path.join(process.cwd(), "local-data", "daily", fileName);
     updateCsvFile(filePath, currentDate, scrape.value);
   }
   console.log("updated locale daily data");
+}
 
-  const trFundsScrapeResult = await scrape([TR_FUND_SITES]);
-  await updateSheet([...trFundsScrapeResult, ...genericSiteResults]);
-  console.log("updated TR Funds in Google Sheet");
-
+async function processTrFunds(trFundsScrapeResult: any[], currentDate: string) {
   // some of resources will be saved to local-data/daily
   const selectedTrFunds = ["BGP"];
   for (const fund of selectedTrFunds) {
@@ -145,9 +154,27 @@ async function main() {
     }
   }
   console.log(`selected TR Funds updated in daily data`);
+}
 
-  // await scrapeTrStocks();
-  // console.log("scraped TR stocks and saved in local-data");
+async function main() {
+  const now = new Date();
+  const currentDate = `${now.getFullYear()}/${
+    now.getMonth() + 1
+  }/${now.getDate()}`;
+
+  populateTrStockResources();
+
+  const genericSiteResults = await scrape([GENERIC_SITES]);
+  await processGenericSites(genericSiteResults, currentDate);
+
+  const trFundsScrapeResult = await scrape([TR_FUND_SITES]);
+  await updateSheet([...trFundsScrapeResult, ...genericSiteResults]);
+  console.log("updated TR Funds in Google Sheet");
+
+  await processTrFunds(trFundsScrapeResult, currentDate);
+
+  await scrapeTrStocks();
+  console.log("scraped TR stocks and saved in local-data");
 
   console.log("all done!");
 }

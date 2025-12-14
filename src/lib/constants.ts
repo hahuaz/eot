@@ -13,4 +13,5 @@ export const GROWTH_APPLIED_METRICS: BaseMetricNames[] = [
 export const DATA_DIR = path.join(process.cwd(), "local-data");
 export const DAILY_DIR = path.join(DATA_DIR, "daily");
 
-export const BASELINE_DATE = "2024/12/30"; // buy date / start observation
+// observation start date for cummulative returns
+export const BASELINE_DATE = "2024/12/30";
