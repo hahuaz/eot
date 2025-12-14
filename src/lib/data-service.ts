@@ -7,7 +7,7 @@ import {
   BaseMetric,
   StockSymbol,
 } from "@shared/types";
-import { Region } from "@/types";
+import { Region, regions } from "@/types";
 import path from "path";
 import { parseCSV, readJsonFile } from "./file";
 import { DATA_DIR } from "./constants";
@@ -23,6 +23,19 @@ import {
   calcGrowths,
 } from "./metrics";
 import { adjustForInflation } from "./financials";
+
+export const INFLATION_DATA = regions.reduce(
+  (acc, region) => {
+    const inflationPath = path.join(DATA_DIR, "inflation", `${region}.csv`);
+    const { data: inflationData } = parseCSV<Inflation>({
+      filePath: inflationPath,
+      header: true,
+    });
+    acc[region] = inflationData;
+    return acc;
+  },
+  {} as Record<Region, Inflation[]>,
+);
 
 /**
  * Returns detailed data for a stock by reading its files.

@@ -1,37 +1,20 @@
 // importing config at the seperate module to make sure environment variables are loaded before any other imports
 import "./config.ts";
 
-import path from "path";
-
 import express, { Response, Request, NextFunction, Router } from "express";
 import cors from "cors";
 
 import {
-  DATA_DIR,
   populateStock,
-  parseCSV,
   getStockInfo,
   getStocksDynamic,
   getMoneyFundYield,
+  INFLATION_DATA,
 } from "@/lib";
-import { Inflation } from "@shared/types";
 
 import { Region, regions } from "@/types";
 
 import { getCummulativeReturns } from "@/lib/symbol-returns.js";
-
-const INFLATION = regions.reduce(
-  (acc, region) => {
-    const inflationPath = path.join(DATA_DIR, "inflation", `${region}.csv`);
-    const { data: inflationData } = parseCSV<Inflation>({
-      filePath: inflationPath,
-      header: true,
-    });
-    acc[region] = inflationData;
-    return acc;
-  },
-  {} as Record<Region, Inflation[]>,
-);
 
 // --- Express App Setup ---
 
@@ -88,7 +71,7 @@ router.get("/cummulative-returns", (req, res) => {
 router.get("/money-fund", validateRegion, (req, res) => {
   const region = req.query.region as Region;
 
-  const inflation = INFLATION[region];
+  const inflation = INFLATION_DATA[region];
 
   const moneyFundYield = getMoneyFundYield({ inflation });
 
@@ -119,7 +102,7 @@ router.get("/stock-names", validateRegion, (req, res) => {
  */
 router.get("/all-stock", validateRegion, (req, res) => {
   const region = req.query.region as Region;
-  const inflation = INFLATION[region];
+  const inflation = INFLATION_DATA[region];
   const stocksDynamic = getStocksDynamic({ region });
   const stockNames = Object.keys(stocksDynamic);
 
@@ -168,7 +151,7 @@ router.get("/stock", validateRegion, async (req, res) => {
     return;
   }
 
-  const inflation = INFLATION[region];
+  const inflation = INFLATION_DATA[region];
 
   const stocksDynamic = getStocksDynamic({ region });
   const stockDynamic = stocksDynamic[stockSymbol];

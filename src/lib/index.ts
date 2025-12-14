@@ -4,4 +4,4 @@ export * from "./constants";
 export * from "./dates";
 export * from "./financials";
 export * from "./metrics";
-export * from "./stock-service";
+export * from "./data-service";
