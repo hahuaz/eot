@@ -38,9 +38,9 @@ async function scrapeUrl(
       return element?.textContent?.trim();
     }, querySelector);
 
-    const resource = url.split("/").pop()?.split("?")[0];
-    if (!resource) {
-      throw new Error(`Could not extract resource from URL: ${url}`);
+    const symbol = url.split("/").pop()?.split("?")[0];
+    if (!symbol) {
+      throw new Error(`Could not extract symbol from URL: ${url}`);
     }
 
     if (!scrapeValue) {
@@ -57,7 +57,7 @@ async function scrapeUrl(
     }
 
     return {
-      resource,
+      symbol,
       value: scrapeValue,
     };
   } catch (error) {
@@ -75,7 +75,7 @@ async function scrapeUrl(
  */
 export async function scrape(sites: Site[]): Promise<ScrapeResult> {
   const browser = await puppeteer.launch({
-    executablePath: "/usr/bin/google-chrome",
+    // executablePath: "/usr/bin/google-chrome",
     headless: false,
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
@@ -83,9 +83,9 @@ export async function scrape(sites: Site[]): Promise<ScrapeResult> {
   const allResults: ScrapeResult = [];
 
   for (const site of sites) {
-    for (const resource of site.resources) {
+    for (const endpoint of site.endpoints) {
       try {
-        const url = `${site.domain}${resource}`;
+        const url = `${site.domain}${endpoint}`;
         const result = await scrapeUrl(
           browser,
           url,
@@ -97,7 +97,7 @@ export async function scrape(sites: Site[]): Promise<ScrapeResult> {
         }
       } catch (error) {
         console.error(
-          `Failed to scrape resource ${resource} from site ${site.domain}:`,
+          `Failed to scrape endpoint ${endpoint} from site ${site.domain}:`,
           error,
         );
       }

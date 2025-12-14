@@ -36,10 +36,10 @@ export async function updateSheet(scrapeResult: ScrapeResult) {
     // console.log("Resource Row Mapping:", resourceToRowMapping);
 
     // 3. Prepare update requests for the correct rows
-    const updateRequests = scrapeResult.map(({ resource, value }) => {
-      const rowIndex = resourceToRowMapping[resource];
+    const updateRequests = scrapeResult.map(({ symbol, value }) => {
+      const rowIndex = resourceToRowMapping[symbol];
       if (!rowIndex) {
-        throw new Error(`Resource not found in the sheet: ${resource}`);
+        throw new Error(`Symbol not found in the sheet: ${symbol}`);
       }
 
       return {

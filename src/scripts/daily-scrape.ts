@@ -16,7 +16,7 @@ const DAILY_SAVED_SYMBOLS = ["BGP", "USDTRY", "EURTRY", "GOLD"] as const;
 
 const TR_FUND_SYMBOLS: Site = {
   domain: "https://fintables.com/",
-  resources: [
+  endpoints: [
     "fonlar/ZBJ",
     "fonlar/PPN",
     "fonlar/BGP",
@@ -41,7 +41,7 @@ const TR_FUND_SYMBOLS: Site = {
 
 const GENERIC_SYMBOLS: Site = {
   domain: "https://www.tradingview.com/",
-  resources: [
+  endpoints: [
     "symbols/USDTRY",
     "symbols/EURTRY",
     "symbols/BIST-ALTIN",
@@ -54,7 +54,7 @@ const GENERIC_SYMBOLS: Site = {
 const TR_STOCK_SYMBOLS: Site = {
   domain: GENERIC_SYMBOLS.domain,
   querySelector: GENERIC_SYMBOLS.querySelector,
-  resources: [],
+  endpoints: [],
 };
 
 async function scrapeTrStocks() {
@@ -70,12 +70,12 @@ async function scrapeTrStocks() {
     return;
   }
 
-  TR_STOCK_SYMBOLS.resources = trStockKeys.map((key) => `symbols/${key}`);
+  TR_STOCK_SYMBOLS.endpoints = trStockKeys.map((key) => `symbols/${key}`);
 
   const scrapeResults = await scrape([TR_STOCK_SYMBOLS]);
 
   for (const result of scrapeResults) {
-    const stockSymbol = result.resource;
+    const stockSymbol = result.symbol;
     if (trStocks[stockSymbol]) {
       trStocks[stockSymbol].price = Number(result.value);
     }
@@ -84,8 +84,8 @@ async function scrapeTrStocks() {
   fs.writeFileSync(TR_DYNAMIC_PATH, JSON.stringify(trStocks, null, 2));
 }
 
-function updateDailyCsv(resource: string, currentDate: string, value: string) {
-  const fileName = `${resource}.csv`;
+function updateDailyCsv(symbol: string, currentDate: string, value: string) {
+  const fileName = `${symbol}.csv`;
   const filePath = path.join(process.cwd(), "local-data", "daily", fileName);
   updateCsvFile<Daily>(
     filePath,
@@ -96,34 +96,28 @@ function updateDailyCsv(resource: string, currentDate: string, value: string) {
 
 function saveToLocalDailyCsv(allResults: ScrapeItem[], currentDate: string) {
   const filteredResults = allResults.filter((result) => {
-    console.log("result:", result);
     return DAILY_SAVED_SYMBOLS.includes(
-      result.resource as (typeof DAILY_SAVED_SYMBOLS)[number],
+      result.symbol as (typeof DAILY_SAVED_SYMBOLS)[number],
     );
   });
   for (const result of filteredResults) {
-    updateDailyCsv(result.resource, currentDate, result.value);
+    updateDailyCsv(result.symbol, currentDate, result.value);
   }
-  console.log(
-    `Updated ${filteredResults.length} symbols in local daily CSV files`,
-  );
+  console.log("Updated local daily CSV files");
 }
 
 async function main() {
   try {
     const now = new Date();
-    const currentDate = now.toLocaleDateString("en-CA"); // YYYY-MM-DD format
+    const currentDate = now.toLocaleDateString("en-CA").replace(/-/g, "/"); // YYYY/MM/DD format
 
-    // Scrape all symbols
     const genericSymbolResults = await scrape([GENERIC_SYMBOLS]);
-    // const trFundResults = await scrape([TR_FUND_SYMBOLS]);
-    const allResults = [...genericSymbolResults];
+    const trFundResults = await scrape([TR_FUND_SYMBOLS]);
+    const allResults = [...genericSymbolResults, ...trFundResults];
 
-    // Update Google Sheet with ALL scraped data
     await updateSheet(allResults);
     console.log("Updated Google Sheet with all scraped data");
 
-    // Save only selected symbols to local daily CSV files
     saveToLocalDailyCsv(allResults, currentDate);
 
     // await scrapeTrStocks();
