@@ -47,6 +47,6 @@
     "**/*.{js,ts,tsx,json,md}": "prettier --write",
     "**/*.{js,ts,tsx}": "oxlint",
     "client-web/**/*.{ts,tsx}": "tsc --noEmit --project client-web/tsconfig.json",
-    "src/**/*.{ts,tsx}": "tsc --noEmit"
+    "src/**/*.{ts,tsx}": "bash -c 'tsc --noEmit'"
   }
 }
