@@ -54,7 +54,6 @@ const GENERIC_SITES: Site = {
     "symbols/EURTRY",
     "symbols/BIST-ALTIN",
     "symbols/GOLD?exchange=TVC",
-    "symbols/AMEX-GLD",
   ],
   querySelector:
     "#js-category-content > div.js-symbol-page-header-root > div > div.symbolRow-NopKb87z > div > div.quotesRow-iJMmXWiA > div:nth-child(1) > div > div.lastContainer-zoF9r75I > span.last-zoF9r75I.js-symbol-last",

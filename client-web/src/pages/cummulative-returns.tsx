@@ -25,6 +25,7 @@ interface CarryTradeChartProps {
   cumulativeEurtry: DataPoint[];
   cumulativeMixed: DataPoint[];
   cumulativeBGP: DataPoint[];
+  cummulativeGold: DataPoint[];
 }
 
 export const getStaticProps: GetStaticProps<{
@@ -47,6 +48,7 @@ const mergeData = (
   cumulativeEurtry: DataPoint[],
   cumulativeMixed: DataPoint[],
   cumulativeBGP: DataPoint[],
+  cummulativeGold: DataPoint[],
 ): {
   date: string;
   usdtry?: number;
@@ -59,6 +61,7 @@ const mergeData = (
     ...cumulativeEurtry.map((d) => d.date),
     ...cumulativeMixed.map((d) => d.date),
     ...cumulativeBGP.map((d) => d.date),
+    ...cummulativeGold.map((d) => d.date),
   ]);
 
   const sortedDates = [...dateSet].sort(
@@ -71,20 +74,27 @@ const mergeData = (
     eurtry: cumulativeEurtry.find((d) => d.date === date)?.value ?? undefined,
     mixed: cumulativeMixed.find((d) => d.date === date)?.value ?? undefined,
     bgp: cumulativeBGP.find((d) => d.date === date)?.value ?? undefined,
+    gold: cummulativeGold.find((d) => d.date === date)?.value ?? undefined,
   }));
 };
 
 const CarryTradeChart = ({
   cummulativeReturns,
 }: InferGetStaticPropsType<typeof getStaticProps>) => {
-  const { cumulativeUsdtry, cumulativeEurtry, cumulativeMixed, cumulativeBGP } =
-    cummulativeReturns;
+  const {
+    cumulativeUsdtry,
+    cumulativeEurtry,
+    cumulativeMixed,
+    cumulativeBGP,
+    cummulativeGold,
+  } = cummulativeReturns;
 
   const data = mergeData(
     cumulativeUsdtry,
     cumulativeEurtry,
     cumulativeMixed,
     cumulativeBGP,
+    cummulativeGold,
   );
 
   return (
@@ -106,6 +116,13 @@ const CarryTradeChart = ({
             dataKey="bgp"
             stroke="#0008ff"
             name="net BGP Yield Growth"
+            dot={false}
+          />
+          <Line
+            type="monotone"
+            dataKey="gold"
+            stroke="#FFD700"
+            name="Gold Growth"
             dot={false}
           />
           <Line
