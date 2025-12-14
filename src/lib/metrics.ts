@@ -383,6 +383,7 @@ export const createYieldMetric = ({
   let ttmYield = 1;
   const quarter = whichQuarter(LAST_DATE);
   const curQuarters = DATES.slice(0, quarter + 1);
+
   curQuarters.forEach((date) => {
     const dateYield = yieldMetric[date] as number;
     ttmYield = ttmYield * (1 + dateYield);
@@ -396,7 +397,7 @@ export const createYieldMetric = ({
     // be aware of flat calculation not cumulative
     const lastFinishedYearYield = yieldMetric[LAST_FINISHED_YEAR_DATE];
     const quarterlyYield = (lastFinishedYearYield as number) / 4;
-    yieldFromFinishedYear = quarterlyYield * quarter;
+    yieldFromFinishedYear = quarterlyYield;
   }
   ttmYield = ttmYield * (1 + (yieldFromFinishedYear as number));
   ttmYield = ttmYield - 1;
