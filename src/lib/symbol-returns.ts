@@ -1,25 +1,20 @@
 import path from "path";
-import { getTaxByRegion, parseCSV } from "./index";
+import { getTaxByRegion, parseCSV, DAILY_DIR, BASELINE_DATE } from "./index";
 
 // ==== Types ====
-interface PricePoint {
+interface DailyPrice {
   date: string;
   value: number;
 }
-interface ReturnPoint {
+interface CumulativeReturn {
   date: string;
   value: number;
 }
-
-// ==== Constants ====
-const DATA_DIR = path.join(process.cwd(), "local-data");
-const DAILY_DIR = path.join(DATA_DIR, "daily");
-const BASELINE_DATE = "2024/12/30"; // buy date / start observation
 
 // ==== Helpers ====
 function ensureCommonDates(
   referenceDates: string[],
-  allHistory: PricePoint[][],
+  allHistory: DailyPrice[][],
 ) {
   for (const symbolHistory of allHistory) {
     for (const date of referenceDates) {
@@ -30,16 +25,21 @@ function ensureCommonDates(
   }
 }
 
-export const getCarryTrade = () => {
-  const usdtryHistory = parseCSV<PricePoint>({
+export const getCummulativeReturns = (): {
+  cumulativeUsdtry: CumulativeReturn[];
+  cumulativeEurtry: CumulativeReturn[];
+  cumulativeMixed: CumulativeReturn[];
+  cumulativeBGP: CumulativeReturn[];
+} => {
+  const usdtryHistory = parseCSV<DailyPrice>({
     filePath: path.join(DAILY_DIR, "USDTRY.csv"),
     header: true,
   });
-  const eurtryHistory = parseCSV<PricePoint>({
+  const eurtryHistory = parseCSV<DailyPrice>({
     filePath: path.join(DAILY_DIR, "EURTRY.csv"),
     header: true,
   });
-  const bgpHistory = parseCSV<PricePoint>({
+  const bgpHistory = parseCSV<DailyPrice>({
     filePath: path.join(DAILY_DIR, "BGP.csv"),
     header: true,
   });
@@ -66,10 +66,10 @@ export const getCarryTrade = () => {
   const bgp0 = bgp0Obj.value;
 
   // calculate cumulative returns from levels
-  const cumulativeUsdtry: ReturnPoint[] = [];
-  const cumulativeEurtry: ReturnPoint[] = [];
-  const cumulativeMixed: ReturnPoint[] = [];
-  const cumulativeGrossBGP: ReturnPoint[] = [];
+  const cumulativeUsdtry: CumulativeReturn[] = [];
+  const cumulativeEurtry: CumulativeReturn[] = [];
+  const cumulativeMixed: CumulativeReturn[] = [];
+  const cumulativeGrossBGP: CumulativeReturn[] = [];
 
   for (const date of commonDates) {
     if (date === BASELINE_DATE) continue;

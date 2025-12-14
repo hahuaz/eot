@@ -1,5 +1,5 @@
-import dotenv from "dotenv";
-import path from "path";
+import * as dotenv from "dotenv";
+import * as path from "path";
 
 // Load environment variables based on NODE_ENV
 dotenv.config({
@@ -26,7 +26,7 @@ export const APP_CONFIG: AppConfig = {
   GOOGLE_CREDENTIAL_PATH: path.join(
     process.cwd(),
     "credentials",
-    "google.json",
+    "google.json"
   ),
 };
 

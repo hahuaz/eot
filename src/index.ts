@@ -18,7 +18,7 @@ import { Inflation } from "@shared/types";
 
 import { Region, regions } from "@/types";
 
-import { getCarryTrade } from "@/lib/carry-trade";
+import { getCummulativeReturns } from "@/lib/symbol-returns.js";
 
 const INFLATION = regions.reduce(
   (acc, region) => {
@@ -70,7 +70,7 @@ app.use((req, res, next) => {
  */
 router.get("/carry-trade", (req, res) => {
   try {
-    const carryTradeData = getCarryTrade();
+    const carryTradeData = getCummulativeReturns();
     res.status(200).json(carryTradeData);
   } catch (error) {
     console.error("Failed to get carry trade data:", error);
