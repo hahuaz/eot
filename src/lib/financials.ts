@@ -34,28 +34,27 @@ export const getTaxByRegion = ({
   }
 };
 
-export const getTtmNightlyYield = ({
+export const getLiveTtmNightlyYield = ({
   inflation,
 }: {
   inflation: Inflation[];
 }): number | null => {
+  // TODO: get prices dynamically
   // ttm bgp price on 2024/9/30
   const previousTtmBGPPrice = 2.946158;
-  // Current BGP price (includes up-to-date price, not just limited to 2025/9/30)
-  const currBGPPrice = 5.008617;
+  // live TTM BGP price (includes up-to-date price, not just between 2024/9/30 and 2025/9/30)
+  const liveTtmBGPPrice = 5.008617;
   const nominalBGPYield =
-    (currBGPPrice - previousTtmBGPPrice) / previousTtmBGPPrice;
+    (liveTtmBGPPrice - previousTtmBGPPrice) / previousTtmBGPPrice;
 
-  const netBGPYield = nominalBGPYield * (1 - 0.175);
+  const netBGPYield =
+    nominalBGPYield * (1 - getTaxByRegion({ region: "tr" }).withholdingTax);
 
-  const inflationForTtm = inflation?.find(
-    (item) => item.date === LAST_DATE,
-  )?.yoy;
-  if (inflationForTtm == null) {
-    return null;
+  const ttmInflation = inflation?.find((item) => item.date === LAST_DATE)?.yoy;
+  if (ttmInflation == null) {
+    throw new Error(`Inflation data not found for date ${LAST_DATE}`);
   }
-  const ttmNightlyYield =
-    (netBGPYield - inflationForTtm) / (1 + inflationForTtm);
+  const ttmNightlyYield = (netBGPYield - ttmInflation) / (1 + ttmInflation);
 
   return ttmNightlyYield;
 };

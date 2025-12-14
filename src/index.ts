@@ -7,7 +7,7 @@ import {
   populateStock,
   getStockInfo,
   getStocksDynamic,
-  getTtmNightlyYield,
+  getLiveTtmNightlyYield,
   INFLATION_DATA,
 } from "@/lib";
 
@@ -70,7 +70,7 @@ router.get("/ttm-nightly-yield", validateRegion, (req, res) => {
 
   const inflation = INFLATION_DATA[region];
 
-  const ttmNightlyYield = getTtmNightlyYield({ inflation });
+  const ttmNightlyYield = getLiveTtmNightlyYield({ inflation });
 
   if (ttmNightlyYield === null || ttmNightlyYield === undefined) {
     res.status(500).json({ error: "Failed to calculate ttm nightly yield." });
