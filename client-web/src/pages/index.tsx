@@ -7,7 +7,7 @@ export default function Home() {
       <br />
       <Link href="/all-stock/tr">View TR Stocks</Link>
       <br />
-      <Link href="/carry-trade">Carry Trade</Link>
+      <Link href="/cummulative-returns">Cummulative Returns</Link>
     </div>
   );
 }

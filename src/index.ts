@@ -65,16 +65,18 @@ app.use((req, res, next) => {
 // --- API Routes ---
 
 /**
- * @route GET /api/carry-trade
+ * @route GET /api/cummulative-returns
  * @description Returns carry trade data. This route is independent of region.
  */
-router.get("/carry-trade", (req, res) => {
+router.get("/cummulative-returns", (req, res) => {
   try {
-    const carryTradeData = getCummulativeReturns();
-    res.status(200).json(carryTradeData);
+    const cummulativeReturns = getCummulativeReturns();
+    res.status(200).json(cummulativeReturns);
   } catch (error) {
-    console.error("Failed to get carry trade data:", error);
-    res.status(500).json({ error: "Failed to calculate carry trade data." });
+    console.error("Failed to get cummulative returns data:", error);
+    res
+      .status(500)
+      .json({ error: "Failed to calculate cummulative returns data." });
   }
 });
 

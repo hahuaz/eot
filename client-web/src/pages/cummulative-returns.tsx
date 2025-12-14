@@ -28,15 +28,15 @@ interface CarryTradeChartProps {
 }
 
 export const getStaticProps: GetStaticProps<{
-  carryTrade: CarryTradeChartProps;
+  cummulativeReturns: CarryTradeChartProps;
 }> = async () => {
-  const carryTrade = await fetch(`${API_URL}api/carry-trade`).then((res) =>
-    res.json(),
-  );
+  const cummulativeReturns = await fetch(
+    `${API_URL}api/cummulative-returns`,
+  ).then((res) => res.json());
 
   return {
     props: {
-      carryTrade,
+      cummulativeReturns,
     },
   };
 };
@@ -49,8 +49,6 @@ const mergeData = (
   cumulativeBGP: DataPoint[],
 ): {
   date: string;
-  tlref?: number;
-  netTlref?: number;
   usdtry?: number;
   eurtry?: number;
   mixed?: number;
@@ -77,11 +75,10 @@ const mergeData = (
 };
 
 const CarryTradeChart = ({
-  carryTrade,
+  cummulativeReturns,
 }: InferGetStaticPropsType<typeof getStaticProps>) => {
   const { cumulativeUsdtry, cumulativeEurtry, cumulativeMixed, cumulativeBGP } =
-    carryTrade;
-  // console.log("carryTrade", carryTrade);
+    cummulativeReturns;
 
   const data = mergeData(
     cumulativeUsdtry,
@@ -104,20 +101,6 @@ const CarryTradeChart = ({
             formatter={(value: number) => `${(value * 100).toFixed(2)}%`}
           />
           <Legend />
-          <Line
-            type="monotone"
-            dataKey="tlref"
-            stroke="#a0efa0"
-            name="TLREF Growth"
-            dot={false}
-          />
-          <Line
-            type="monotone"
-            dataKey="netTlref"
-            stroke="#f5fd0a"
-            name="Net TLREF Growth"
-            dot={false}
-          />
           <Line
             type="monotone"
             dataKey="bgp"

@@ -46,7 +46,7 @@
   "lint-staged": {
     "**/*.{js,ts,tsx,json,md}": "prettier --write",
     "**/*.{js,ts,tsx}": "oxlint",
-    "client-web/**/*.{ts,tsx}": "tsc --noEmit --project client-web/tsconfig.json",
+    "client-web/**/*.{ts,tsx}": "bash -c 'tsc --noEmit --project client-web/tsconfig.json'",
     "src/**/*.{ts,tsx}": "bash -c 'tsc --noEmit'"
   }
 }
