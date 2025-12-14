@@ -45,7 +45,7 @@ export const getStaticPaths: GetStaticPaths = async () => {
 
 export const getStaticProps: GetStaticProps<{
   stocks: StockData[];
-  adjustedBGPYield: number;
+  ttmNightlyYield: number;
   region: string;
 }> = async ({ params }) => {
   const { region } = params as { region: string };
@@ -118,16 +118,17 @@ export const getStaticProps: GetStaticProps<{
     return flat as StockData;
   });
 
-  const { adjustedBGPYield } = await fetch(
-    `${API_URL}api/money-fund?&region=tr`,
+  const { ttmNightlyYield } = await fetch(
+    `${API_URL}api/ttm-nightly-yield?region=tr`,
   ).then((res) => res.json());
 
-  return { props: { stocks: filteredStockData, adjustedBGPYield, region } };
+  return { props: { stocks: filteredStockData, ttmNightlyYield, region } };
 };
 
 const Home = ({
   stocks,
   region,
+  ttmNightlyYield,
 }: InferGetStaticPropsType<typeof getStaticProps>) => {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "(ev/oi) / ttm growth", desc: false },
@@ -240,7 +241,7 @@ const Home = ({
         <p>
           for 2025 q3 period inflation adjusted TTM yield:
           <br />
-          net bgp: 0.10
+          net ttm bgp: {ttmNightlyYield}
           <br />
           istanbul/sancaktepe: 0
           <br />

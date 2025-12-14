@@ -34,17 +34,15 @@ export const getTaxByRegion = ({
   }
 };
 
-export const getMoneyFundYield = ({
+export const getTtmNightlyYield = ({
   inflation,
 }: {
   inflation: Inflation[];
 }): number | null => {
-  // TODO: values are hardcoded for now
-  // we will compare money fund yield with stocks' yield for ttm period
-  // previous ttm bgp price 2024/9/30
+  // ttm bgp price on 2024/9/30
   const previousTtmBGPPrice = 2.946158;
-  // current ttm bgp price 2025/9/30
-  const currBGPPrice = 4.639166;
+  // Current BGP price (includes up-to-date price, not just limited to 2025/9/30)
+  const currBGPPrice = 5.008617;
   const nominalBGPYield =
     (currBGPPrice - previousTtmBGPPrice) / previousTtmBGPPrice;
 
@@ -56,10 +54,10 @@ export const getMoneyFundYield = ({
   if (inflationForTtm == null) {
     return null;
   }
-  const adjustedBGPYield =
+  const ttmNightlyYield =
     (netBGPYield - inflationForTtm) / (1 + inflationForTtm);
 
-  return adjustedBGPYield;
+  return ttmNightlyYield;
 };
 
 export const adjustForInflation = ({

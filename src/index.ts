@@ -1,4 +1,3 @@
-// importing config at the seperate module to make sure environment variables are loaded before any other imports
 import "./config.ts";
 
 import express, { Response, Request, NextFunction, Router } from "express";
@@ -8,7 +7,7 @@ import {
   populateStock,
   getStockInfo,
   getStocksDynamic,
-  getMoneyFundYield,
+  getTtmNightlyYield,
   INFLATION_DATA,
 } from "@/lib";
 
@@ -17,7 +16,6 @@ import { Region, regions } from "@/types";
 import { getCummulativeReturns } from "@/lib/symbol-returns.js";
 
 // --- Express App Setup ---
-
 const app = express();
 const router = Router();
 const PORT = process.env.PORT || 5555;
@@ -27,7 +25,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // --- Middleware ---
-
 function validateRegion(req: Request, res: Response, next: NextFunction) {
   const region = req.query.region;
   if (typeof region !== "string" || !regions.includes(region as Region)) {
@@ -64,23 +61,23 @@ router.get("/cummulative-returns", (req, res) => {
 });
 
 /**
- * @route GET /api/money-fund
+ * @route GET /api/ttm-nightly-yield
  * @description Calculates and returns the money fund yield adjusted for inflation for a given region.
  * @queryparam {string} region - The region ('tr' or 'us').
  */
-router.get("/money-fund", validateRegion, (req, res) => {
+router.get("/ttm-nightly-yield", validateRegion, (req, res) => {
   const region = req.query.region as Region;
 
   const inflation = INFLATION_DATA[region];
 
-  const moneyFundYield = getMoneyFundYield({ inflation });
+  const ttmNightlyYield = getTtmNightlyYield({ inflation });
 
-  if (moneyFundYield === null || moneyFundYield === undefined) {
-    res.status(500).json({ error: "Failed to calculate money fund yield." });
+  if (ttmNightlyYield === null || ttmNightlyYield === undefined) {
+    res.status(500).json({ error: "Failed to calculate ttm nightly yield." });
     return;
   }
 
-  res.status(200).json({ adjustedBGPYield: moneyFundYield });
+  res.status(200).json({ ttmNightlyYield });
 });
 
 /**
