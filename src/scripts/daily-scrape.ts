@@ -4,16 +4,17 @@ import path from "path";
 // execute config to load environment variables
 import "@/config";
 
-import type { Site, Daily } from "@/types";
+import type { Site, Daily, ScrapeItem } from "@/types";
 import {
   scrape,
   updateSheet,
-  parseCSV,
-  unparseCSV,
+  updateCsvFile,
   TR_DYNAMIC_PATH,
 } from "@/lib/index";
 
-const TR_FUND_SITES: Site = {
+const DAILY_SAVED_SYMBOLS = ["BGP", "USDTRY", "EURTRY", "GOLD"] as const;
+
+const TR_FUND_SYMBOLS: Site = {
   domain: "https://fintables.com/",
   resources: [
     "fonlar/ZBJ",
@@ -38,7 +39,7 @@ const TR_FUND_SITES: Site = {
   isLocalTr: true,
 };
 
-const GENERIC_SITES: Site = {
+const GENERIC_SYMBOLS: Site = {
   domain: "https://www.tradingview.com/",
   resources: [
     "symbols/USDTRY",
@@ -50,15 +51,18 @@ const GENERIC_SITES: Site = {
     "#js-category-content > div.js-symbol-page-header-root > div > div.symbolRow-NopKb87z > div > div.quotesRow-iJMmXWiA > div:nth-child(1) > div > div.lastContainer-zoF9r75I > span.last-zoF9r75I.js-symbol-last",
 };
 
-const TR_STOCK_SITES: Site = {
-  domain: "https://www.tradingview.com/",
-  querySelector: GENERIC_SITES.querySelector,
+const TR_STOCK_SYMBOLS: Site = {
+  domain: GENERIC_SYMBOLS.domain,
+  querySelector: GENERIC_SYMBOLS.querySelector,
   resources: [],
 };
 
 async function scrapeTrStocks() {
   const trStocksJson = fs.readFileSync(TR_DYNAMIC_PATH, "utf-8");
-  const trStocks = JSON.parse(trStocksJson) as Record<string, any>;
+  const trStocks = JSON.parse(trStocksJson) as Record<
+    string,
+    { price?: number }
+  >;
 
   const trStockKeys = Object.keys(trStocks).filter((key) => key !== "test");
   if (trStockKeys.length === 0) {
@@ -66,11 +70,11 @@ async function scrapeTrStocks() {
     return;
   }
 
-  TR_STOCK_SITES.resources = trStockKeys.map((key) => `symbols/${key}`);
+  TR_STOCK_SYMBOLS.resources = trStockKeys.map((key) => `symbols/${key}`);
 
-  const scrapeResult = await scrape([TR_STOCK_SITES]);
+  const scrapeResults = await scrape([TR_STOCK_SYMBOLS]);
 
-  for (const result of scrapeResult) {
+  for (const result of scrapeResults) {
     const stockSymbol = result.resource;
     if (trStocks[stockSymbol]) {
       trStocks[stockSymbol].price = Number(result.value);
@@ -80,83 +84,56 @@ async function scrapeTrStocks() {
   fs.writeFileSync(TR_DYNAMIC_PATH, JSON.stringify(trStocks, null, 2));
 }
 
-function updateCsvFile(
-  filePath: string,
-  currentDate: string,
-  scrapeValue: string,
-) {
-  if (fs.existsSync(filePath)) {
-    const dailyCsvContent = parseCSV<Daily>({ filePath, header: true });
-    const { data: dailyData } = dailyCsvContent;
-    const lastEntry = dailyData[0];
-
-    if (lastEntry?.date === currentDate) {
-      lastEntry.value = Number(scrapeValue);
-    } else {
-      dailyData.unshift({ date: currentDate, value: Number(scrapeValue) });
-    }
-
-    unparseCSV<Daily>({ data: dailyData, filePath, header: true });
-  } else {
-    const fileContent = `date,value\n${currentDate},${scrapeValue}\n`;
-    fs.writeFileSync(filePath, fileContent);
-  }
+function updateDailyCsv(resource: string, currentDate: string, value: string) {
+  const fileName = `${resource}.csv`;
+  const filePath = path.join(process.cwd(), "local-data", "daily", fileName);
+  updateCsvFile<Daily>(
+    filePath,
+    { date: currentDate, value: Number(value) },
+    "date",
+  );
 }
 
-async function processGenericSites(
-  genericSiteResults: any[],
-  currentDate: string,
-) {
-  for (const scrape of genericSiteResults) {
-    const fileName = `${scrape.resource}.csv`;
-    const filePath = path.join(process.cwd(), "local-data", "daily", fileName);
-    updateCsvFile(filePath, currentDate, scrape.value);
-  }
-  console.log("updated locale daily data");
-}
-
-async function processTrFunds(trFundsScrapeResult: any[], currentDate: string) {
-  // some of resources will be saved to local-data/daily
-  const selectedTrFunds = ["BGP"];
-  for (const fund of selectedTrFunds) {
-    const scrapeResult = trFundsScrapeResult.find(
-      (scrape) => scrape.resource === fund,
+function saveToLocalDailyCsv(allResults: ScrapeItem[], currentDate: string) {
+  const filteredResults = allResults.filter((result) => {
+    console.log("result:", result);
+    return DAILY_SAVED_SYMBOLS.includes(
+      result.resource as (typeof DAILY_SAVED_SYMBOLS)[number],
     );
-    if (scrapeResult) {
-      const fileName = `${scrapeResult.resource}.csv`;
-      const filePath = path.join(
-        process.cwd(),
-        "local-data",
-        "daily",
-        fileName,
-      );
-      updateCsvFile(filePath, currentDate, scrapeResult.value);
-    } else {
-      console.log(`no scrape result found for ${fund}`);
-    }
+  });
+  for (const result of filteredResults) {
+    updateDailyCsv(result.resource, currentDate, result.value);
   }
-  console.log(`selected TR Funds updated in daily data`);
+  console.log(
+    `Updated ${filteredResults.length} symbols in local daily CSV files`,
+  );
 }
 
 async function main() {
-  const now = new Date();
-  const currentDate = `${now.getFullYear()}/${
-    now.getMonth() + 1
-  }/${now.getDate()}`;
+  try {
+    const now = new Date();
+    const currentDate = now.toLocaleDateString("en-CA"); // YYYY-MM-DD format
 
-  const genericSiteResults = await scrape([GENERIC_SITES]);
-  await processGenericSites(genericSiteResults, currentDate);
+    // Scrape all symbols
+    const genericSymbolResults = await scrape([GENERIC_SYMBOLS]);
+    // const trFundResults = await scrape([TR_FUND_SYMBOLS]);
+    const allResults = [...genericSymbolResults];
 
-  const trFundsScrapeResult = await scrape([TR_FUND_SITES]);
-  await updateSheet([...trFundsScrapeResult, ...genericSiteResults]);
-  console.log("updated TR Funds in Google Sheet");
+    // Update Google Sheet with ALL scraped data
+    await updateSheet(allResults);
+    console.log("Updated Google Sheet with all scraped data");
 
-  await processTrFunds(trFundsScrapeResult, currentDate);
+    // Save only selected symbols to local daily CSV files
+    saveToLocalDailyCsv(allResults, currentDate);
 
-  await scrapeTrStocks();
-  console.log("scraped TR stocks and saved in local-data");
+    // await scrapeTrStocks();
+    // console.log("scraped TR stocks and saved in local-data");
 
-  console.log("all done!");
+    console.log("all done!");
+  } catch (error) {
+    console.error("Error in main:", error);
+    throw error;
+  }
 }
 
 main();
