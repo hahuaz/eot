@@ -7,17 +7,23 @@ export type Site = {
   isLocalTr?: boolean;
 };
 
-export type ScrapeResult = {
+export type ScrapeItem = {
   symbol: string;
   value: string;
-}[];
-
-export type ScrapeItem = ScrapeResult[number];
-
-export type Daily = {
-  date: string;
-  value: number;
 };
+
+export type ScrapeResult = ScrapeItem[];
 
 export const regions = ["tr", "us"] as const;
 export type Region = (typeof regions)[number];
+
+export type DailyPrice = {
+  date: string; // YYYY-MM-DD
+  value: number;
+};
+
+export type CumulativeReturn = {
+  date: string; // YYYY-MM-DD
+  // e.g. 0.05 means a 5% increase
+  value: number;
+};

@@ -6,5 +6,5 @@ export * from "@/lib/financials";
 export * from "@/lib/metrics";
 export * from "@/lib/data-service";
 export * from "@/lib/scrape";
-export * from "@/lib/save-to-sheet";
+export * from "@/lib/sheet";
 export * from "@/lib/symbol-returns";

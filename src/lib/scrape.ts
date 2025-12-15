@@ -82,26 +82,29 @@ export async function scrape(sites: Site[]): Promise<ScrapeResult> {
 
   const allResults: ScrapeResult = [];
 
-  for (const site of sites) {
-    for (const endpoint of site.endpoints) {
-      try {
-        const url = `${site.domain}${endpoint}`;
-        const result = await scrapeUrl(
-          browser,
-          url,
-          site.querySelector,
-          site.isLocalTr,
-        );
-        if (result) {
-          allResults.push(result);
+  try {
+    for (const site of sites) {
+      for (const endpoint of site.endpoints) {
+        try {
+          const url = `${site.domain}${endpoint}`;
+          const result = await scrapeUrl(
+            browser,
+            url,
+            site.querySelector,
+            site.isLocalTr,
+          );
+          if (result) {
+            allResults.push(result);
+          }
+        } catch (error) {
+          console.error(
+            `Failed to scrape endpoint ${endpoint} from site ${site.domain}:`,
+            error,
+          );
         }
-      } catch (error) {
-        console.error(
-          `Failed to scrape endpoint ${endpoint} from site ${site.domain}:`,
-          error,
-        );
       }
     }
+  } finally {
     await browser.close();
   }
 

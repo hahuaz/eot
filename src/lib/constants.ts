@@ -22,4 +22,4 @@ if (!fs.existsSync(TR_DYNAMIC_PATH)) {
 }
 
 // observation start date for cummulative returns
-export const BASELINE_DATE = "2024/12/30";
+export const BASELINE_DATE = "2024-12-30";

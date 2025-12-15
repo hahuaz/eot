@@ -1,15 +1,6 @@
 import path from "path";
 import { getTaxByRegion, parseCSV, DAILY_DIR, BASELINE_DATE } from "@/lib";
-
-// ==== Types ====
-interface DailyPrice {
-  date: string;
-  value: number;
-}
-interface CumulativeReturn {
-  date: string;
-  value: number;
-}
+import { DailyPrice, CumulativeReturn } from "@/types";
 
 // ==== Helpers ====
 function ensureCommonDates(

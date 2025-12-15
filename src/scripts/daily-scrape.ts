@@ -1,10 +1,10 @@
-import fs from "fs";
-import path from "path";
-
 // execute config to load environment variables
 import "@/config";
 
-import type { Site, Daily, ScrapeItem } from "@/types";
+import fs from "fs";
+import path from "path";
+
+import type { Site, DailyPrice, ScrapeItem } from "@/types";
 import {
   scrape,
   updateSheet,
@@ -87,7 +87,7 @@ async function scrapeTrStocks() {
 function updateDailyCsv(symbol: string, currentDate: string, value: string) {
   const fileName = `${symbol}.csv`;
   const filePath = path.join(process.cwd(), "local-data", "daily", fileName);
-  updateCsvFile<Daily>(
+  updateCsvFile<DailyPrice>(
     filePath,
     { date: currentDate, value: Number(value) },
     "date",
@@ -109,11 +109,9 @@ function saveToLocalDailyCsv(allResults: ScrapeItem[], currentDate: string) {
 async function main() {
   try {
     const now = new Date();
-    const currentDate = now.toLocaleDateString("en-CA").replace(/-/g, "/"); // YYYY/MM/DD format
+    const currentDate = now.toLocaleDateString("en-CA"); // YYYY-MM-DD format
 
-    const genericSymbolResults = await scrape([GENERIC_SYMBOLS]);
-    const trFundResults = await scrape([TR_FUND_SYMBOLS]);
-    const allResults = [...genericSymbolResults, ...trFundResults];
+    const allResults = await scrape([GENERIC_SYMBOLS, TR_FUND_SYMBOLS]);
 
     await updateSheet(allResults);
     console.log("Updated Google Sheet with all scraped data");
