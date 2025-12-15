@@ -1,5 +1,6 @@
 import {
   DATES,
+  Dates,
   StockConfig,
   Inflation,
   StockDynamic,
@@ -11,11 +12,7 @@ import { Region, regions } from "@/types";
 import path from "path";
 import { parseCSV, readJsonFile } from "@/lib/file";
 import { DATA_DIR } from "@/lib/constants";
-import {
-  CURRENT_DATE,
-  getEarliestDefinedDate,
-  getYearsPassed,
-} from "@/lib/dates";
+import { getAvailableDates } from "@/lib/dates";
 import {
   createCurrentColumn,
   createYieldMetric,
@@ -96,6 +93,47 @@ export const getStocksDynamic = ({ region }: { region: string }) => {
   return stocksDynamic;
 };
 
+/**
+ * Context object containing date-related information for stock calculations.
+ */
+type DateContext = {
+  /** For recently IPO'd stocks, not all historical dates will have values thus available dates is calculated with the earliest defined date */
+  equityAvailableDates: Dates[];
+  priceAvailableDates: Dates[];
+};
+
+function buildDateContext(baseMetrics: BaseMetric[]): DateContext {
+  const equityAvailableDates = getAvailableDates({
+    baseMetrics,
+    metricName: "Equity",
+  });
+
+  const priceAvailableDates = getAvailableDates({
+    baseMetrics,
+    metricName: "Price",
+  });
+
+  return { equityAvailableDates, priceAvailableDates };
+}
+
+/**
+ * Populates a stock with all calculated metrics, including derived metrics and growth rates.
+ *
+ * This function orchestrates the complete stock data enrichment pipeline:
+ * 1. Sets up current column
+ * 2. Calculates date context for stocks with limited history (e.g., recent IPOs)
+ * 3. Creates derived financial metrics (valuations, ratios)
+ * 4. Calculates growth rates (total, TTM, yearly)
+ * 5. Adjusts all metrics for inflation
+ *
+ * @param params - Stock calculation parameters
+ * @param params.baseMetrics - Raw financial metrics from stock data files
+ * @param params.stockConfig - Stock configuration (symbol, shares, growth params)
+ * @param params.stockDynamic - Dynamic stock data (current price, notes)
+ * @param params.inflation - Inflation data for the region
+ * @param params.region - Region code (e.g., 'tr', 'us')
+ * @returns Enriched stock data with base metrics, derived metrics, and config
+ */
 export const populateStock = ({
   baseMetrics,
   stockConfig,
@@ -109,84 +147,94 @@ export const populateStock = ({
   inflation: Inflation[];
   region: string;
 }) => {
+  // ═══════════════════════════════════════════════════════════════
+  // Phase 1: Setup - Create current column
+  // ═══════════════════════════════════════════════════════════════
+  // Populate the "current" column with the latest price from dynamic data and copy last quarter values for other metrics
   createCurrentColumn({
     baseMetrics,
     stockDynamic,
   });
 
-  // create seperate derivedMetrics array that doesn't include base metrics. Separating them is important for typescript to infer the type correctly and easier to maintain
+  // ═══════════════════════════════════════════════════════════════
+  // Phase 2: Build Context - Determine available dates
+  // ═══════════════════════════════════════════════════════════════
+  // Calculate which dates have data (important for recent IPOs)
+  // and how many years of history we have
+  const { equityAvailableDates, priceAvailableDates } =
+    buildDateContext(baseMetrics);
+
+  // ═══════════════════════════════════════════════════════════════
+  // Phase 3: Create Derived Metrics
+  // ═══════════════════════════════════════════════════════════════
+  // Separate array for derived metrics to maintain type safety
+  // and make it easier to distinguish between base and calculated values
   const derivedMetrics: DerivedMetric[] = [];
 
+  // Yield metric (includes dividend yield and price appreciation, adjusted for inflation)
+  // Must be calculated first as it has its own date filtering logic based on price availability
   createYieldMetric({
     baseMetrics,
     derivedMetrics,
     inflation,
     region,
+    priceAvailableDates,
   });
 
-  const earliestDefinedDate = getEarliestDefinedDate({
-    metricName: "Equity",
-    baseMetrics,
-    dates: DATES,
-  });
-
-  const availableDates = DATES.filter((date) => {
-    // there could be no stock without current date
-    if (date === CURRENT_DATE) {
-      return true;
-    }
-    return new Date(date).getTime() >= new Date(earliestDefinedDate).getTime();
-  });
-
-  const yearsPassed = getYearsPassed({
-    earliestDefinedDate: earliestDefinedDate,
-  });
-
+  // Valuation and financial health metrics
   createNDtoOIMetric({
-    availableDates,
+    equityAvailableDates,
     baseMetrics,
     derivedMetrics,
     stockConfig,
   });
 
   createEV({
-    availableDates,
+    equityAvailableDates,
     baseMetrics,
     derivedMetrics,
-    stockConfig: stockConfig,
+    stockConfig,
   });
 
   createEVtoOIMetric({
-    availableDates,
+    equityAvailableDates,
     baseMetrics,
     derivedMetrics,
   });
 
   createEVtoNI({
-    availableDates,
+    equityAvailableDates,
     baseMetrics,
     derivedMetrics,
   });
 
   createMVtoBVMetric({
-    availableDates,
+    equityAvailableDates,
     baseMetrics,
     derivedMetrics,
-    stockConfig: stockConfig,
+    stockConfig,
   });
 
+  // ═══════════════════════════════════════════════════════════════
+  // Phase 4: Calculate Growth Rates
+  // ═══════════════════════════════════════════════════════════════
+  // Calculate total growth, TTM growth, and yearly growth for applicable base metrics
   calcGrowths({
-    availableDates,
+    equityAvailableDates,
     baseMetrics,
   });
 
+  // ═══════════════════════════════════════════════════════════════
+  // Phase 5: Adjust for Inflation
+  // ═══════════════════════════════════════════════════════════════
+  // Apply inflation adjustments to growth metrics and create the "Selected growth" metric
+  // This must be done last as it depends on all previous calculations
   adjustForInflation({
     baseMetrics,
     derivedMetrics,
     inflation,
     stockConfig,
-    availableDates,
-    yearsPassed,
+    equityAvailableDates,
   });
 
   return { baseMetrics, derivedMetrics, stockConfig };

@@ -9,11 +9,14 @@ import {
   getStocksDynamic,
   getLiveTtmNightlyYield,
   INFLATION_DATA,
+  DATA_DIR,
 } from "@/lib";
 
 import { Region, regions } from "@/types";
 
 import { getCummulativeReturns } from "@/lib/symbol-returns.js";
+import path from "path";
+import fs from "fs";
 
 // --- Express App Setup ---
 const app = express();
@@ -169,6 +172,10 @@ router.get("/stock", validateRegion, async (req, res) => {
     region,
     inflation,
   });
+
+  // write data to temp file
+  const tempFilePath = path.join(DATA_DIR, `${stockSymbol}_temp.json`);
+  fs.writeFileSync(tempFilePath, JSON.stringify(stockData));
 
   res.status(200).json(stockData);
 });

@@ -45,12 +45,12 @@ export const createCurrentColumn = ({
 };
 
 export const createEV = ({
-  availableDates,
+  equityAvailableDates,
   baseMetrics,
   derivedMetrics,
   stockConfig,
 }: {
-  availableDates: Dates[];
+  equityAvailableDates: Dates[];
   baseMetrics: BaseMetric[];
   derivedMetrics: DerivedMetric[];
   stockConfig: StockConfig;
@@ -59,7 +59,7 @@ export const createEV = ({
     metricName: "Enterprise value",
   } as Partial<DerivedMetric>;
 
-  for (const date of availableDates) {
+  for (const date of equityAvailableDates) {
     const price = baseMetrics.find((item) => item.metricName === "Price")![
       date
     ];
@@ -91,12 +91,12 @@ export const createEV = ({
 };
 
 export const createNDtoOIMetric = ({
-  availableDates,
+  equityAvailableDates,
   baseMetrics,
   derivedMetrics,
   stockConfig,
 }: {
-  availableDates: Dates[];
+  equityAvailableDates: Dates[];
   baseMetrics: BaseMetric[];
   derivedMetrics: DerivedMetric[];
   stockConfig: StockConfig;
@@ -105,7 +105,7 @@ export const createNDtoOIMetric = ({
     metricName: "Net debt / operating income",
   } as Partial<DerivedMetric>;
 
-  for (const date of availableDates) {
+  for (const date of equityAvailableDates) {
     const cash =
       baseMetrics.find(
         (item) => item.metricName === "Cash & cash equivalents",
@@ -139,11 +139,11 @@ export const createNDtoOIMetric = ({
 };
 
 export const createEVtoOIMetric = ({
-  availableDates,
+  equityAvailableDates,
   baseMetrics,
   derivedMetrics,
 }: {
-  availableDates: Dates[];
+  equityAvailableDates: Dates[];
   baseMetrics: BaseMetric[];
   derivedMetrics: DerivedMetric[];
 }) => {
@@ -151,7 +151,7 @@ export const createEVtoOIMetric = ({
     metricName: "EV / operating income",
   } as Partial<DerivedMetric>;
 
-  for (const date of availableDates) {
+  for (const date of equityAvailableDates) {
     const enterpriseValue = derivedMetrics.find(
       (item) => item.metricName === "Enterprise value",
     )![date];
@@ -178,11 +178,11 @@ export const createEVtoOIMetric = ({
 };
 
 export const createEVtoNI = ({
-  availableDates,
+  equityAvailableDates,
   baseMetrics,
   derivedMetrics,
 }: {
-  availableDates: Dates[];
+  equityAvailableDates: Dates[];
   baseMetrics: BaseMetric[];
   derivedMetrics: DerivedMetric[];
 }) => {
@@ -190,7 +190,7 @@ export const createEVtoNI = ({
     metricName: "EV / net income",
   } as Partial<DerivedMetric>;
 
-  for (const date of availableDates) {
+  for (const date of equityAvailableDates) {
     const enterpriseValue = derivedMetrics.find(
       (item) => item.metricName === "Enterprise value",
     )?.[date];
@@ -216,12 +216,12 @@ export const createEVtoNI = ({
 };
 
 export const createMVtoBVMetric = ({
-  availableDates,
+  equityAvailableDates,
   baseMetrics,
   derivedMetrics,
   stockConfig,
 }: {
-  availableDates: Dates[];
+  equityAvailableDates: Dates[];
   baseMetrics: BaseMetric[];
   derivedMetrics: DerivedMetric[];
   stockConfig: StockConfig;
@@ -230,7 +230,7 @@ export const createMVtoBVMetric = ({
     metricName: "Market value / book value",
   } as Partial<DerivedMetric>;
 
-  for (const date of availableDates) {
+  for (const date of equityAvailableDates) {
     const price = baseMetrics.find((item) => item.metricName === "Price")![
       date
     ];
@@ -261,11 +261,13 @@ export const createYieldMetric = ({
   derivedMetrics,
   inflation,
   region,
+  priceAvailableDates,
 }: {
   baseMetrics: BaseMetric[];
   derivedMetrics: DerivedMetric[];
   inflation: Inflation[];
   region: string;
+  priceAvailableDates: Dates[];
 }) => {
   const dividendIndex = baseMetrics.findIndex(
     (item) => item.metricName === "Dividend",
@@ -282,8 +284,8 @@ export const createYieldMetric = ({
   const priceMetric = baseMetrics[priceIndex];
 
   let earliestPriceDate: Dates | undefined = undefined;
-  for (let i = DATES.length - 1; i >= 0; i--) {
-    const date = DATES[i];
+  for (let i = priceAvailableDates.length - 1; i >= 0; i--) {
+    const date = priceAvailableDates[i];
     if (priceMetric[date]) {
       earliestPriceDate = date;
       break;
@@ -366,7 +368,7 @@ export const createYieldMetric = ({
   yieldMetric["Total growth"] = round(totalGrowth);
 
   const priceYearsPassed = getYearsPassed({
-    earliestDefinedDate: earliestPriceDate,
+    date: priceAvailableDates[priceAvailableDates.length - 1],
   });
 
   const yearlyGrowth = yieldMetric["Total growth"]
@@ -408,10 +410,10 @@ export const createYieldMetric = ({
 };
 
 export const calcGrowths = ({
-  availableDates,
+  equityAvailableDates,
   baseMetrics,
 }: {
-  availableDates: Dates[];
+  equityAvailableDates: Dates[];
   baseMetrics: BaseMetric[];
 }) => {
   for (const metricName of GROWTH_APPLIED_METRICS) {
@@ -422,7 +424,8 @@ export const calcGrowths = ({
     }
 
     // calc "Total growth" for metric
-    const firstDateValue = metric?.[availableDates[availableDates.length - 1]];
+    const firstDateValue =
+      metric?.[equityAvailableDates[equityAvailableDates.length - 1]];
     const lastDateValue = metric?.[LAST_DATE];
 
     if (firstDateValue == null || lastDateValue == null) {

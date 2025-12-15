@@ -8,7 +8,12 @@ import {
 } from "@shared/types";
 import { round } from "@/lib/utils";
 import { GROWTH_APPLIED_METRICS } from "@/lib/constants";
-import { LAST_DATE, CURRENT_DATE, lastDateObj } from "@/lib/dates";
+import {
+  LAST_DATE,
+  CURRENT_DATE,
+  lastDateObj,
+  getYearsPassed,
+} from "@/lib/dates";
 
 export const getTaxByRegion = ({
   region,
@@ -64,16 +69,18 @@ export const adjustForInflation = ({
   derivedMetrics,
   inflation,
   stockConfig,
-  availableDates,
-  yearsPassed,
+  equityAvailableDates,
 }: {
   baseMetrics: BaseMetric[];
   derivedMetrics: DerivedMetric[];
   inflation: Inflation[];
   stockConfig: StockConfig;
-  availableDates: Dates[];
-  yearsPassed: number;
+  equityAvailableDates: Dates[];
 }) => {
+  const equityYearsPassed = getYearsPassed({
+    date: equityAvailableDates[equityAvailableDates.length - 1],
+  });
+
   for (const metricName of GROWTH_APPLIED_METRICS) {
     const metric = baseMetrics.find((item) => item.metricName === metricName);
 
@@ -97,10 +104,10 @@ export const adjustForInflation = ({
       // some stocks may recently made IPO so you need to calculate the accumulated inflation for the available dates
 
       let accumulatedInflation = 0;
-      for (let i = 0; i < availableDates.length; i++) {
-        const date = availableDates[i];
+      for (let i = 0; i < equityAvailableDates.length; i++) {
+        const date = equityAvailableDates[i];
         // for current and first available date, don't apply inflation
-        if (date === CURRENT_DATE || i === availableDates.length - 1) {
+        if (date === CURRENT_DATE || i === equityAvailableDates.length - 1) {
           continue;
         }
         const inflationData = inflation.find((item) => item.date === date);
@@ -133,7 +140,7 @@ export const adjustForInflation = ({
 
       // yearly growth is derived from total growth
       const yearlyGrowth = metric["Total growth"]
-        ? Math.pow(1 + metric["Total growth"], 1 / yearsPassed) - 1
+        ? Math.pow(1 + metric["Total growth"], 1 / equityYearsPassed) - 1
         : 0;
       metric["Yearly growth"] = round(yearlyGrowth);
     }
@@ -201,7 +208,7 @@ export const adjustForInflation = ({
   // calc yearly growth from total growth
   const selectedTotalGrowth = selectedGrowth["Total growth"] as number;
   const selectedYearlyGrowth = selectedTotalGrowth
-    ? Math.pow(1 + selectedTotalGrowth, 1 / yearsPassed) - 1
+    ? Math.pow(1 + selectedTotalGrowth, 1 / equityYearsPassed) - 1
     : 0;
   selectedGrowth["Yearly growth"] = round(selectedYearlyGrowth);
 

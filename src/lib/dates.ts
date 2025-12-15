@@ -15,50 +15,38 @@ export const whichQuarter = (date: string) => {
 };
 
 /**
- * if stock is recently made IPO, metric values maybe null for older DATES.
- * we need to find the earliest date that metric has value for
+ * Given the date, calculate the years passed
  */
-export const getEarliestDefinedDate = ({
-  metricName,
+export const getYearsPassed = ({ date }: { date: string }): number => {
+  const monthsPassed =
+    (lastDateObj.getFullYear() - new Date(date).getFullYear()) * 12 +
+    (lastDateObj.getMonth() - new Date(date).getMonth());
+  const yearsPassed = monthsPassed / 12;
+  if (yearsPassed < 0) {
+    throw new Error(`getYearsPassed: yearsPassed is negative for date ${date}`);
+  }
+  return yearsPassed;
+};
+
+export const getAvailableDates = ({
   baseMetrics,
-  dates,
+  metricName,
 }: {
-  metricName: BaseMetricNames;
   baseMetrics: BaseMetric[];
-  dates: typeof DATES;
-}): string => {
+  metricName: BaseMetricNames;
+}): (typeof DATES)[number][] => {
+  const availableDates: (typeof DATES)[number][] = [];
   const metric = baseMetrics.find((item) => item.metricName === metricName);
   if (!metric) {
     throw new Error(`Metric ${metricName} not found`);
   }
 
-  for (let i = dates.length - 1; i >= 0; i--) {
-    const date = dates[i];
+  for (let i = DATES.length - 1; i >= 0; i--) {
+    const date = DATES[i];
     if (metric[date]) {
-      return date;
+      availableDates.unshift(date);
     }
   }
-  throw new Error(`Earliest date not found for metric ${metricName}`);
-};
 
-/**
- * if stock is recently made IPO, metric values maybe null for older DATES.
- * So yearPassed param is dynamic and calculated based on the earliest date that metric has value for
- */
-export const getYearsPassed = ({
-  earliestDefinedDate,
-}: {
-  earliestDefinedDate: string;
-}): number => {
-  const monthsPassed =
-    (lastDateObj.getFullYear() - new Date(earliestDefinedDate).getFullYear()) *
-      12 +
-    (lastDateObj.getMonth() - new Date(earliestDefinedDate).getMonth());
-  const yearsPassed = monthsPassed / 12;
-  if (yearsPassed < 0) {
-    throw new Error(
-      `getYearsPassed: yearsPassed is negative for earliestDefinedDate ${earliestDefinedDate}`,
-    );
-  }
-  return yearsPassed;
+  return availableDates;
 };
