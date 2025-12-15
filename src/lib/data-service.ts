@@ -93,28 +93,59 @@ export const getStocksDynamic = ({ region }: { region: string }) => {
   return stocksDynamic;
 };
 
-/**
- * Context object containing date-related information for stock calculations.
- */
-type DateContext = {
+export type StockContext = {
+  baseMetrics: BaseMetric[];
+  // Separate array for derived metrics to maintain type safety and make it easier to distinguish between base and calculated values
+  derivedMetrics: DerivedMetric[];
   /** For recently IPO'd stocks, not all historical dates will have values thus available dates is calculated with the earliest defined date */
   equityAvailableDates: Dates[];
   priceAvailableDates: Dates[];
+  stockConfig: StockConfig;
+  region: Region;
+  inflation: Inflation[];
 };
 
-function buildDateContext(baseMetrics: BaseMetric[]): DateContext {
-  const equityAvailableDates = getAvailableDates({
-    baseMetrics,
-    metricName: "Equity",
+const buildStockContext = ({
+  stockSymbol,
+  region,
+  inflation,
+}: {
+  stockSymbol: StockSymbol;
+  region: Region;
+  inflation: Inflation[];
+}): StockContext => {
+  const { baseMetrics, stockConfig } = getStockInfo({
+    region,
+    stockSymbol,
   });
 
-  const priceAvailableDates = getAvailableDates({
+  // Populate the "current" column with the latest price from dynamic data and copy last quarter values for other metrics
+  const stocksDynamic = getStocksDynamic({ region });
+  const stockDynamic = stocksDynamic[stockSymbol];
+  if (!stockDynamic) {
+    throw new Error("Stock not found.");
+  }
+  createCurrentColumn({
     baseMetrics,
-    metricName: "Price",
+    stockDynamic,
   });
 
-  return { equityAvailableDates, priceAvailableDates };
-}
+  return {
+    baseMetrics,
+    derivedMetrics: [],
+    equityAvailableDates: getAvailableDates({
+      baseMetrics,
+      metricName: "Equity",
+    }),
+    priceAvailableDates: getAvailableDates({
+      baseMetrics,
+      metricName: "Price",
+    }),
+    stockConfig,
+    region,
+    inflation,
+  };
+};
 
 /**
  * Populates a stock with all calculated metrics, including derived metrics and growth rates.
@@ -127,115 +158,59 @@ function buildDateContext(baseMetrics: BaseMetric[]): DateContext {
  * 5. Adjusts all metrics for inflation
  *
  * @param params - Stock calculation parameters
- * @param params.baseMetrics - Raw financial metrics from stock data files
- * @param params.stockConfig - Stock configuration (symbol, shares, growth params)
- * @param params.stockDynamic - Dynamic stock data (current price, notes)
+ * @param params.stockSymbol - Stock symbol
  * @param params.inflation - Inflation data for the region
  * @param params.region - Region code (e.g., 'tr', 'us')
  * @returns Enriched stock data with base metrics, derived metrics, and config
  */
 export const populateStock = ({
-  baseMetrics,
-  stockConfig,
-  stockDynamic,
+  stockSymbol,
   inflation,
   region,
 }: {
-  baseMetrics: BaseMetric[];
-  stockConfig: StockConfig;
-  stockDynamic: StockDynamic[StockSymbol];
+  stockSymbol: StockSymbol;
   inflation: Inflation[];
-  region: string;
+  region: Region;
 }) => {
   // ═══════════════════════════════════════════════════════════════
-  // Phase 1: Setup - Create current column
+  // Phase 1: Setup
   // ═══════════════════════════════════════════════════════════════
-  // Populate the "current" column with the latest price from dynamic data and copy last quarter values for other metrics
-  createCurrentColumn({
-    baseMetrics,
-    stockDynamic,
+  const stockContext: StockContext = buildStockContext({
+    stockSymbol,
+    region,
+    inflation,
   });
 
   // ═══════════════════════════════════════════════════════════════
-  // Phase 2: Build Context - Determine available dates
+  // Phase 2: Create Derived Metrics
   // ═══════════════════════════════════════════════════════════════
-  // Calculate which dates have data (important for recent IPOs)
-  // and how many years of history we have
-  const { equityAvailableDates, priceAvailableDates } =
-    buildDateContext(baseMetrics);
-
-  // ═══════════════════════════════════════════════════════════════
-  // Phase 3: Create Derived Metrics
-  // ═══════════════════════════════════════════════════════════════
-  // Separate array for derived metrics to maintain type safety
-  // and make it easier to distinguish between base and calculated values
-  const derivedMetrics: DerivedMetric[] = [];
-
   // Yield metric (includes dividend yield and price appreciation, adjusted for inflation)
   // Must be calculated first as it has its own date filtering logic based on price availability
-  createYieldMetric({
-    baseMetrics,
-    derivedMetrics,
-    inflation,
-    region,
-    priceAvailableDates,
-  });
+  createYieldMetric({ stockContext });
 
   // Valuation and financial health metrics
-  createNDtoOIMetric({
-    equityAvailableDates,
-    baseMetrics,
-    derivedMetrics,
-    stockConfig,
-  });
-
-  createEV({
-    equityAvailableDates,
-    baseMetrics,
-    derivedMetrics,
-    stockConfig,
-  });
-
-  createEVtoOIMetric({
-    equityAvailableDates,
-    baseMetrics,
-    derivedMetrics,
-  });
-
-  createEVtoNI({
-    equityAvailableDates,
-    baseMetrics,
-    derivedMetrics,
-  });
-
-  createMVtoBVMetric({
-    equityAvailableDates,
-    baseMetrics,
-    derivedMetrics,
-    stockConfig,
-  });
+  createNDtoOIMetric({ stockContext });
+  createEV({ stockContext });
+  createEVtoOIMetric({ stockContext });
+  createEVtoNI({ stockContext });
+  createMVtoBVMetric({ stockContext });
 
   // ═══════════════════════════════════════════════════════════════
-  // Phase 4: Calculate Growth Rates
+  // Phase 3: Calculate Growth Rates
   // ═══════════════════════════════════════════════════════════════
   // Calculate total growth, TTM growth, and yearly growth for applicable base metrics
-  calcGrowths({
-    equityAvailableDates,
-    baseMetrics,
-  });
+  calcGrowths({ stockContext });
 
   // ═══════════════════════════════════════════════════════════════
-  // Phase 5: Adjust for Inflation
+  // Phase 4: Adjust for Inflation
   // ═══════════════════════════════════════════════════════════════
   // Apply inflation adjustments to growth metrics and create the "Selected growth" metric
   // This must be done last as it depends on all previous calculations
-  adjustForInflation({
-    baseMetrics,
-    derivedMetrics,
-    inflation,
-    stockConfig,
-    equityAvailableDates,
-  });
+  adjustForInflation({ stockContext });
 
-  return { baseMetrics, derivedMetrics, stockConfig };
+  return {
+    baseMetrics: stockContext.baseMetrics,
+    derivedMetrics: stockContext.derivedMetrics,
+    stockConfig: stockContext.stockConfig,
+  };
 };

@@ -113,15 +113,8 @@ router.get("/all-stock", validateRegion, (req, res) => {
       return;
     }
 
-    const { baseMetrics, stockConfig } = getStockInfo({
-      stockSymbol,
-      region,
-    });
-
     const stockData = populateStock({
-      stockConfig,
-      baseMetrics,
-      stockDynamic,
+      stockSymbol,
       region,
       inflation,
     });
@@ -143,7 +136,6 @@ router.get("/all-stock", validateRegion, (req, res) => {
  */
 router.get("/stock", validateRegion, async (req, res) => {
   const region = req.query.region as Region;
-  console.log("Region:", region);
 
   const { stock: stockSymbol } = req.query;
   if (!stockSymbol || typeof stockSymbol !== "string") {
@@ -153,22 +145,8 @@ router.get("/stock", validateRegion, async (req, res) => {
 
   const inflation = INFLATION_DATA[region];
 
-  const stocksDynamic = getStocksDynamic({ region });
-  const stockDynamic = stocksDynamic[stockSymbol];
-  if (!stockDynamic) {
-    res.status(404).json({ error: "Stock not found." });
-    return;
-  }
-
-  const { baseMetrics, stockConfig } = getStockInfo({
-    region,
-    stockSymbol,
-  });
-
   const stockData = populateStock({
-    stockConfig,
-    baseMetrics,
-    stockDynamic,
+    stockSymbol,
     region,
     inflation,
   });

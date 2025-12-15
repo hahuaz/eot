@@ -45,16 +45,17 @@ export const createCurrentColumn = ({
 };
 
 export const createEV = ({
-  equityAvailableDates,
-  baseMetrics,
-  derivedMetrics,
-  stockConfig,
+  stockContext,
 }: {
-  equityAvailableDates: Dates[];
-  baseMetrics: BaseMetric[];
-  derivedMetrics: DerivedMetric[];
-  stockConfig: StockConfig;
+  stockContext: {
+    equityAvailableDates: Dates[];
+    baseMetrics: BaseMetric[];
+    derivedMetrics: DerivedMetric[];
+    stockConfig: StockConfig;
+  };
 }) => {
+  const { equityAvailableDates, baseMetrics, derivedMetrics, stockConfig } =
+    stockContext;
   const enterpriseValueMetric = {
     metricName: "Enterprise value",
   } as Partial<DerivedMetric>;
@@ -91,16 +92,17 @@ export const createEV = ({
 };
 
 export const createNDtoOIMetric = ({
-  equityAvailableDates,
-  baseMetrics,
-  derivedMetrics,
-  stockConfig,
+  stockContext,
 }: {
-  equityAvailableDates: Dates[];
-  baseMetrics: BaseMetric[];
-  derivedMetrics: DerivedMetric[];
-  stockConfig: StockConfig;
+  stockContext: {
+    equityAvailableDates: Dates[];
+    baseMetrics: BaseMetric[];
+    derivedMetrics: DerivedMetric[];
+    stockConfig: StockConfig;
+  };
 }) => {
+  const { equityAvailableDates, baseMetrics, derivedMetrics, stockConfig } =
+    stockContext;
   const netDebtOIMetric = {
     metricName: "Net debt / operating income",
   } as Partial<DerivedMetric>;
@@ -139,14 +141,15 @@ export const createNDtoOIMetric = ({
 };
 
 export const createEVtoOIMetric = ({
-  equityAvailableDates,
-  baseMetrics,
-  derivedMetrics,
+  stockContext,
 }: {
-  equityAvailableDates: Dates[];
-  baseMetrics: BaseMetric[];
-  derivedMetrics: DerivedMetric[];
+  stockContext: {
+    equityAvailableDates: Dates[];
+    baseMetrics: BaseMetric[];
+    derivedMetrics: DerivedMetric[];
+  };
 }) => {
+  const { equityAvailableDates, baseMetrics, derivedMetrics } = stockContext;
   const evToOIMetric = {
     metricName: "EV / operating income",
   } as Partial<DerivedMetric>;
@@ -178,14 +181,15 @@ export const createEVtoOIMetric = ({
 };
 
 export const createEVtoNI = ({
-  equityAvailableDates,
-  baseMetrics,
-  derivedMetrics,
+  stockContext,
 }: {
-  equityAvailableDates: Dates[];
-  baseMetrics: BaseMetric[];
-  derivedMetrics: DerivedMetric[];
+  stockContext: {
+    equityAvailableDates: Dates[];
+    baseMetrics: BaseMetric[];
+    derivedMetrics: DerivedMetric[];
+  };
 }) => {
+  const { equityAvailableDates, baseMetrics, derivedMetrics } = stockContext;
   const evNIMetric = {
     metricName: "EV / net income",
   } as Partial<DerivedMetric>;
@@ -216,16 +220,17 @@ export const createEVtoNI = ({
 };
 
 export const createMVtoBVMetric = ({
-  equityAvailableDates,
-  baseMetrics,
-  derivedMetrics,
-  stockConfig,
+  stockContext,
 }: {
-  equityAvailableDates: Dates[];
-  baseMetrics: BaseMetric[];
-  derivedMetrics: DerivedMetric[];
-  stockConfig: StockConfig;
+  stockContext: {
+    equityAvailableDates: Dates[];
+    baseMetrics: BaseMetric[];
+    derivedMetrics: DerivedMetric[];
+    stockConfig: StockConfig;
+  };
 }) => {
+  const { equityAvailableDates, baseMetrics, derivedMetrics, stockConfig } =
+    stockContext;
   const mvToBVMetric = {
     metricName: "Market value / book value",
   } as Partial<DerivedMetric>;
@@ -257,18 +262,23 @@ export const createMVtoBVMetric = ({
 };
 
 export const createYieldMetric = ({
-  baseMetrics,
-  derivedMetrics,
-  inflation,
-  region,
-  priceAvailableDates,
+  stockContext,
 }: {
-  baseMetrics: BaseMetric[];
-  derivedMetrics: DerivedMetric[];
-  inflation: Inflation[];
-  region: string;
-  priceAvailableDates: Dates[];
+  stockContext: {
+    baseMetrics: BaseMetric[];
+    derivedMetrics: DerivedMetric[];
+    inflation: Inflation[];
+    region: string;
+    priceAvailableDates: Dates[];
+  };
 }) => {
+  const {
+    baseMetrics,
+    derivedMetrics,
+    inflation,
+    region,
+    priceAvailableDates,
+  } = stockContext;
   const dividendIndex = baseMetrics.findIndex(
     (item) => item.metricName === "Dividend",
   );
@@ -410,12 +420,14 @@ export const createYieldMetric = ({
 };
 
 export const calcGrowths = ({
-  equityAvailableDates,
-  baseMetrics,
+  stockContext,
 }: {
-  equityAvailableDates: Dates[];
-  baseMetrics: BaseMetric[];
+  stockContext: {
+    equityAvailableDates: Dates[];
+    baseMetrics: BaseMetric[];
+  };
 }) => {
+  const { equityAvailableDates, baseMetrics } = stockContext;
   for (const metricName of GROWTH_APPLIED_METRICS) {
     let metric = baseMetrics.find((item) => item.metricName === metricName);
 

@@ -14,6 +14,7 @@ import {
   lastDateObj,
   getYearsPassed,
 } from "@/lib/dates";
+import { StockContext } from "./data-service";
 
 export const getTaxByRegion = ({
   region,
@@ -65,18 +66,13 @@ export const getLiveTtmNightlyYield = ({
 };
 
 export const adjustForInflation = ({
-  baseMetrics,
-  derivedMetrics,
-  inflation,
-  stockConfig,
-  equityAvailableDates,
+  stockContext,
 }: {
-  baseMetrics: BaseMetric[];
-  derivedMetrics: DerivedMetric[];
-  inflation: Inflation[];
-  stockConfig: StockConfig;
-  equityAvailableDates: Dates[];
+  stockContext: StockContext;
 }) => {
+  const { baseMetrics, derivedMetrics, inflation, equityAvailableDates } =
+    stockContext;
+
   const equityYearsPassed = getYearsPassed({
     date: equityAvailableDates[equityAvailableDates.length - 1],
   });
@@ -169,7 +165,7 @@ export const adjustForInflation = ({
 
   let mergedGrowth: Partial<MergedGrowth> = {};
 
-  stockConfig.growthParams.forEach((growthParamName) => {
+  stockContext.stockConfig.growthParams.forEach((growthParamName) => {
     const growthMetric = baseMetrics.find(
       (item) => item.metricName === growthParamName,
     );
@@ -183,7 +179,7 @@ export const adjustForInflation = ({
 
     if (typeof totalGrowth != "number" || typeof ttmGrowth != "number") {
       throw new Error(
-        `TODO: Growth metric ${growthParamName} is negative handle it graciously for ${stockConfig.stockSymbol}`,
+        `TODO: Growth metric ${growthParamName} is negative handle it graciously for ${stockContext.stockConfig.stockSymbol}`,
       );
     }
 
@@ -201,7 +197,7 @@ export const adjustForInflation = ({
   console.log("growthEntries", growthEntries);
 
   growthEntries.forEach(([key, value]) => {
-    const medianValue = value / stockConfig.growthParams.length;
+    const medianValue = value / stockContext.stockConfig.growthParams.length;
     selectedGrowth[key] = round(medianValue);
   });
 
