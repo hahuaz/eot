@@ -4,58 +4,17 @@ import "@/config";
 import fs from "fs";
 import path from "path";
 
-import type { Site, DailyPrice, ScrapeItem } from "@/types";
+import type { DailyPrice, ScrapeItem } from "@/types";
 import {
   scrape,
   updateSheet,
   updateCsvFile,
   TR_DYNAMIC_PATH,
+  DAILY_SAVED_SYMBOLS,
+  TR_FUND_SYMBOLS,
+  GENERIC_SYMBOLS,
+  TR_STOCK_SYMBOLS,
 } from "@/lib/index";
-
-const DAILY_SAVED_SYMBOLS = ["BGP", "USDTRY", "EURTRY", "GOLD"] as const;
-
-const TR_FUND_SYMBOLS: Site = {
-  domain: "https://fintables.com/",
-  endpoints: [
-    "fonlar/ZBJ",
-    "fonlar/PPN",
-    "fonlar/BGP",
-    "fonlar/DBB",
-    "fonlar/GA1",
-    "fonlar/GUB",
-    "fonlar/MUT",
-    "fonlar/HMG",
-    "fonlar/APT",
-    "fonlar/NRG",
-    "fonlar/FIT",
-    "fonlar/TP2",
-    "fonlar/PRY",
-    "fonlar/GTZ",
-    "fonlar/GRO",
-    "fonlar/EIL",
-  ],
-  querySelector:
-    "div.flex-shrink-0.relative span.inline-flex.items-center.tabular-nums",
-  isLocalTr: true,
-};
-
-const GENERIC_SYMBOLS: Site = {
-  domain: "https://www.tradingview.com/",
-  endpoints: [
-    "symbols/USDTRY",
-    "symbols/EURTRY",
-    "symbols/BIST-ALTIN",
-    "symbols/GOLD?exchange=TVC",
-  ],
-  querySelector:
-    "#js-category-content > div.js-symbol-page-header-root > div > div.symbolRow-NopKb87z > div > div.quotesRow-iJMmXWiA > div:nth-child(1) > div > div.lastContainer-zoF9r75I > span.last-zoF9r75I.js-symbol-last",
-};
-
-const TR_STOCK_SYMBOLS: Site = {
-  domain: GENERIC_SYMBOLS.domain,
-  querySelector: GENERIC_SYMBOLS.querySelector,
-  endpoints: [],
-};
 
 async function scrapeTrStocks() {
   const trStocksJson = fs.readFileSync(TR_DYNAMIC_PATH, "utf-8");

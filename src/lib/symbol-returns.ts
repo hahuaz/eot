@@ -1,8 +1,13 @@
 import path from "path";
-import { getTaxByRegion, parseCSV, DAILY_DIR, BASELINE_DATE } from "@/lib";
+import {
+  getTaxByRegion,
+  parseCSV,
+  DAILY_DIR,
+  OBSERVATION_START_DATE,
+  DAILY_SAVED_SYMBOLS,
+} from "@/lib";
 import { DailyPrice, CumulativeReturn } from "@/types";
 
-// ==== Helpers ====
 function ensureCommonDates(
   referenceDates: string[],
   allHistory: DailyPrice[][],
@@ -16,57 +21,51 @@ function ensureCommonDates(
   }
 }
 
+/**
+ * This function computes cumulative performance metrics anchored to a specific observation start date. The resulting data series represents the hypothetical sold net profit, effectively simulating a liquidation event on each specific day. Because withholding tax obligations are calculated based on the total realized gain at the moment of sale, the algorithm recalculates the return from the original baseline for every single day to accurately apply the tax and derive the final net value.
+ */
 export const getCummulativeReturns = (): {
-  cumulativeUsdtry: CumulativeReturn[];
-  cumulativeEurtry: CumulativeReturn[];
-  cumulativeMixed: CumulativeReturn[];
-  cumulativeBGP: CumulativeReturn[];
-  cummulativeGold: CumulativeReturn[];
+  usdtry: CumulativeReturn[];
+  eurtry: CumulativeReturn[];
+  mixed: CumulativeReturn[];
+  bgp: CumulativeReturn[];
+  gold: CumulativeReturn[];
 } => {
-  const usdtryHistory = parseCSV<DailyPrice>({
-    filePath: path.join(DAILY_DIR, "USDTRY.csv"),
-    header: true,
-  });
-  const eurtryHistory = parseCSV<DailyPrice>({
-    filePath: path.join(DAILY_DIR, "EURTRY.csv"),
-    header: true,
-  });
-  const bgpHistory = parseCSV<DailyPrice>({
-    filePath: path.join(DAILY_DIR, "BGP.csv"),
-    header: true,
-  });
+  // Load all symbol histories dynamically
+  const histories: Record<
+    string,
+    {
+      data: DailyPrice[];
+      startValue: number;
+    }
+  > = {};
+  for (const symbol of DAILY_SAVED_SYMBOLS) {
+    const { data } = parseCSV<DailyPrice>({
+      filePath: path.join(DAILY_DIR, `${symbol}.csv`),
+      header: true,
+    });
 
-  const goldHistory = parseCSV<DailyPrice>({
-    filePath: path.join(DAILY_DIR, "GOLD.csv"),
-    header: true,
-  });
-
-  // take USDTRY dates as reference
-  let commonDates = usdtryHistory.data.map((d) => d.date);
-  commonDates = commonDates.filter(
-    (d) => new Date(d) >= new Date(BASELINE_DATE),
-  );
-  ensureCommonDates(commonDates, [
-    eurtryHistory.data,
-    bgpHistory.data,
-    goldHistory.data,
-  ]);
-
-  const usd0Obj = usdtryHistory.data.find((d) => d.date === BASELINE_DATE);
-  const eur0Obj = eurtryHistory.data.find((d) => d.date === BASELINE_DATE);
-  const bgp0Obj = bgpHistory.data.find((d) => d.date === BASELINE_DATE);
-  const gold0Obj = goldHistory.data.find((d) => d.date === BASELINE_DATE);
-
-  if (!usd0Obj || !eur0Obj || !bgp0Obj || !gold0Obj) {
-    throw new Error(
-      `Baseline date ${BASELINE_DATE} not found in one of the data sources.`,
-    );
+    const startValue = data.find(
+      (d) => d.date === OBSERVATION_START_DATE,
+    )?.value;
+    if (startValue == null) {
+      throw new Error(
+        `Baseline date ${OBSERVATION_START_DATE} not found in one of the data sources.`,
+      );
+    }
+    histories[symbol] = { data, startValue };
   }
 
-  const usd0 = usd0Obj.value;
-  const eur0 = eur0Obj.value;
-  const bgp0 = bgp0Obj.value;
-  const gold0 = gold0Obj.value;
+  // take USDTRY dates as reference
+  let commonDates = histories.USDTRY.data.map((d) => d.date);
+  commonDates = commonDates.filter(
+    (d) => new Date(d) >= new Date(OBSERVATION_START_DATE),
+  );
+  ensureCommonDates(commonDates, [
+    histories.EURTRY.data,
+    histories.BGP.data,
+    histories.GOLD.data,
+  ]);
 
   // calculate cumulative returns from levels
   const cumulativeUsdtry: CumulativeReturn[] = [];
@@ -76,20 +75,20 @@ export const getCummulativeReturns = (): {
   const cumulativeGold: CumulativeReturn[] = [];
 
   for (const date of commonDates) {
-    if (date === BASELINE_DATE) continue;
-    const usd = usdtryHistory.data.find((d) => d.date === date)?.value;
-    const eur = eurtryHistory.data.find((d) => d.date === date)?.value;
-    const bgp = bgpHistory.data.find((d) => d.date === date)?.value;
-    const gold = goldHistory.data.find((d) => d.date === date)?.value;
+    if (date === OBSERVATION_START_DATE) continue;
+    const usd = histories.USDTRY.data.find((d) => d.date === date)?.value;
+    const eur = histories.EURTRY.data.find((d) => d.date === date)?.value;
+    const bgp = histories.BGP.data.find((d) => d.date === date)?.value;
+    const gold = histories.GOLD.data.find((d) => d.date === date)?.value;
 
     if (usd == null || eur == null || bgp == null || gold == null)
       throw new Error(`Missing data for date ${date}`);
 
     // this is the return multiplier (e.g., 1.05 means a 5% increase)
-    const usdFactor = usd / usd0;
-    const eurFactor = eur / eur0;
-    const bgpFactor = bgp / bgp0;
-    const goldFactor = gold / gold0;
+    const usdFactor = usd / histories.USDTRY.startValue;
+    const eurFactor = eur / histories.EURTRY.startValue;
+    const bgpFactor = bgp / histories.BGP.startValue;
+    const goldFactor = gold / histories.GOLD.startValue;
 
     // this is the return percentage (e.g., 0.05 means a 5% increase)
     cumulativeUsdtry.push({ date, value: usdFactor - 1 });
@@ -110,10 +109,10 @@ export const getCummulativeReturns = (): {
   }));
 
   return {
-    cumulativeUsdtry,
-    cumulativeEurtry,
-    cumulativeMixed,
-    cumulativeBGP,
-    cummulativeGold: cumulativeGold,
+    usdtry: cumulativeUsdtry,
+    eurtry: cumulativeEurtry,
+    mixed: cumulativeMixed,
+    bgp: cumulativeBGP,
+    gold: cumulativeGold,
   };
 };

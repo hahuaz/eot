@@ -19,13 +19,11 @@ type DataPoint = {
 };
 
 interface CarryTradeChartProps {
-  cumulativeTlref: DataPoint[];
-  netCumulativeTlref: DataPoint[];
-  cumulativeUsdtry: DataPoint[];
-  cumulativeEurtry: DataPoint[];
-  cumulativeMixed: DataPoint[];
-  cumulativeBGP: DataPoint[];
-  cummulativeGold: DataPoint[];
+  usdtry: DataPoint[];
+  eurtry: DataPoint[];
+  mixed: DataPoint[];
+  bgp: DataPoint[];
+  gold: DataPoint[];
 }
 
 export const getStaticProps: GetStaticProps<{
@@ -44,11 +42,11 @@ export const getStaticProps: GetStaticProps<{
 
 // Merge all data points by date
 const mergeData = (
-  cumulativeUsdtry: DataPoint[],
-  cumulativeEurtry: DataPoint[],
-  cumulativeMixed: DataPoint[],
-  cumulativeBGP: DataPoint[],
-  cummulativeGold: DataPoint[],
+  usdtry: DataPoint[],
+  eurtry: DataPoint[],
+  mixed: DataPoint[],
+  bgp: DataPoint[],
+  gold: DataPoint[],
 ): {
   date: string;
   usdtry?: number;
@@ -57,11 +55,11 @@ const mergeData = (
   bgp?: number;
 }[] => {
   const dateSet = new Set<string>([
-    ...cumulativeUsdtry.map((d) => d.date),
-    ...cumulativeEurtry.map((d) => d.date),
-    ...cumulativeMixed.map((d) => d.date),
-    ...cumulativeBGP.map((d) => d.date),
-    ...cummulativeGold.map((d) => d.date),
+    ...usdtry.map((d) => d.date),
+    ...eurtry.map((d) => d.date),
+    ...mixed.map((d) => d.date),
+    ...bgp.map((d) => d.date),
+    ...gold.map((d) => d.date),
   ]);
 
   const sortedDates = [...dateSet].sort(
@@ -70,32 +68,20 @@ const mergeData = (
 
   return sortedDates.map((date) => ({
     date,
-    usdtry: cumulativeUsdtry.find((d) => d.date === date)?.value ?? undefined,
-    eurtry: cumulativeEurtry.find((d) => d.date === date)?.value ?? undefined,
-    mixed: cumulativeMixed.find((d) => d.date === date)?.value ?? undefined,
-    bgp: cumulativeBGP.find((d) => d.date === date)?.value ?? undefined,
-    gold: cummulativeGold.find((d) => d.date === date)?.value ?? undefined,
+    usdtry: usdtry.find((d) => d.date === date)?.value ?? undefined,
+    eurtry: eurtry.find((d) => d.date === date)?.value ?? undefined,
+    mixed: mixed.find((d) => d.date === date)?.value ?? undefined,
+    bgp: bgp.find((d) => d.date === date)?.value ?? undefined,
+    gold: gold.find((d) => d.date === date)?.value ?? undefined,
   }));
 };
 
 const CarryTradeChart = ({
   cummulativeReturns,
 }: InferGetStaticPropsType<typeof getStaticProps>) => {
-  const {
-    cumulativeUsdtry,
-    cumulativeEurtry,
-    cumulativeMixed,
-    cumulativeBGP,
-    cummulativeGold,
-  } = cummulativeReturns;
+  const { usdtry, eurtry, mixed, bgp, gold } = cummulativeReturns;
 
-  const data = mergeData(
-    cumulativeUsdtry,
-    cumulativeEurtry,
-    cumulativeMixed,
-    cumulativeBGP,
-    cummulativeGold,
-  );
+  const data = mergeData(usdtry, eurtry, mixed, bgp, gold);
 
   return (
     <div className="w-full h-[500px]">
