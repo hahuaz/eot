@@ -191,18 +191,52 @@ export class StockService {
     const { dividendTax } = getTaxByRegion({ region: this.region });
 
     for (let dateIndex = 0; dateIndex < this.priceDates.length; dateIndex++) {
+      // previous price is needed to calculate yield, so we skip the last date
       if (dateIndex === this.priceDates.length - 1) {
         break;
       }
 
-      const currentDate = this.priceDates[dateIndex];
-      yieldMetric[currentDate] = this.calculateYieldForDate({
-        dateIndex,
-        dividendMetric,
-        priceMetric,
-        dividendTax,
-        date: currentDate,
-      });
+      const loopDate = this.priceDates[dateIndex];
+
+      const dividendValue = dividendMetric[loopDate] ?? 0;
+      const netDividendYield = dividendValue * (1 - dividendTax);
+      const priceValue = priceMetric[loopDate] ?? 0;
+      const previousPriceValue =
+        priceMetric[this.priceDates[dateIndex + 1]] ?? 0;
+      const priceYield = (priceValue - previousPriceValue) / previousPriceValue;
+
+      // adjust for inflation
+      const inflationData = this.inflation.find(
+        (item) => item.date === loopDate,
+      );
+      if (!inflationData && loopDate !== "current") {
+        throw new Error(`Inflation data not found for date ${loopDate}`);
+      }
+
+      let inflationForDate: Dates | number = 0;
+
+      if (loopDate === CURRENT_DATE) {
+        inflationForDate = 0;
+      } else if (new Date(loopDate).getMonth() !== 11) {
+        if (inflationData?.qoq == null) {
+          throw new Error(`qoq data not found for date ${loopDate}`);
+        }
+        inflationForDate = inflationData.qoq;
+      } else {
+        if (inflationData?.yoy == null) {
+          throw new Error(`yoy data not found for date ${loopDate}`);
+        }
+        inflationForDate = inflationData.yoy;
+      }
+
+      if (inflationForDate === undefined) {
+        throw new Error(`Inflation data not found for date ${loopDate}`);
+      }
+
+      const netPriceYield =
+        (priceYield! - inflationForDate) / (1 + inflationForDate);
+
+      yieldMetric[loopDate] = round(netPriceYield + netDividendYield);
     }
 
     yieldMetric["Total growth"] = this.calculateTotalGrowth(yieldMetric);
@@ -212,57 +246,6 @@ export class StockService {
     yieldMetric["TTM growth"] = this.calculateTTMGrowth(yieldMetric);
 
     this.derivedMetrics.push(yieldMetric as DerivedMetric);
-  }
-
-  private calculateYieldForDate({
-    dateIndex,
-    dividendMetric,
-    priceMetric,
-    dividendTax,
-    date,
-  }: {
-    dateIndex: number;
-    dividendMetric: BaseMetric;
-    priceMetric: BaseMetric;
-    dividendTax: number;
-    date: Dates;
-  }) {
-    const dividendValue = dividendMetric[date] ?? 0;
-    const netDividendYield = dividendValue * (1 - dividendTax);
-    const priceValue = priceMetric[date] ?? 0;
-    const previousPriceValue = priceMetric[this.priceDates[dateIndex + 1]] ?? 0;
-    const priceYield = (priceValue - previousPriceValue) / previousPriceValue;
-
-    // adjust for inflation
-    const inflationData = this.inflation.find((item) => item.date === date);
-    if (!inflationData && date !== "current") {
-      throw new Error(`Inflation data not found for date ${date}`);
-    }
-
-    let inflationForDate: Dates | number = 0;
-
-    if (date === CURRENT_DATE) {
-      inflationForDate = 0;
-    } else if (new Date(date).getMonth() !== 11) {
-      if (inflationData?.qoq == null) {
-        throw new Error(`qoq data not found for date ${date}`);
-      }
-      inflationForDate = inflationData.qoq;
-    } else {
-      if (inflationData?.yoy == null) {
-        throw new Error(`yoy data not found for date ${date}`);
-      }
-      inflationForDate = inflationData.yoy;
-    }
-
-    if (inflationForDate === undefined) {
-      throw new Error(`Inflation data not found for date ${date}`);
-    }
-
-    const netPriceYield =
-      (priceYield! - inflationForDate) / (1 + inflationForDate);
-
-    return round(netPriceYield + netDividendYield);
   }
 
   private calculateTotalGrowth(yieldMetric: Partial<DerivedMetric>) {

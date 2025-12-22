@@ -1,0 +1,31 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Backend",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["--import", "tsx", "--inspect", "src/index.ts"],
+      "restart": true,
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"],
+      "env": {
+        "TS_NODE_PROJECT": "tsconfig.json"
+      }
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Daily Scrape",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["--import", "tsx", "src/scripts/daily-scrape.ts"],
+      "env": {
+        "NODE_ENV": "development"
+      },
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    }
+  ]
+}

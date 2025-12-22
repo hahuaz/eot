@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "concurrently \"tsx watch src/index.ts\" \"cd client-web && pnpm dev\"",
+    "dev": "concurrently \"pnpm dev:backend\" \"pnpm dev:web\"",
+    "dev:backend": "tsx watch src/index.ts",
+    "dev:web": "cd client-web && pnpm dev",
     "test": "vitest run",
     "test:watch": "vitest",
     "dev:scrape": "cross-env NODE_ENV=development tsx watch src/scripts/daily-scrape.ts",
