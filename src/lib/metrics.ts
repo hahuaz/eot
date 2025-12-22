@@ -19,6 +19,7 @@ import {
 } from "@/lib/dates";
 import { GROWTH_APPLIED_METRICS } from "@/lib/constants";
 import { getTaxByRegion } from "@/lib/financials";
+import { StockContext } from "./data-service";
 
 export const createCurrentColumn = ({
   baseMetrics,
@@ -261,91 +262,65 @@ export const createMVtoBVMetric = ({
   derivedMetrics.push(mvToBVMetric as DerivedMetric);
 };
 
-export const createYieldMetric = ({
-  stockContext,
+const calculateYieldForDate = ({
+  dateIndex,
+  priceAvailableDates,
+  dividendMetric,
+  priceMetric,
+  inflation,
+  dividendTax,
+  date,
 }: {
-  stockContext: {
-    baseMetrics: BaseMetric[];
-    derivedMetrics: DerivedMetric[];
-    inflation: Inflation[];
-    region: string;
-    priceAvailableDates: Dates[];
-  };
+  dateIndex: number;
+  priceAvailableDates: Dates[];
+  dividendMetric: BaseMetric;
+  priceMetric: BaseMetric;
+  inflation: Inflation[];
+  dividendTax: number;
+  date: Dates;
 }) => {
-  const {
-    baseMetrics,
-    derivedMetrics,
-    inflation,
-    region,
-    priceAvailableDates,
-  } = stockContext;
-  const dividendIndex = baseMetrics.findIndex(
-    (item) => item.metricName === "Dividend",
-  );
-  const priceIndex = baseMetrics.findIndex(
-    (item) => item.metricName === "Price",
-  );
+  const dividendValue = dividendMetric[date] ?? 0;
+  const netDividendYield = dividendValue * (1 - dividendTax);
+  const priceValue = priceMetric[date] ?? 0;
+  const previousPriceValue =
+    priceMetric[priceAvailableDates[dateIndex + 1]] ?? 0;
+  const priceYield = (priceValue - previousPriceValue) / previousPriceValue;
 
-  if (dividendIndex === -1 || priceIndex === -1) {
-    throw new Error("Dividend or Price metric not found");
+  // adjust for inflation
+  const inflationData = inflation.find((item) => item.date === date);
+  if (!inflationData && date !== "current") {
+    throw new Error(`Inflation data not found for date ${date}`);
   }
 
-  const dividendMetric = baseMetrics[dividendIndex];
-  const priceMetric = baseMetrics[priceIndex];
+  let inflationForDate: Dates | number = 0;
 
-  const yieldMetric = {
-    metricName: "Yield",
-  } as Partial<DerivedMetric>;
-
-  const { dividendTax } = getTaxByRegion({ region });
-
-  for (let i = 0; i < priceAvailableDates.length; i++) {
-    // yield can't be calculated without older date. so break if it's the last date
-    if (i === priceAvailableDates.length - 1) {
-      break;
+  // select qoq or yoy inflation: if it's end of a year, use yoy inflation, otherwise use qoq inflation
+  // don't adjust inflation for current
+  if (date === CURRENT_DATE) {
+    inflationForDate = 0;
+  } else if (new Date(date).getMonth() !== 11) {
+    if (inflationData?.qoq == null) {
+      throw new Error(`qoq data not found for date ${date}`);
     }
-
-    const loopDate = priceAvailableDates[i];
-    const dividendValue = dividendMetric[loopDate] ?? 0;
-    const netDividendYield = dividendValue * (1 - dividendTax);
-    const priceValue = priceMetric[loopDate] ?? 0;
-    const previousPriceValue = priceMetric[priceAvailableDates[i + 1]] ?? 0;
-    const priceYield = (priceValue - previousPriceValue) / previousPriceValue;
-
-    // adjust for inflation
-    const inflationData = inflation.find((item) => item.date === loopDate);
-    if (!inflationData && loopDate !== "current") {
-      throw new Error(`Inflation data not found for date ${loopDate}`);
+    inflationForDate = inflationData.qoq;
+  } else {
+    if (inflationData?.yoy == null) {
+      throw new Error(`yoy data not found for date ${date}`);
     }
-
-    let inflationForDate: Dates | number = 0;
-
-    // select qoq or yoy inflation: if it's end of a year, use yoy inflation, otherwise use qoq inflation
-    // don't adjust inflation for current
-    if (loopDate === CURRENT_DATE) {
-      inflationForDate = 0;
-    } else if (new Date(loopDate).getMonth() !== 11) {
-      if (inflationData?.qoq == null) {
-        throw new Error(`qoq data not found for date ${loopDate}`);
-      }
-      inflationForDate = inflationData.qoq;
-    } else {
-      if (inflationData?.yoy == null) {
-        throw new Error(`yoy data not found for date ${loopDate}`);
-      }
-      inflationForDate = inflationData.yoy;
-    }
-
-    if (inflationForDate === undefined) {
-      throw new Error(`Inflation data not found for date ${loopDate}`);
-    }
-
-    let netPriceYield =
-      (priceYield! - inflationForDate) / (1 + inflationForDate);
-
-    yieldMetric[loopDate] = round(netPriceYield + netDividendYield);
+    inflationForDate = inflationData.yoy;
   }
 
+  if (inflationForDate === undefined) {
+    throw new Error(`Inflation data not found for date ${date}`);
+  }
+
+  const netPriceYield =
+    (priceYield! - inflationForDate) / (1 + inflationForDate);
+
+  return round(netPriceYield + netDividendYield);
+};
+
+const calculateTotalGrowth = (yieldMetric: Partial<DerivedMetric>) => {
   let totalGrowth = 1;
   Object.entries(yieldMetric).forEach(([key, value]) => {
     if (key !== "metricName") {
@@ -353,18 +328,24 @@ export const createYieldMetric = ({
     }
   });
   totalGrowth = totalGrowth - 1;
+  return round(totalGrowth);
+};
 
-  yieldMetric["Total growth"] = round(totalGrowth);
-
+const calculateYearlyGrowth = (
+  totalGrowth: number,
+  priceAvailableDates: Dates[],
+) => {
   const priceYearsPassed = getYearsPassed({
     date: priceAvailableDates[priceAvailableDates.length - 1],
   });
 
-  const yearlyGrowth = yieldMetric["Total growth"]
-    ? Math.pow(1 + yieldMetric["Total growth"], 1 / priceYearsPassed) - 1
+  const yearlyGrowth = totalGrowth
+    ? Math.pow(1 + totalGrowth, 1 / priceYearsPassed) - 1
     : 0;
-  yieldMetric["Yearly growth"] = round(yearlyGrowth);
+  return round(yearlyGrowth);
+};
 
+const calculateTTMGrowth = (yieldMetric: Partial<DerivedMetric>) => {
   // calc ttm growth
   // TODO: we can't precisely calculate ttm growth because currently we don't have precise yields that is cleansed from inflation. after having previous 4 quarters calculate precisely
   // utilize existing yields which already
@@ -393,7 +374,65 @@ export const createYieldMetric = ({
   ttmYield = ttmYield * (1 + (yieldFromFinishedYear as number));
   ttmYield = ttmYield - 1;
 
-  yieldMetric["TTM growth"] = round(ttmYield);
+  return round(ttmYield);
+};
+
+export const createYieldMetric = ({
+  stockContext,
+}: {
+  stockContext: StockContext;
+}) => {
+  const {
+    baseMetrics,
+    derivedMetrics,
+    inflation,
+    region,
+    priceAvailableDates,
+  } = stockContext;
+  const dividendIndex = baseMetrics.findIndex(
+    (item) => item.metricName === "Dividend",
+  );
+  const priceIndex = baseMetrics.findIndex(
+    (item) => item.metricName === "Price",
+  );
+
+  if (dividendIndex === -1 || priceIndex === -1) {
+    throw new Error("Dividend or Price metric not found");
+  }
+
+  const dividendMetric = baseMetrics[dividendIndex];
+  const priceMetric = baseMetrics[priceIndex];
+
+  const yieldMetric = {
+    metricName: "Yield",
+  } as Partial<DerivedMetric>;
+
+  const { dividendTax } = getTaxByRegion({ region });
+
+  for (let dateIndex = 0; dateIndex < priceAvailableDates.length; dateIndex++) {
+    // yield can't be calculated without older date. so break if it's the last date
+    if (dateIndex === priceAvailableDates.length - 1) {
+      break;
+    }
+
+    const currentDate = priceAvailableDates[dateIndex];
+    yieldMetric[currentDate] = calculateYieldForDate({
+      dateIndex,
+      priceAvailableDates,
+      dividendMetric,
+      priceMetric,
+      inflation,
+      dividendTax,
+      date: currentDate,
+    });
+  }
+
+  yieldMetric["Total growth"] = calculateTotalGrowth(yieldMetric);
+  yieldMetric["Yearly growth"] = calculateYearlyGrowth(
+    yieldMetric["Total growth"],
+    priceAvailableDates,
+  );
+  yieldMetric["TTM growth"] = calculateTTMGrowth(yieldMetric);
 
   derivedMetrics.push(yieldMetric as DerivedMetric);
 };
