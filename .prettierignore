@@ -1,0 +1,3 @@
+local-data/snapshot
+node_modules
+pnpm-lock.yaml
