@@ -293,44 +293,23 @@ export const createYieldMetric = ({
   const dividendMetric = baseMetrics[dividendIndex];
   const priceMetric = baseMetrics[priceIndex];
 
-  let earliestPriceDate: Dates | undefined = undefined;
-  for (let i = priceAvailableDates.length - 1; i >= 0; i--) {
-    const date = priceAvailableDates[i];
-    if (priceMetric[date]) {
-      earliestPriceDate = date;
-      break;
-    }
-  }
-  if (earliestPriceDate === undefined) {
-    throw new Error("earliestPriceDate not found");
-  }
-
-  // use earliestPriceDate to create availableDates
-  const availableDates = DATES.filter((date) => {
-    // there could be no stock without current date
-    if (date === CURRENT_DATE) {
-      return true;
-    }
-    return new Date(date).getTime() >= new Date(earliestPriceDate).getTime();
-  });
-
   const yieldMetric = {
     metricName: "Yield",
   } as Partial<DerivedMetric>;
 
   const { dividendTax } = getTaxByRegion({ region });
 
-  for (let i = 0; i < availableDates.length; i++) {
+  for (let i = 0; i < priceAvailableDates.length; i++) {
     // yield can't be calculated without older date. so break if it's the last date
-    if (i === availableDates.length - 1) {
+    if (i === priceAvailableDates.length - 1) {
       break;
     }
 
-    const loopDate = availableDates[i];
+    const loopDate = priceAvailableDates[i];
     const dividendValue = dividendMetric[loopDate] ?? 0;
     const netDividendYield = dividendValue * (1 - dividendTax);
     const priceValue = priceMetric[loopDate] ?? 0;
-    const previousPriceValue = priceMetric[availableDates[i + 1]] ?? 0;
+    const previousPriceValue = priceMetric[priceAvailableDates[i + 1]] ?? 0;
     const priceYield = (priceValue - previousPriceValue) / previousPriceValue;
 
     // adjust for inflation

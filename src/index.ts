@@ -152,7 +152,7 @@ router.get("/stock", validateRegion, async (req, res) => {
   });
 
   // write data to temp file
-  const tempFilePath = path.join(DATA_DIR, `${stockSymbol}_temp.json`);
+  const tempFilePath = path.join(DATA_DIR, "snapshot", `${stockSymbol}.json`);
   fs.writeFileSync(tempFilePath, JSON.stringify(stockData));
 
   res.status(200).json(stockData);

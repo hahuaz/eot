@@ -172,18 +172,14 @@ export const populateStock = ({
   inflation: Inflation[];
   region: Region;
 }) => {
-  // ═══════════════════════════════════════════════════════════════
   // Phase 1: Setup
-  // ═══════════════════════════════════════════════════════════════
   const stockContext: StockContext = buildStockContext({
     stockSymbol,
     region,
     inflation,
   });
 
-  // ═══════════════════════════════════════════════════════════════
   // Phase 2: Create Derived Metrics
-  // ═══════════════════════════════════════════════════════════════
   // Yield metric (includes dividend yield and price appreciation, adjusted for inflation)
   // Must be calculated first as it has its own date filtering logic based on price availability
   createYieldMetric({ stockContext });
@@ -195,15 +191,11 @@ export const populateStock = ({
   createEVtoNI({ stockContext });
   createMVtoBVMetric({ stockContext });
 
-  // ═══════════════════════════════════════════════════════════════
   // Phase 3: Calculate Growth Rates
-  // ═══════════════════════════════════════════════════════════════
   // Calculate total growth, TTM growth, and yearly growth for applicable base metrics
   calcGrowths({ stockContext });
 
-  // ═══════════════════════════════════════════════════════════════
   // Phase 4: Adjust for Inflation
-  // ═══════════════════════════════════════════════════════════════
   // Apply inflation adjustments to growth metrics and create the "Selected growth" metric
   // This must be done last as it depends on all previous calculations
   adjustForInflation({ stockContext });
