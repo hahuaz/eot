@@ -93,10 +93,12 @@ export type DerivedMetric = {
 } & GrowthRecord;
 
 export type StockDynamic = {
-  [key: StockSymbol]: {
-    price: number;
-    notes?: string[];
-  };
+  price: number;
+  notes?: string[];
+};
+
+export type StockDynamicSet = {
+  [key: StockSymbol]: StockDynamic;
 };
 
 export type Stock = {

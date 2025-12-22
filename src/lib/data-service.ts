@@ -8,6 +8,7 @@ import {
   BaseMetric,
   StockSymbol,
   GrowthRecord,
+  StockDynamicSet,
 } from "@shared/types";
 import { Region, regions } from "@/types";
 import path from "path";
@@ -45,7 +46,7 @@ export const getStocksDynamic = ({ region }: { region: string }) => {
     "stocks-dynamic",
     `${region}.json`,
   );
-  const stocksDynamic = readJsonFile<StockDynamic>(stocksDynamicPath);
+  const stocksDynamic = readJsonFile<StockDynamicSet>(stocksDynamicPath);
   return stocksDynamic;
 };
 
@@ -58,33 +59,17 @@ export class StockService {
   private equityDates!: Dates[];
   private priceDates!: Dates[];
   private inflation!: Inflation[];
+  private stockDynamic!: StockDynamic;
 
   constructor(
     private stockSymbol: StockSymbol,
     private region: Region,
   ) {
     this.getStockInfo();
-
-    // 1. Populate current column
-    const stocksDynamic = getStocksDynamic({ region: this.region });
-    const stockDynamic = stocksDynamic[this.stockSymbol];
-    if (!stockDynamic) {
-      throw new Error("Stock not found in dynamic data");
-    }
-    this.createCurrentColumn(stockDynamic);
-
-    // 2. Calculate dates
-    this.equityDates = getAvailableDates({
-      baseMetrics: this.baseMetrics,
-      metricName: "Equity",
-    });
-    this.priceDates = getAvailableDates({
-      baseMetrics: this.baseMetrics,
-      metricName: "Price",
-    });
   }
 
   private getStockInfo() {
+    // 1. set base metrics
     const stockPath = path.join(
       DATA_DIR,
       "stocks",
@@ -120,10 +105,29 @@ export class StockService {
     this.stockConfig = stockConfig;
     console.log("this.region", this.region);
     this.inflation = INFLATION_DATA[this.region];
+
+    // 2. Populate current column
+    const stocksDynamic = getStocksDynamic({ region: this.region });
+    const stockDynamic = stocksDynamic[this.stockSymbol];
+    if (!stockDynamic) {
+      throw new Error("Stock not found in dynamic data");
+    }
+    this.stockDynamic = stockDynamic;
+    this.createCurrentColumn();
+
+    // 3. Calculate dates
+    this.equityDates = getAvailableDates({
+      baseMetrics: this.baseMetrics,
+      metricName: "Equity",
+    });
+    this.priceDates = getAvailableDates({
+      baseMetrics: this.baseMetrics,
+      metricName: "Price",
+    });
   }
 
   public getMetrics() {
-    // Phase 2: Create Derived Metrics
+    // Phase 1: Create Derived Metrics
     this.createYieldMetric();
     this.createNDtoOIMetric();
     this.createEV();
@@ -131,10 +135,10 @@ export class StockService {
     this.createEVtoNI();
     this.createMVtoBVMetric();
 
-    // Phase 3: Calculate Growth Rates
+    // Phase 2: Calculate Growth Rates
     this.calcGrowths();
 
-    // Phase 4: Adjust for Inflation
+    // Phase 3: Adjust for Inflation
     this.adjustForInflation();
 
     return {
@@ -147,7 +151,7 @@ export class StockService {
   /**
    * Populates the 'current' column in base metrics with the last available value.
    */
-  private createCurrentColumn(stockDynamic: StockDynamic[StockSymbol]) {
+  private createCurrentColumn() {
     for (const metric of this.baseMetrics) {
       if (metric.metricName === "Price" || metric.metricName === "Dividend") {
         continue;
@@ -155,7 +159,7 @@ export class StockService {
       metric["current"] = metric[LAST_DATE];
     }
 
-    const { price } = stockDynamic;
+    const { price } = this.stockDynamic;
     const priceMetric = this.baseMetrics.find(
       (item) => item.metricName === "Price",
     );
