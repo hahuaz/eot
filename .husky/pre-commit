@@ -1,1 +1,3 @@
+pnpm test tests/snapshot.test.ts
 pnpm exec lint-staged
+
