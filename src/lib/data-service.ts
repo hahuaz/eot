@@ -1,4 +1,3 @@
-
 import {
   DATES,
   Dates,
@@ -50,12 +49,12 @@ export const getStocksDynamic = ({ region }: { region: string }) => {
   return stocksDynamic;
 };
 
-
-
 export class StockService {
-  private baseMetrics: BaseMetric[];
+  // Separate array for derived metrics to maintain type safety and make it easier to distinguish between base and calculated values
   private derivedMetrics: DerivedMetric[] = [];
-  private stockConfig: StockConfig;
+  private baseMetrics!: BaseMetric[];
+  private stockConfig!: StockConfig;
+  /** For recently IPO'd stocks, not all historical dates will have values thus available dates is calculated with the earliest defined date */
   private equityDates!: Dates[];
   private priceDates!: Dates[];
   private inflation!: Inflation[];
@@ -64,10 +63,7 @@ export class StockService {
     private stockSymbol: StockSymbol,
     private region: Region,
   ) {
-    const { baseMetrics, stockConfig } = this.getStockInfo();
-    this.baseMetrics = baseMetrics;
-    this.stockConfig = stockConfig;
-    this.inflation = INFLATION_DATA[region];
+    this.getStockInfo();
 
     // 1. Populate current column
     const stocksDynamic = getStocksDynamic({ region: this.region });
@@ -88,10 +84,7 @@ export class StockService {
     });
   }
 
-  private getStockInfo(): {
-    baseMetrics: BaseMetric[];
-    stockConfig: StockConfig;
-  } {
+  private getStockInfo() {
     const stockPath = path.join(
       DATA_DIR,
       "stocks",
@@ -123,10 +116,10 @@ export class StockService {
 
     baseMetrics = baseMetrics.filter((_, i) => i !== configIndex);
 
-    return {
-      baseMetrics,
-      stockConfig,
-    };
+    this.baseMetrics = baseMetrics;
+    this.stockConfig = stockConfig;
+    console.log("this.region", this.region);
+    this.inflation = INFLATION_DATA[this.region];
   }
 
   public getMetrics() {
@@ -147,7 +140,7 @@ export class StockService {
     return {
       baseMetrics: this.baseMetrics,
       derivedMetrics: this.derivedMetrics,
-      stockConfig: this.stockConfig
+      stockConfig: this.stockConfig,
     };
   }
 
@@ -163,7 +156,9 @@ export class StockService {
     }
 
     const { price } = stockDynamic;
-    const priceMetric = this.baseMetrics.find((item) => item.metricName === "Price");
+    const priceMetric = this.baseMetrics.find(
+      (item) => item.metricName === "Price",
+    );
     if (!priceMetric) {
       throw new Error(`Price metric not found in metrics`);
     }
@@ -208,7 +203,7 @@ export class StockService {
 
     yieldMetric["Total growth"] = this.calculateTotalGrowth(yieldMetric);
     yieldMetric["Yearly growth"] = this.calculateYearlyGrowth(
-      yieldMetric["Total growth"] as number
+      yieldMetric["Total growth"] as number,
     );
     yieldMetric["TTM growth"] = this.calculateTTMGrowth(yieldMetric);
 
@@ -260,7 +255,8 @@ export class StockService {
       throw new Error(`Inflation data not found for date ${date}`);
     }
 
-    const netPriceYield = (priceYield! - inflationForDate) / (1 + inflationForDate);
+    const netPriceYield =
+      (priceYield! - inflationForDate) / (1 + inflationForDate);
 
     return round(netPriceYield + netDividendYield);
   }
@@ -317,15 +313,18 @@ export class StockService {
     } as Partial<DerivedMetric>;
 
     for (const date of this.equityDates) {
-      const cash = this.baseMetrics.find(
-        (item) => item.metricName === "Cash & cash equivalents",
-      )?.[date] ?? 0;
-      const shortTermLiabilities = this.baseMetrics.find(
-        (item) => item.metricName === "Short term liabilities",
-      )?.[date] ?? 0;
-      const longTermLiabilities = this.baseMetrics.find(
-        (item) => item.metricName === "Long term liabilities"
-      )?.[date] ?? 0;
+      const cash =
+        this.baseMetrics.find(
+          (item) => item.metricName === "Cash & cash equivalents",
+        )?.[date] ?? 0;
+      const shortTermLiabilities =
+        this.baseMetrics.find(
+          (item) => item.metricName === "Short term liabilities",
+        )?.[date] ?? 0;
+      const longTermLiabilities =
+        this.baseMetrics.find(
+          (item) => item.metricName === "Long term liabilities",
+        )?.[date] ?? 0;
       const operatingIncome = this.baseMetrics.find(
         (item) => item.metricName === "Operating income",
       )![date];
@@ -352,18 +351,29 @@ export class StockService {
     } as Partial<DerivedMetric>;
 
     for (const date of this.equityDates) {
-      const price = this.baseMetrics.find((item) => item.metricName === "Price")![date];
-      const cashValue = this.baseMetrics.find(
-        (item) => item.metricName === "Cash & cash equivalents",
-      )![date] ?? 0;
-      const shortTermLiabilities = this.baseMetrics.find((item) => item.metricName === "Short term liabilities")![date] ?? 0;
-      const longTermLiabilities = this.baseMetrics.find((item) => item.metricName === "Long term liabilities")![date] ?? 0;
+      const price = this.baseMetrics.find(
+        (item) => item.metricName === "Price",
+      )![date];
+      const cashValue =
+        this.baseMetrics.find(
+          (item) => item.metricName === "Cash & cash equivalents",
+        )![date] ?? 0;
+      const shortTermLiabilities =
+        this.baseMetrics.find(
+          (item) => item.metricName === "Short term liabilities",
+        )![date] ?? 0;
+      const longTermLiabilities =
+        this.baseMetrics.find(
+          (item) => item.metricName === "Long term liabilities",
+        )![date] ?? 0;
 
       if (price == null) {
         continue;
       }
 
-      const marketValue = (price * this.stockConfig.outstandingShares) / this.stockConfig.trimDigit;
+      const marketValue =
+        (price * this.stockConfig.outstandingShares) /
+        this.stockConfig.trimDigit;
       enterpriseValueMetric[date] = round(
         marketValue + shortTermLiabilities + longTermLiabilities - cashValue,
       );
@@ -439,8 +449,12 @@ export class StockService {
     } as Partial<DerivedMetric>;
 
     for (const date of this.equityDates) {
-      const price = this.baseMetrics.find((item) => item.metricName === "Price")![date];
-      const bookValue = this.baseMetrics.find((item) => item.metricName === "Equity")![date];
+      const price = this.baseMetrics.find(
+        (item) => item.metricName === "Price",
+      )![date];
+      const bookValue = this.baseMetrics.find(
+        (item) => item.metricName === "Equity",
+      )![date];
 
       if (bookValue == null) {
         throw new Error(`Book value not found for date ${date}`);
@@ -452,8 +466,8 @@ export class StockService {
 
       mvToBVMetric[date] = round(
         (price * this.stockConfig.outstandingShares) /
-        this.stockConfig.trimDigit /
-        bookValue,
+          this.stockConfig.trimDigit /
+          bookValue,
       );
     }
 
@@ -462,13 +476,16 @@ export class StockService {
 
   private calcGrowths() {
     for (const metricName of GROWTH_APPLIED_METRICS) {
-      let metric = this.baseMetrics.find((item) => item.metricName === metricName);
+      let metric = this.baseMetrics.find(
+        (item) => item.metricName === metricName,
+      );
 
       if (!metric) {
         throw new Error(`${metricName} not found in metrics`);
       }
 
-      const firstDateValue = metric?.[this.equityDates[this.equityDates.length - 1]];
+      const firstDateValue =
+        metric?.[this.equityDates[this.equityDates.length - 1]];
       const lastDateValue = metric?.[LAST_DATE];
 
       if (firstDateValue == null || lastDateValue == null) {
@@ -493,10 +510,14 @@ export class StockService {
         );
       } else {
         const lastFinishedYearValue = metric[LAST_FINISHED_YEAR_DATE] as number;
-        const previousFinishedYearValue = metric[PREVIOUS_FINISHED_YEAR_DATE] as number;
+        const previousFinishedYearValue = metric[
+          PREVIOUS_FINISHED_YEAR_DATE
+        ] as number;
 
-        const quarterlyIncrease = (lastFinishedYearValue - previousFinishedYearValue) / 4;
-        ttmStartValue = previousFinishedYearValue + quarterlyIncrease * lastQuarter;
+        const quarterlyIncrease =
+          (lastFinishedYearValue - previousFinishedYearValue) / 4;
+        ttmStartValue =
+          previousFinishedYearValue + quarterlyIncrease * lastQuarter;
       }
 
       if (ttmStartValue === undefined || lastDateValue === undefined) {
@@ -520,13 +541,17 @@ export class StockService {
     });
 
     for (const metricName of GROWTH_APPLIED_METRICS) {
-      const metric = this.baseMetrics.find((item) => item.metricName === metricName);
+      const metric = this.baseMetrics.find(
+        (item) => item.metricName === metricName,
+      );
 
       if (!metric) {
         throw new Error(`${metricName} not found in metrics`);
       }
 
-      const inflationData = this.inflation.find((item) => item.date === LAST_DATE);
+      const inflationData = this.inflation.find(
+        (item) => item.date === LAST_DATE,
+      );
       if (!inflationData) {
         throw new Error(`Inflation data not found for date ${LAST_DATE}`);
       }
@@ -545,22 +570,29 @@ export class StockService {
           if (date === CURRENT_DATE || i === this.equityDates.length - 1) {
             continue;
           }
-          const inflationData = this.inflation.find((item) => item.date === date);
+          const inflationData = this.inflation.find(
+            (item) => item.date === date,
+          );
           if (!inflationData) {
             throw new Error(`Inflation data not found for date ${date}`);
           }
 
           if (date === LAST_DATE) {
-            accumulatedInflation = (1 + accumulatedInflation) * (1 + inflationData.ytd) - 1;
-          } else if (date.slice(0, 4) === lastDateObj.getFullYear().toString()) {
+            accumulatedInflation =
+              (1 + accumulatedInflation) * (1 + inflationData.ytd) - 1;
+          } else if (
+            date.slice(0, 4) === lastDateObj.getFullYear().toString()
+          ) {
             continue;
           } else {
-            accumulatedInflation = (1 + accumulatedInflation) * (1 + inflationData.yoy) - 1;
+            accumulatedInflation =
+              (1 + accumulatedInflation) * (1 + inflationData.yoy) - 1;
           }
         }
 
         metric["Total growth"] = round(
-          (metric["Total growth"] - accumulatedInflation) / (1 + accumulatedInflation),
+          (metric["Total growth"] - accumulatedInflation) /
+            (1 + accumulatedInflation),
         );
 
         const yearlyGrowth = metric["Total growth"]
@@ -598,7 +630,9 @@ export class StockService {
       );
 
       if (growthMetric === undefined) {
-        throw new Error(`Growth metric ${growthParamName} not found in metrics`);
+        throw new Error(
+          `Growth metric ${growthParamName} not found in metrics`,
+        );
       }
 
       const totalGrowth = growthMetric["Total growth"];
@@ -610,11 +644,16 @@ export class StockService {
         );
       }
 
-      mergedGrowth["Total growth"] = (mergedGrowth["Total growth"] ?? 0) + (totalGrowth ?? 0);
-      mergedGrowth["TTM growth"] = (mergedGrowth["TTM growth"] ?? 0) + (ttmGrowth ?? 0);
+      mergedGrowth["Total growth"] =
+        (mergedGrowth["Total growth"] ?? 0) + (totalGrowth ?? 0);
+      mergedGrowth["TTM growth"] =
+        (mergedGrowth["TTM growth"] ?? 0) + (ttmGrowth ?? 0);
     });
 
-    const growthEntries = Object.entries(mergedGrowth) as [keyof GrowthRecord, number][];
+    const growthEntries = Object.entries(mergedGrowth) as [
+      keyof GrowthRecord,
+      number,
+    ][];
 
     growthEntries.forEach(([key, value]) => {
       const medianValue = value / this.stockConfig.growthParams.length;
