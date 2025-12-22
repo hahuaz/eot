@@ -5,7 +5,6 @@ import cors from "cors";
 
 import {
   populateStock,
-  getStockInfo,
   getStocksDynamic,
   getLiveTtmNightlyYield,
   INFLATION_DATA,
@@ -102,7 +101,6 @@ router.get("/stock-names", validateRegion, (req, res) => {
  */
 router.get("/all-stock", validateRegion, (req, res) => {
   const region = req.query.region as Region;
-  const inflation = INFLATION_DATA[region];
   const stocksDynamic = getStocksDynamic({ region });
   const stockNames = Object.keys(stocksDynamic);
 
@@ -116,7 +114,6 @@ router.get("/all-stock", validateRegion, (req, res) => {
     const stockData = populateStock({
       stockSymbol,
       region,
-      inflation,
     });
 
     return {
@@ -143,12 +140,9 @@ router.get("/stock", validateRegion, async (req, res) => {
     return;
   }
 
-  const inflation = INFLATION_DATA[region];
-
   const stockData = populateStock({
-    stockSymbol,
     region,
-    inflation,
+    stockSymbol,
   });
 
   // write data to temp file
