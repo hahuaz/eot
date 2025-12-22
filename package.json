@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "dev:vscode": "echo 'to run the \"Start Dev Servers\" VS Code task press (Ctrl+Shift+B)'",
     "dev": "concurrently \"pnpm dev:backend\" \"pnpm dev:web\"",
     "dev:backend": "tsx watch src/index.ts",
     "dev:web": "cd client-web && pnpm dev",
