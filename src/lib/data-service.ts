@@ -3,12 +3,12 @@ import {
   Dates,
   StockConfig,
   Inflation,
-  StockDynamic,
   DerivedMetric,
   BaseMetric,
   StockSymbol,
   GrowthRecord,
-  StockDynamicSet,
+  StockDynamicInfoMap,
+  StockDynamicInfo,
 } from "@shared/types";
 import { Region, regions } from "@/types";
 import path from "path";
@@ -25,7 +25,7 @@ import {
   lastDateObj,
 } from "@/lib/dates";
 import { getTaxByRegion } from "@/lib/financials";
-import { round, calcRealRate } from "@/lib/utils";
+import { round, calcRealRate, calcYearlyGrowth } from "@/lib/utils";
 
 export const INFLATION_DATA = regions.reduce(
   (acc, region) => {
@@ -46,7 +46,7 @@ export const getStocksDynamic = ({ region }: { region: string }) => {
     "stocks-dynamic",
     `${region}.json`,
   );
-  const stocksDynamic = readJsonFile<StockDynamicSet>(stocksDynamicPath);
+  const stocksDynamic = readJsonFile<StockDynamicInfoMap>(stocksDynamicPath);
   return stocksDynamic;
 };
 
@@ -54,12 +54,12 @@ export class StockService {
   // Separate array for derived metrics to maintain type safety and make it easier to distinguish between base and calculated values
   private derivedMetrics: DerivedMetric[] = [];
   private baseMetrics!: BaseMetric[];
-  private stockConfig!: StockConfig;
+  private config!: StockConfig;
   /** For recently IPO'd stocks, not all historical dates will have values thus available dates is calculated with the earliest defined date */
   private equityDates!: Dates[];
   private priceDates!: Dates[];
   private inflation!: Inflation[];
-  private stockDynamic!: StockDynamic;
+  private dynamicInfo!: StockDynamicInfo;
 
   constructor(
     private stockSymbol: StockSymbol,
@@ -102,20 +102,19 @@ export class StockService {
     baseMetrics = baseMetrics.filter((_, i) => i !== configIndex);
 
     this.baseMetrics = baseMetrics;
-    this.stockConfig = stockConfig;
-    console.log("this.region", this.region);
+    this.config = stockConfig;
     this.inflation = INFLATION_DATA[this.region];
 
-    // 2. Populate current column
+    // 2. populate current column
     const stocksDynamic = getStocksDynamic({ region: this.region });
     const stockDynamic = stocksDynamic[this.stockSymbol];
     if (!stockDynamic) {
       throw new Error("Stock not found in dynamic data");
     }
-    this.stockDynamic = stockDynamic;
+    this.dynamicInfo = stockDynamic;
     this.createCurrentColumn();
 
-    // 3. Calculate dates
+    // 3. calculate dates
     this.equityDates = getAvailableDates({
       baseMetrics: this.baseMetrics,
       metricName: "Equity",
@@ -127,7 +126,7 @@ export class StockService {
   }
 
   public getMetrics() {
-    // Phase 1: Create Derived Metrics
+    // 1: create derived metrics
     this.createYieldMetric();
     this.createNDtoOIMetric();
     this.createEV();
@@ -135,16 +134,16 @@ export class StockService {
     this.createEVtoNI();
     this.createMVtoBVMetric();
 
-    // Phase 2: Calculate Growth Rates
+    // 2: calculate growth rates
     this.calcGrowths();
 
-    // Phase 3: Adjust for Inflation
+    // 3: adjust for inflation
     this.adjustForInflation();
 
     return {
       baseMetrics: this.baseMetrics,
       derivedMetrics: this.derivedMetrics,
-      stockConfig: this.stockConfig,
+      stockConfig: this.config,
     };
   }
 
@@ -159,7 +158,7 @@ export class StockService {
       metric["current"] = metric[LAST_DATE];
     }
 
-    const { price } = this.stockDynamic;
+    const { price } = this.dynamicInfo;
     const priceMetric = this.baseMetrics.find(
       (item) => item.metricName === "Price",
     );
@@ -243,16 +242,7 @@ export class StockService {
       yieldMetric[loopDate] = round(netPriceYield + netDividendYield);
     }
 
-    yieldMetric["Total growth"] = this.calculateTotalGrowth(yieldMetric);
-    yieldMetric["Yearly growth"] = this.calculateYearlyGrowth(
-      yieldMetric["Total growth"] as number,
-    );
-    yieldMetric["TTM growth"] = this.calculateTTMGrowth(yieldMetric);
-
-    this.derivedMetrics.push(yieldMetric as DerivedMetric);
-  }
-
-  private calculateTotalGrowth(yieldMetric: Partial<DerivedMetric>) {
+    // calculate total growth by multiplying growth rates for each date
     let totalGrowth = 1;
     Object.entries(yieldMetric).forEach(([key, value]) => {
       if (key !== "metricName") {
@@ -260,18 +250,16 @@ export class StockService {
       }
     });
     totalGrowth = totalGrowth - 1;
-    return round(totalGrowth);
-  }
+    yieldMetric["Total growth"] = round(totalGrowth);
 
-  private calculateYearlyGrowth(totalGrowth: number) {
-    const priceYearsPassed = getYearsPassed({
-      date: this.priceDates[this.priceDates.length - 1],
+    const yearlyGrowth = calcYearlyGrowth({
+      totalGrowth,
+      startDate: this.priceDates[this.priceDates.length - 1],
     });
+    yieldMetric["Yearly growth"] = round(yearlyGrowth);
+    yieldMetric["TTM growth"] = this.calculateTTMGrowth(yieldMetric);
 
-    const yearlyGrowth = totalGrowth
-      ? Math.pow(1 + totalGrowth, 1 / priceYearsPassed) - 1
-      : 0;
-    return round(yearlyGrowth);
+    this.derivedMetrics.push(yieldMetric as DerivedMetric);
   }
 
   private calculateTTMGrowth(yieldMetric: Partial<DerivedMetric>) {
@@ -321,7 +309,7 @@ export class StockService {
       )![date];
 
       if (operatingIncome == null) {
-        console.log("stockConfig", this.stockConfig);
+        console.log("stockConfig", this.config);
         throw new Error(`Operating income not found for date ${date}`);
       }
 
@@ -363,8 +351,7 @@ export class StockService {
       }
 
       const marketValue =
-        (price * this.stockConfig.outstandingShares) /
-        this.stockConfig.trimDigit;
+        (price * this.config.outstandingShares) / this.config.trimDigit;
       enterpriseValueMetric[date] = round(
         marketValue + shortTermLiabilities + longTermLiabilities - cashValue,
       );
@@ -456,8 +443,8 @@ export class StockService {
       }
 
       mvToBVMetric[date] = round(
-        (price * this.stockConfig.outstandingShares) /
-          this.stockConfig.trimDigit /
+        (price * this.config.outstandingShares) /
+          this.config.trimDigit /
           bookValue,
       );
     }
@@ -620,7 +607,7 @@ export class StockService {
 
     let mergedGrowth: Partial<MergedGrowth> = {};
 
-    this.stockConfig.growthParams.forEach((growthParamName) => {
+    this.config.growthParams.forEach((growthParamName) => {
       const growthMetric = this.baseMetrics.find(
         (item) => item.metricName === growthParamName,
       );
@@ -636,7 +623,7 @@ export class StockService {
 
       if (typeof totalGrowth != "number" || typeof ttmGrowth != "number") {
         throw new Error(
-          `TODO: Growth metric ${growthParamName} is negative handle it graciously for ${this.stockConfig.stockSymbol}`,
+          `TODO: Growth metric ${growthParamName} is negative handle it graciously for ${this.config.stockSymbol}`,
         );
       }
 
@@ -652,7 +639,7 @@ export class StockService {
     ][];
 
     growthEntries.forEach(([key, value]) => {
-      const medianValue = value / this.stockConfig.growthParams.length;
+      const medianValue = value / this.config.growthParams.length;
       selectedGrowth[key] = round(medianValue);
     });
 

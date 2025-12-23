@@ -92,13 +92,13 @@ export type DerivedMetric = {
   [key in Dates]: number | "negative";
 } & GrowthRecord;
 
-export type StockDynamic = {
+export type StockDynamicInfo = {
   price: number;
   notes?: string[];
 };
 
-export type StockDynamicSet = {
-  [key: StockSymbol]: StockDynamic;
+export type StockDynamicInfoMap = {
+  [key: StockSymbol]: StockDynamicInfo;
 };
 
 export type Stock = {
