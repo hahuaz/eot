@@ -25,7 +25,7 @@ import {
   lastDateObj,
 } from "@/lib/dates";
 import { getTaxByRegion } from "@/lib/financials";
-import { round } from "@/lib/utils";
+import { round, calcRealRate } from "@/lib/utils";
 
 export const INFLATION_DATA = regions.reduce(
   (acc, region) => {
@@ -198,18 +198,20 @@ export class StockService {
 
       const loopDate = this.priceDates[dateIndex];
 
+      // get inflation adjusted dividend yield
       const dividendValue = dividendMetric[loopDate] ?? 0;
       const netDividendYield = dividendValue * (1 - dividendTax);
+
+      // get inflation adjusted price yield
       const priceValue = priceMetric[loopDate] ?? 0;
       const previousPriceValue =
         priceMetric[this.priceDates[dateIndex + 1]] ?? 0;
       const priceYield = (priceValue - previousPriceValue) / previousPriceValue;
 
-      // adjust for inflation
       const inflationData = this.inflation.find(
         (item) => item.date === loopDate,
       );
-      if (!inflationData && loopDate !== "current") {
+      if (!inflationData && loopDate !== CURRENT_DATE) {
         throw new Error(`Inflation data not found for date ${loopDate}`);
       }
 
@@ -233,8 +235,10 @@ export class StockService {
         throw new Error(`Inflation data not found for date ${loopDate}`);
       }
 
-      const netPriceYield =
-        (priceYield! - inflationForDate) / (1 + inflationForDate);
+      const netPriceYield = calcRealRate({
+        nominalRate: priceYield,
+        inflationRate: inflationForDate,
+      });
 
       yieldMetric[loopDate] = round(netPriceYield + netDividendYield);
     }
@@ -578,8 +582,10 @@ export class StockService {
         }
 
         metric["Total growth"] = round(
-          (metric["Total growth"] - accumulatedInflation) /
-            (1 + accumulatedInflation),
+          calcRealRate({
+            nominalRate: metric["Total growth"]!,
+            inflationRate: accumulatedInflation,
+          }),
         );
 
         const yearlyGrowth = metric["Total growth"]
@@ -594,7 +600,10 @@ export class StockService {
 
       if (metric["TTM growth"] !== "negative" && metric["TTM growth"] != null) {
         metric["TTM growth"] = round(
-          (metric["TTM growth"] - inflationData?.yoy) / (1 + inflationData.yoy),
+          calcRealRate({
+            nominalRate: metric["TTM growth"]!,
+            inflationRate: inflationData.yoy,
+          }),
         );
       }
     }

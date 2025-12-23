@@ -1,5 +1,6 @@
 import { Inflation } from "@shared/types";
 import { LAST_DATE } from "@/lib/dates";
+import { calcRealRate } from "@/lib/utils";
 
 export const getTaxByRegion = ({
   region,
@@ -45,7 +46,10 @@ export const getLiveTtmNightlyYield = ({
   if (ttmInflation == null) {
     throw new Error(`Inflation data not found for date ${LAST_DATE}`);
   }
-  const ttmNightlyYield = (netBGPYield - ttmInflation) / (1 + ttmInflation);
+  const ttmNightlyYield = calcRealRate({
+    nominalRate: netBGPYield,
+    inflationRate: ttmInflation,
+  });
 
   return ttmNightlyYield;
 };
