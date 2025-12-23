@@ -53,7 +53,8 @@ export const getStocksDynamic = ({ region }: { region: string }) => {
 export class StockService {
   // Separate array for derived metrics to maintain type safety and make it easier to distinguish between base and calculated values
   private derivedMetrics: DerivedMetric[] = [];
-  // metrics that are applicable for growth calculation
+  // for every stock, growth calculation is done for below metrics.
+  // there is also selected growth metric, which is obtainable from config and it declares which growths are used for performance calculation
   private GROWTH_APPLIED_METRICS = [
     "Equity",
     "Total assets",
@@ -102,7 +103,7 @@ export class StockService {
       stockSymbol: this.stockSymbol,
       outstandingShares: configValues[2] as number,
       trimDigit: configValues[3] as number,
-      growthParams: (configValues[4] as string)
+      selectedGrowthMetrics: (configValues[4] as string)
         .split("|")
         .map((param) => param.trim()),
     };
@@ -570,9 +571,11 @@ export class StockService {
           }),
         );
 
-        const yearlyGrowth = metric["Total growth"]
-          ? Math.pow(1 + metric["Total growth"], 1 / equityYearsPassed) - 1
-          : 0;
+        // yearly growth is calculated after inflation adjusted total growth calculation
+        const yearlyGrowth = calcYearlyGrowth({
+          totalGrowth: metric["Total growth"]!,
+          startDate: this.equityDates[this.equityDates.length - 1],
+        });
         metric["Yearly growth"] = round(yearlyGrowth);
       }
 
@@ -602,7 +605,7 @@ export class StockService {
 
     let mergedGrowth: Partial<MergedGrowth> = {};
 
-    this.config.growthParams.forEach((growthParamName) => {
+    this.config.selectedGrowthMetrics.forEach((growthParamName) => {
       const growthMetric = this.baseMetrics.find(
         (item) => item.metricName === growthParamName,
       );
@@ -634,7 +637,7 @@ export class StockService {
     ][];
 
     growthEntries.forEach(([key, value]) => {
-      const medianValue = value / this.config.growthParams.length;
+      const medianValue = value / this.config.selectedGrowthMetrics.length;
       selectedGrowth[key] = round(medianValue);
     });
 

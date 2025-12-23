@@ -4,7 +4,7 @@ export type StockConfig = {
   stockSymbol: StockSymbol;
   outstandingShares: number;
   trimDigit: number;
-  growthParams: string[];
+  selectedGrowthMetrics: string[];
 };
 
 export type Inflation = {
