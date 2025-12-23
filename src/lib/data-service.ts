@@ -105,14 +105,23 @@ export class StockService {
     this.config = stockConfig;
     this.inflation = INFLATION_DATA[this.region];
 
-    // 2. populate current column
     const stocksDynamic = getStocksDynamic({ region: this.region });
     const stockDynamic = stocksDynamic[this.stockSymbol];
     if (!stockDynamic) {
       throw new Error("Stock not found in dynamic data");
     }
     this.dynamicInfo = stockDynamic;
-    this.createCurrentColumn();
+
+    // 2. populate current column
+    for (const metric of this.baseMetrics) {
+      if (metric.metricName === "Dividend") {
+        continue;
+      } else if (metric.metricName === "Price") {
+        metric["current"] = this.dynamicInfo.price;
+      } else {
+        metric["current"] = metric[LAST_DATE];
+      }
+    }
 
     // 3. calculate dates
     this.equityDates = getAvailableDates({
@@ -128,9 +137,9 @@ export class StockService {
   public getMetrics() {
     // 1: create derived metrics
     this.createYieldMetric();
-    this.createNDtoOIMetric();
-    this.createEV();
-    this.createEVtoOIMetric();
+    this.createDebtMetric();
+    this.createEvMetric();
+    this.createEvToOiMetric();
     this.createEVtoNI();
     this.createMVtoBVMetric();
 
@@ -145,27 +154,6 @@ export class StockService {
       derivedMetrics: this.derivedMetrics,
       stockConfig: this.config,
     };
-  }
-
-  /**
-   * Populates the 'current' column in base metrics with the last available value.
-   */
-  private createCurrentColumn() {
-    for (const metric of this.baseMetrics) {
-      if (metric.metricName === "Price" || metric.metricName === "Dividend") {
-        continue;
-      }
-      metric["current"] = metric[LAST_DATE];
-    }
-
-    const { price } = this.dynamicInfo;
-    const priceMetric = this.baseMetrics.find(
-      (item) => item.metricName === "Price",
-    );
-    if (!priceMetric) {
-      throw new Error(`Price metric not found in metrics`);
-    }
-    priceMetric["current"] = price;
   }
 
   private createYieldMetric() {
@@ -195,43 +183,41 @@ export class StockService {
         break;
       }
 
-      const loopDate = this.priceDates[dateIndex];
+      const date = this.priceDates[dateIndex];
 
       // get inflation adjusted dividend yield
-      const dividendValue = dividendMetric[loopDate] ?? 0;
+      const dividendValue = dividendMetric[date] ?? 0;
       const netDividendYield = dividendValue * (1 - dividendTax);
 
       // get inflation adjusted price yield
-      const priceValue = priceMetric[loopDate] ?? 0;
+      const priceValue = priceMetric[date] ?? 0;
       const previousPriceValue =
         priceMetric[this.priceDates[dateIndex + 1]] ?? 0;
       const priceYield = (priceValue - previousPriceValue) / previousPriceValue;
 
-      const inflationData = this.inflation.find(
-        (item) => item.date === loopDate,
-      );
-      if (!inflationData && loopDate !== CURRENT_DATE) {
-        throw new Error(`Inflation data not found for date ${loopDate}`);
+      const inflationData = this.inflation.find((item) => item.date === date);
+      if (!inflationData && date !== CURRENT_DATE) {
+        throw new Error(`Inflation data not found for date ${date}`);
       }
 
       let inflationForDate: Dates | number = 0;
 
-      if (loopDate === CURRENT_DATE) {
+      if (date === CURRENT_DATE) {
         inflationForDate = 0;
-      } else if (new Date(loopDate).getMonth() !== 11) {
+      } else if (new Date(date).getMonth() !== 11) {
         if (inflationData?.qoq == null) {
-          throw new Error(`qoq data not found for date ${loopDate}`);
+          throw new Error(`qoq data not found for date ${date}`);
         }
         inflationForDate = inflationData.qoq;
       } else {
         if (inflationData?.yoy == null) {
-          throw new Error(`yoy data not found for date ${loopDate}`);
+          throw new Error(`yoy data not found for date ${date}`);
         }
         inflationForDate = inflationData.yoy;
       }
 
       if (inflationForDate === undefined) {
-        throw new Error(`Inflation data not found for date ${loopDate}`);
+        throw new Error(`Inflation data not found for date ${date}`);
       }
 
       const netPriceYield = calcRealRate({
@@ -239,7 +225,7 @@ export class StockService {
         inflationRate: inflationForDate,
       });
 
-      yieldMetric[loopDate] = round(netPriceYield + netDividendYield);
+      yieldMetric[date] = round(netPriceYield + netDividendYield);
     }
 
     // calculate total growth by multiplying growth rates for each date
@@ -288,8 +274,8 @@ export class StockService {
     this.derivedMetrics.push(yieldMetric as DerivedMetric);
   }
 
-  private createNDtoOIMetric() {
-    const netDebtOIMetric = {
+  private createDebtMetric() {
+    const debtMetric = {
       metricName: "Net debt / operating income",
     } as Partial<DerivedMetric>;
 
@@ -316,25 +302,25 @@ export class StockService {
       }
 
       if (operatingIncome <= 0) {
-        netDebtOIMetric[date] = "negative";
+        debtMetric[date] = "negative";
       } else {
         const netDebt = shortTermLiabilities + longTermLiabilities - cash;
-        netDebtOIMetric[date] = round(netDebt / operatingIncome);
+        debtMetric[date] = round(netDebt / operatingIncome);
       }
     }
 
-    this.derivedMetrics.push(netDebtOIMetric as DerivedMetric);
+    this.derivedMetrics.push(debtMetric as DerivedMetric);
   }
 
-  private createEV() {
+  private createEvMetric() {
     const enterpriseValueMetric = {
       metricName: "Enterprise value",
     } as Partial<DerivedMetric>;
 
-    for (const date of this.equityDates) {
+    for (const date of this.priceDates) {
       const price = this.baseMetrics.find(
         (item) => item.metricName === "Price",
-      )![date];
+      )![date]!;
       const cashValue =
         this.baseMetrics.find(
           (item) => item.metricName === "Cash & cash equivalents",
@@ -348,10 +334,7 @@ export class StockService {
           (item) => item.metricName === "Long term liabilities",
         )![date] ?? 0;
 
-      if (price == null) {
-        continue;
-      }
-
+      // base metrics are already trimmed by trimDigit. apply same to derived metrics
       const marketValue =
         (price * this.config.outstandingShares) / this.config.trimDigit;
       enterpriseValueMetric[date] = round(
@@ -362,7 +345,7 @@ export class StockService {
     this.derivedMetrics.push(enterpriseValueMetric as DerivedMetric);
   }
 
-  private createEVtoOIMetric() {
+  private createEvToOiMetric() {
     const evToOIMetric = {
       metricName: "EV / operating income",
     } as Partial<DerivedMetric>;
