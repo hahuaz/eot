@@ -136,12 +136,12 @@ export class StockService {
 
   public getMetrics() {
     // 1: create derived metrics
-    this.createYieldMetric();
-    this.createDebtMetric();
-    this.createEvMetric();
-    this.createEvToOiMetric();
-    this.createEVtoNI();
-    this.createMVtoBVMetric();
+    this.yieldMetric();
+    this.debtMetric();
+    this.evMetric();
+    this.evToOiMetric();
+    this.evToNiMetric();
+    this.mvToBvMetric();
 
     // 2: calculate growth rates
     this.calcGrowths();
@@ -156,7 +156,7 @@ export class StockService {
     };
   }
 
-  private createYieldMetric() {
+  private yieldMetric() {
     const dividendIndex = this.baseMetrics.findIndex(
       (item) => item.metricName === "Dividend",
     );
@@ -274,7 +274,7 @@ export class StockService {
     this.derivedMetrics.push(yieldMetric as DerivedMetric);
   }
 
-  private createDebtMetric() {
+  private debtMetric() {
     const debtMetric = {
       metricName: "Net debt / operating income",
     } as Partial<DerivedMetric>;
@@ -312,7 +312,7 @@ export class StockService {
     this.derivedMetrics.push(debtMetric as DerivedMetric);
   }
 
-  private createEvMetric() {
+  private evMetric() {
     const enterpriseValueMetric = {
       metricName: "Enterprise value",
     } as Partial<DerivedMetric>;
@@ -345,7 +345,7 @@ export class StockService {
     this.derivedMetrics.push(enterpriseValueMetric as DerivedMetric);
   }
 
-  private createEvToOiMetric() {
+  private evToOiMetric() {
     const evToOIMetric = {
       metricName: "EV / operating income",
     } as Partial<DerivedMetric>;
@@ -363,6 +363,8 @@ export class StockService {
       }
 
       if (enterpriseValue == null) {
+        // TODO
+        console.log("how can enterprise value be null?", this.stockSymbol);
         continue;
       }
 
@@ -376,7 +378,7 @@ export class StockService {
     this.derivedMetrics.push(evToOIMetric as DerivedMetric);
   }
 
-  private createEVtoNI() {
+  private evToNiMetric() {
     const evNIMetric = {
       metricName: "EV / net income",
     } as Partial<DerivedMetric>;
@@ -406,7 +408,7 @@ export class StockService {
     this.derivedMetrics.push(evNIMetric as DerivedMetric);
   }
 
-  private createMVtoBVMetric() {
+  private mvToBvMetric() {
     const mvToBVMetric = {
       metricName: "Market value / book value",
     } as Partial<DerivedMetric>;
