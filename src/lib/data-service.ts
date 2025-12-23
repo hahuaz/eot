@@ -252,14 +252,20 @@ export class StockService {
     totalGrowth = totalGrowth - 1;
     yieldMetric["Total growth"] = round(totalGrowth);
 
+    // calculate yearly growth
     const yearlyGrowth = calcYearlyGrowth({
       totalGrowth,
       startDate: this.priceDates[this.priceDates.length - 1],
     });
     yieldMetric["Yearly growth"] = round(yearlyGrowth);
 
+    // calculate ttm growth: current date price change is included
+    // TODO: soon there will be exact growth rates for all necessary dates:
+    // growthFromFinishedYear will be removed
+    // quarter will be removed since current + last 4 dates will be used
     let ttmGrowth = 1;
     const quarter = whichQuarter(LAST_DATE);
+    // increase the quarter by 1 since current date is included
     const curQuarters = DATES.slice(0, quarter + 1);
 
     curQuarters.forEach((date) => {
@@ -267,8 +273,7 @@ export class StockService {
       ttmGrowth = ttmGrowth * (1 + dateYield);
     });
 
-    // TODO: soon there will be exact growth rates for all necessary dates and growthFromFinishedYear will be removed
-    let growthFromFinishedYear: number | null = null;
+    let growthFromFinishedYear: number;
     if (quarter === 4) {
       throw new Error("TTM growth for end of the year not implemented");
     } else {
@@ -276,8 +281,7 @@ export class StockService {
       const quarterlyYield = (lastFinishedYearYield as number) / 4;
       growthFromFinishedYear = quarterlyYield;
     }
-    ttmGrowth = ttmGrowth * (1 + (growthFromFinishedYear as number));
-    ttmGrowth = ttmGrowth - 1;
+    ttmGrowth = ttmGrowth * (1 + growthFromFinishedYear) - 1;
 
     yieldMetric["TTM growth"] = round(ttmGrowth);
 
