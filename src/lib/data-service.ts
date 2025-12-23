@@ -13,7 +13,7 @@ import {
 import { Region, regions } from "@/types";
 import path from "path";
 import { parseCSV, readJsonFile } from "@/lib/file";
-import { DATA_DIR, GROWTH_APPLIED_METRICS } from "@/lib/constants";
+import { DATA_DIR } from "@/lib/constants";
 import {
   getAvailableDates,
   LAST_DATE,
@@ -53,6 +53,14 @@ export const getStocksDynamic = ({ region }: { region: string }) => {
 export class StockService {
   // Separate array for derived metrics to maintain type safety and make it easier to distinguish between base and calculated values
   private derivedMetrics: DerivedMetric[] = [];
+  // metrics that are applicable for growth calculation
+  private GROWTH_APPLIED_METRICS = [
+    "Equity",
+    "Total assets",
+    "Revenue",
+    "Operating income",
+    "Net income",
+  ] as const;
   private baseMetrics!: BaseMetric[];
   private config!: StockConfig;
   /** For recently IPO'd stocks, not all historical dates will have values thus available dates is calculated with the earliest defined date */
@@ -265,7 +273,7 @@ export class StockService {
     } else {
       const lastFinishedYearYield = yieldMetric[LAST_FINISHED_YEAR_DATE];
       const quarterlyYield = (lastFinishedYearYield as number) / 4;
-      growthFromFinishedYear = quarterlyYield;
+      growthFromFinishedYear = quarterlyYield * (4 - quarter);
     }
     ttmGrowth = ttmGrowth * (1 + growthFromFinishedYear) - 1;
 
@@ -440,7 +448,7 @@ export class StockService {
   }
 
   private calcGrowths() {
-    for (const metricName of GROWTH_APPLIED_METRICS) {
+    for (const metricName of this.GROWTH_APPLIED_METRICS) {
       let metric = this.baseMetrics.find(
         (item) => item.metricName === metricName,
       );
@@ -466,9 +474,9 @@ export class StockService {
         metric["Total growth"] = round(totalGrowth);
       }
 
+      // TODO: soon there will be exact growth rates for all necessary dates and this will be removed
       const lastQuarter = whichQuarter(LAST_DATE);
       let ttmStartValue: number | undefined = undefined;
-
       if (lastQuarter === 4) {
         throw new Error(
           "calcGrowths: TTM growth for end of the year not implemented",
@@ -505,7 +513,7 @@ export class StockService {
       date: this.equityDates[this.equityDates.length - 1],
     });
 
-    for (const metricName of GROWTH_APPLIED_METRICS) {
+    for (const metricName of this.GROWTH_APPLIED_METRICS) {
       const metric = this.baseMetrics.find(
         (item) => item.metricName === metricName,
       );
