@@ -4,11 +4,11 @@ import express, { Response, Request, NextFunction, Router } from "express";
 import cors from "cors";
 
 import {
-  populateStock,
   getStocksDynamic,
   getLiveTtmNightlyYield,
   INFLATION_DATA,
   DATA_DIR,
+  StockService,
 } from "@/lib";
 
 import { Region, regions } from "@/types";
@@ -111,14 +111,12 @@ router.get("/all-stock", validateRegion, (req, res) => {
       return;
     }
 
-    const stockData = populateStock({
-      stockSymbol,
-      region,
-    });
+    const stock = new StockService(stockSymbol, region);
+    const metrics = stock.getMetrics();
 
     return {
       stockDynamic,
-      ...stockData,
+      ...metrics,
     };
   });
 
@@ -140,16 +138,14 @@ router.get("/stock", validateRegion, async (req, res) => {
     return;
   }
 
-  const stockData = populateStock({
-    region,
-    stockSymbol,
-  });
+  const stockService = new StockService(stockSymbol, region);
+  const metrics = stockService.getMetrics();
 
   // write data to temp file
   const tempFilePath = path.join(DATA_DIR, "snapshot", `${stockSymbol}.json`);
-  fs.writeFileSync(tempFilePath, JSON.stringify(stockData, null, 2));
+  fs.writeFileSync(tempFilePath, JSON.stringify(metrics, null, 2));
 
-  res.status(200).json(stockData);
+  res.status(200).json(metrics);
 });
 
 // Mount the router under the /api prefix

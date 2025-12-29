@@ -150,8 +150,8 @@ export class StockService {
     // 2: calculate growth rates
     this.calcGrowths();
 
-    // 3: adjust for inflation
-    this.adjustForInflation();
+    // 3: adjust growths for inflation
+    this.calcRealGrowth();
 
     return {
       baseMetrics: this.baseMetrics,
@@ -504,11 +504,7 @@ export class StockService {
     }
   }
 
-  private adjustForInflation() {
-    const equityYearsPassed = getYearsPassed({
-      date: this.equityDates[this.equityDates.length - 1],
-    });
-
+  private calcRealGrowth() {
     for (const metricName of this.GROWTH_APPLIED_METRICS) {
       const metric = this.baseMetrics.find(
         (item) => item.metricName === metricName,
@@ -610,11 +606,13 @@ export class StockService {
       };
     });
 
-    const count = selectedMetrics.length;
+    const selectedCount = selectedMetrics.length;
     const avgTotalGrowth =
-      selectedMetrics.reduce((acc, m) => acc + m["Total growth"], 0) / count;
+      selectedMetrics.reduce((acc, m) => acc + m["Total growth"], 0) /
+      selectedCount;
     const avgTtmGrowth =
-      selectedMetrics.reduce((acc, m) => acc + m["TTM growth"], 0) / count;
+      selectedMetrics.reduce((acc, m) => acc + m["TTM growth"], 0) /
+      selectedCount;
 
     const selectedGrowth = {
       metricName: "Selected growth median",
@@ -631,17 +629,3 @@ export class StockService {
     this.derivedMetrics.push(selectedGrowth);
   }
 }
-
-/**
- * Populates a stock with all calculated metrics.
- */
-export const populateStock = ({
-  stockSymbol,
-  region,
-}: {
-  stockSymbol: StockSymbol;
-  region: Region;
-}) => {
-  const stock = new StockService(stockSymbol, region);
-  return stock.getMetrics();
-};
