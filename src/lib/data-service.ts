@@ -53,8 +53,7 @@ export const getStocksDynamic = ({ region }: { region: string }) => {
 export class StockService {
   // Separate array for derived metrics to maintain type safety and make it easier to distinguish between base and calculated values
   private derivedMetrics: DerivedMetric[] = [];
-  // for every stock, growth calculation is done for below metrics.
-  // there is also selected growth metric, which is obtainable from config and it declares which growths are used for performance calculation
+  // for every stock, growth calculation is done for below metrics. there is also selected growth metric, which is obtainable from config and it declares which growths are used for performance calculation
   private GROWTH_APPLIED_METRICS = [
     "Equity",
     "Total assets",
@@ -74,10 +73,6 @@ export class StockService {
     private stockSymbol: StockSymbol,
     private region: Region,
   ) {
-    this.getStockInfo();
-  }
-
-  private getStockInfo() {
     // 1. set base metrics
     const stockPath = path.join(
       DATA_DIR,
