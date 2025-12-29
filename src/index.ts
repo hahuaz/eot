@@ -8,7 +8,7 @@ import {
   getLiveTtmNightlyYield,
   INFLATION_DATA,
   DATA_DIR,
-  StockService,
+  StockAnalyzer,
 } from "@/lib";
 
 import { Region, regions } from "@/types";
@@ -111,7 +111,7 @@ router.get("/all-stock", validateRegion, (req, res) => {
       return;
     }
 
-    const stock = new StockService(stockSymbol, region);
+    const stock = new StockAnalyzer(stockSymbol, region);
     const metrics = stock.getMetrics();
 
     return {
@@ -138,7 +138,7 @@ router.get("/stock", validateRegion, async (req, res) => {
     return;
   }
 
-  const stockService = new StockService(stockSymbol, region);
+  const stockService = new StockAnalyzer(stockSymbol, region);
   const metrics = stockService.getMetrics();
 
   // write data to temp file

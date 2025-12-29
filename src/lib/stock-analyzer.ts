@@ -50,7 +50,7 @@ export const getStocksDynamic = ({ region }: { region: string }) => {
   return stocksDynamic;
 };
 
-export class StockService {
+export class StockAnalyzer {
   // Separate array for derived metrics to maintain type safety and make it easier to distinguish between base and calculated values
   private derivedMetrics: DerivedMetric[] = [];
   // for every stock, growth calculation is done for below metrics. there is also selected growth metric, which is obtainable from config and it declares which growths are used for performance calculation
