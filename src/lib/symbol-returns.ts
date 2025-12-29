@@ -7,6 +7,7 @@ import {
   TAXES,
   calcRealRate,
   LAST_DATE,
+  round,
 } from "@/lib";
 import { DailyPrice, CumulativeReturn } from "@/types";
 import { Inflation } from "@/shared/types";
@@ -120,16 +121,26 @@ export const getCummulativeReturns = (): {
   };
 };
 
-export const getNightlyYield = ({
+/**
+ * Return TTM (including current price change) nightly real rate, which is adjusted for inflation and withholding tax.
+ */
+export const getNightlyRealRate = ({
   inflation,
 }: {
   inflation: Inflation[];
 }): number | null => {
-  // TODO: get prices dynamically
+  const { data: bgpData } = parseCSV<DailyPrice>({
+    filePath: path.join(DAILY_DIR, `BGP.csv`),
+    header: true,
+  });
+
+  if (!bgpData || bgpData.length === 0) {
+    throw new Error("BGP data not found or empty");
+  }
+
   // ttm bgp price on 2024/9/30
   const previousTtmBGPPrice = 2.946158;
-  // live TTM BGP price (includes up-to-date price, not just between 2024/9/30 and 2025/9/30)
-  const liveTtmBGPPrice = 5.008617;
+  const liveTtmBGPPrice = bgpData[0].value;
   const nominalBGPYield =
     (liveTtmBGPPrice - previousTtmBGPPrice) / previousTtmBGPPrice;
 
@@ -144,5 +155,5 @@ export const getNightlyYield = ({
     inflationRate: ttmInflation,
   });
 
-  return ttmNightlyYield;
+  return round(ttmNightlyYield);
 };

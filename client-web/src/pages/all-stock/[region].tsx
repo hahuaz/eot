@@ -239,12 +239,10 @@ const Home = ({
     <div className="p-4 overflow-x-auto">
       <div>
         <p>
-          for 2025 q3 period inflation adjusted TTM yield:
-          <br />
-          net ttm bgp: {ttmNightlyYield}
-          <br />
-          istanbul/sancaktepe: 0
-          <br />
+          ttm nightly (BGP) yield:
+          {ttmNightlyYield}
+        </p>
+        <p>
           tcmb house index: -0.01
           <br />
           vgk: ?
