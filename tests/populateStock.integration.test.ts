@@ -82,7 +82,10 @@ describe("populateStock (pure calc)", () => {
       result.derivedMetrics,
       "Market value / book value",
     );
-    const selectedGrowth = getMetric(result.derivedMetrics, "Selected growth");
+    const selectedGrowth = getMetric(
+      result.derivedMetrics,
+      "Selected growth median",
+    );
     const equity = getMetric(result.baseMetrics, "Equity");
 
     expect(yieldMetric["Total growth"]).toBe(18.69119);

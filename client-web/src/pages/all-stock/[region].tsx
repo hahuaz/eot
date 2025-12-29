@@ -67,7 +67,7 @@ export const getStaticProps: GetStaticProps<{
       "EV / net income",
       "Net debt / operating income",
       "Market value / book value",
-      "Selected growth",
+      "Selected growth median",
     ];
 
     const filteredMetrics = allMetrics.filter((m: any) =>
@@ -84,7 +84,7 @@ export const getStaticProps: GetStaticProps<{
     for (const item of filteredMetrics) {
       const { metricName } = item;
 
-      if (metricName === "Selected growth") {
+      if (metricName === "Selected growth median") {
         if ("Yearly growth" in item)
           flat["Yearly growth"] = item["Yearly growth"];
         if ("TTM growth" in item) flat["TTM growth"] = item["TTM growth"];

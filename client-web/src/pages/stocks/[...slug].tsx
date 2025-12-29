@@ -114,7 +114,7 @@ const AllPage = ({
     (item) => item.metricName === "Yield",
   );
   const selectedGrowthIndex = allMetrics.findIndex(
-    (item) => item.metricName === "Selected growth",
+    (item) => item.metricName === "Selected growth median",
   );
 
   const price = allMetrics[priceIndex];
@@ -126,7 +126,7 @@ const AllPage = ({
       item.metricName !== "Price" &&
       item.metricName !== "Dividend" &&
       item.metricName !== "Yield" &&
-      item.metricName !== "Selected growth",
+      item.metricName !== "Selected growth median",
   );
   if (priceIndex !== -1) {
     allMetrics.push(price);

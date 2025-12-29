@@ -42,7 +42,7 @@ export const DERIVED_METRIC_NAMES = [
   "EV / net income",
   "Market value / book value",
   "Yield",
-  "Selected growth",
+  "Selected growth median",
 ] as const;
 
 export type DerivedMetricNames = (typeof DERIVED_METRIC_NAMES)[number];

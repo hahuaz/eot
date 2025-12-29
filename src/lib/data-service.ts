@@ -593,61 +593,47 @@ export class StockService {
       }
     }
 
-    // Selected growth
+    // calculate selected growth median
+    const selectedMetrics = this.config.selectedGrowthMetrics.map((name) => {
+      const metric = this.baseMetrics.find((m) => m.metricName === name);
+      if (!metric) {
+        throw new Error(`Growth metric ${name} not found in metrics`);
+      }
+
+      if (
+        typeof metric["Total growth"] !== "number" ||
+        typeof metric["TTM growth"] !== "number"
+      ) {
+        throw new Error(
+          `Growth metric ${name} is negative for ${this.config.stockSymbol}. You need to revise the growth selection.`,
+        );
+      }
+
+      return metric as BaseMetric & {
+        "Total growth": number;
+        "TTM growth": number;
+      };
+    });
+
+    const count = selectedMetrics.length;
+    const avgTotalGrowth =
+      selectedMetrics.reduce((acc, m) => acc + m["Total growth"], 0) / count;
+    const avgTtmGrowth =
+      selectedMetrics.reduce((acc, m) => acc + m["TTM growth"], 0) / count;
+
     const selectedGrowth = {
-      metricName: "Selected growth",
-    } as Partial<DerivedMetric>;
+      metricName: "Selected growth median",
+      "Total growth": round(avgTotalGrowth),
+      "TTM growth": round(avgTtmGrowth),
+      "Yearly growth": round(
+        calcYearlyGrowth({
+          totalGrowth: avgTotalGrowth,
+          startDate: this.equityDates[this.equityDates.length - 1],
+        }),
+      ),
+    } as DerivedMetric;
 
-    type GrowthRecordKeys = keyof GrowthRecord;
-    type MergedGrowth = {
-      [K in GrowthRecordKeys]: number;
-    };
-
-    let mergedGrowth: Partial<MergedGrowth> = {};
-
-    this.config.selectedGrowthMetrics.forEach((growthParamName) => {
-      const growthMetric = this.baseMetrics.find(
-        (item) => item.metricName === growthParamName,
-      );
-
-      if (growthMetric === undefined) {
-        throw new Error(
-          `Growth metric ${growthParamName} not found in metrics`,
-        );
-      }
-
-      const totalGrowth = growthMetric["Total growth"];
-      const ttmGrowth = growthMetric["TTM growth"];
-
-      if (typeof totalGrowth != "number" || typeof ttmGrowth != "number") {
-        throw new Error(
-          `TODO: Growth metric ${growthParamName} is negative handle it graciously for ${this.config.stockSymbol}`,
-        );
-      }
-
-      mergedGrowth["Total growth"] =
-        (mergedGrowth["Total growth"] ?? 0) + (totalGrowth ?? 0);
-      mergedGrowth["TTM growth"] =
-        (mergedGrowth["TTM growth"] ?? 0) + (ttmGrowth ?? 0);
-    });
-
-    const growthEntries = Object.entries(mergedGrowth) as [
-      keyof GrowthRecord,
-      number,
-    ][];
-
-    growthEntries.forEach(([key, value]) => {
-      const medianValue = value / this.config.selectedGrowthMetrics.length;
-      selectedGrowth[key] = round(medianValue);
-    });
-
-    const selectedTotalGrowth = selectedGrowth["Total growth"] as number;
-    const selectedYearlyGrowth = selectedTotalGrowth
-      ? Math.pow(1 + selectedTotalGrowth, 1 / equityYearsPassed) - 1
-      : 0;
-    selectedGrowth["Yearly growth"] = round(selectedYearlyGrowth);
-
-    this.derivedMetrics.push(selectedGrowth as DerivedMetric);
+    this.derivedMetrics.push(selectedGrowth);
   }
 }
 
