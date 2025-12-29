@@ -6,7 +6,6 @@ import {
   DerivedMetric,
   BaseMetric,
   StockSymbol,
-  GrowthRecord,
   StockDynamicInfoMap,
   StockDynamicInfo,
 } from "@shared/types";
@@ -21,11 +20,20 @@ import {
   LAST_FINISHED_YEAR_DATE,
   PREVIOUS_FINISHED_YEAR_DATE,
   whichQuarter,
-  getYearsPassed,
   lastDateObj,
 } from "@/lib/dates";
-import { getTaxByRegion } from "@/lib/financials";
 import { round, calcRealRate, calcYearlyGrowth } from "@/lib/utils";
+
+export const TAXES = {
+  tr: {
+    withholdingTax: 0.175,
+    dividendTax: 0.15,
+  },
+  us: {
+    withholdingTax: 0.24,
+    dividendTax: 0.2,
+  },
+};
 
 export const INFLATION_DATA = regions.reduce(
   (acc, region) => {
@@ -183,7 +191,7 @@ export class StockAnalyzer {
       metricName: "Yield",
     } as Partial<DerivedMetric>;
 
-    const { dividendTax } = getTaxByRegion({ region: this.region });
+    const { dividendTax } = TAXES[this.region];
 
     for (let dateIndex = 0; dateIndex < this.priceDates.length; dateIndex++) {
       // previous price is needed to calculate yield, so we skip the last date

@@ -6,7 +6,7 @@ import cors from "cors";
 import {
   INFLATION_DATA,
   STOCKS_DYNAMIC_DATA,
-  getLiveTtmNightlyYield,
+  getNightlyYield,
   DATA_DIR,
   StockAnalyzer,
 } from "@/lib";
@@ -72,7 +72,7 @@ router.get("/ttm-nightly-yield", validateRegion, (req, res) => {
 
   const inflation = INFLATION_DATA[region];
 
-  const ttmNightlyYield = getLiveTtmNightlyYield({ inflation });
+  const ttmNightlyYield = getNightlyYield({ inflation });
 
   if (ttmNightlyYield === null || ttmNightlyYield === undefined) {
     res.status(500).json({ error: "Failed to calculate ttm nightly yield." });

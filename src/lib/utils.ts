@@ -1,5 +1,4 @@
-import { Inflation } from "@/shared/types";
-import { getYearsPassed } from "./dates";
+import { getYearsPassed } from "@/lib/dates";
 
 /**
  * Rounds a number to a fixed number of decimal places (limit floating point precision issues).
@@ -22,6 +21,7 @@ export function calcRealRate({
 }): number {
   return (nominalRate - inflationRate) / (1 + inflationRate);
 }
+
 /**
  * Calculates the yearly growth rate by raising the total growth rate to the power of 1/years passed.
  * Formula: (1 + totalGrowth)^(1/yearsPassed) - 1

@@ -1,7 +1,6 @@
 import path from "path";
 import fs from "fs";
 
-import { BaseMetricNames } from "@shared/types";
 import { Site } from "@/types";
 
 export const DATA_DIR = path.join(process.cwd(), "local-data");

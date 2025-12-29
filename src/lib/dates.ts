@@ -28,6 +28,10 @@ export const getYearsPassed = ({ date }: { date: string }): number => {
   return yearsPassed;
 };
 
+/**
+ * Returns an array of dates from the predefined DATES constant for which the specified metric has defined values.
+ * This is particularly useful for stocks with limited historical data (e.g., recently IPO'd), as it filters out dates where no data points exist for the given metric.
+ */
 export const getAvailableDates = ({
   baseMetrics,
   metricName,

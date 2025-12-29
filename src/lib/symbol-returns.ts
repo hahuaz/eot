@@ -1,12 +1,15 @@
 import path from "path";
 import {
-  getTaxByRegion,
   parseCSV,
   DAILY_DIR,
   OBSERVATION_START_DATE,
   DAILY_SAVED_SYMBOLS,
+  TAXES,
+  calcRealRate,
+  LAST_DATE,
 } from "@/lib";
 import { DailyPrice, CumulativeReturn } from "@/types";
+import { Inflation } from "@/shared/types";
 
 function ensureCommonDates(
   referenceDates: string[],
@@ -105,7 +108,7 @@ export const getCummulativeReturns = (): {
   // calc net returns for some series
   const cumulativeBGP = cumulativeGrossBGP.map((point) => ({
     date: point.date,
-    value: point.value * (1 - getTaxByRegion({ region: "tr" }).withholdingTax),
+    value: point.value * (1 - TAXES.tr.withholdingTax),
   }));
 
   return {
@@ -115,4 +118,31 @@ export const getCummulativeReturns = (): {
     bgp: cumulativeBGP,
     gold: cumulativeGold,
   };
+};
+
+export const getNightlyYield = ({
+  inflation,
+}: {
+  inflation: Inflation[];
+}): number | null => {
+  // TODO: get prices dynamically
+  // ttm bgp price on 2024/9/30
+  const previousTtmBGPPrice = 2.946158;
+  // live TTM BGP price (includes up-to-date price, not just between 2024/9/30 and 2025/9/30)
+  const liveTtmBGPPrice = 5.008617;
+  const nominalBGPYield =
+    (liveTtmBGPPrice - previousTtmBGPPrice) / previousTtmBGPPrice;
+
+  const netBGPYield = nominalBGPYield * (1 - TAXES.tr.withholdingTax);
+
+  const ttmInflation = inflation?.find((item) => item.date === LAST_DATE)?.yoy;
+  if (ttmInflation == null) {
+    throw new Error(`Inflation data not found for date ${LAST_DATE}`);
+  }
+  const ttmNightlyYield = calcRealRate({
+    nominalRate: netBGPYield,
+    inflationRate: ttmInflation,
+  });
+
+  return ttmNightlyYield;
 };
