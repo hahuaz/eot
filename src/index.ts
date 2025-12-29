@@ -4,9 +4,9 @@ import express, { Response, Request, NextFunction, Router } from "express";
 import cors from "cors";
 
 import {
-  getStocksDynamic,
-  getLiveTtmNightlyYield,
   INFLATION_DATA,
+  STOCKS_DYNAMIC_DATA,
+  getLiveTtmNightlyYield,
   DATA_DIR,
   StockAnalyzer,
 } from "@/lib";
@@ -90,7 +90,7 @@ router.get("/ttm-nightly-yield", validateRegion, (req, res) => {
 router.get("/stock-names", validateRegion, (req, res) => {
   const region = req.query.region as Region;
 
-  const stocksDynamic = getStocksDynamic({ region });
+  const stocksDynamic = STOCKS_DYNAMIC_DATA[region];
   res.status(200).json(Object.keys(stocksDynamic));
 });
 
@@ -101,7 +101,7 @@ router.get("/stock-names", validateRegion, (req, res) => {
  */
 router.get("/all-stock", validateRegion, (req, res) => {
   const region = req.query.region as Region;
-  const stocksDynamic = getStocksDynamic({ region });
+  const stocksDynamic = STOCKS_DYNAMIC_DATA[region];
   const stockNames = Object.keys(stocksDynamic);
 
   const stocksData: any[] = stockNames.map((stockSymbol) => {

@@ -40,15 +40,19 @@ export const INFLATION_DATA = regions.reduce(
   {} as Record<Region, Inflation[]>,
 );
 
-export const getStocksDynamic = ({ region }: { region: string }) => {
-  const stocksDynamicPath = path.join(
-    DATA_DIR,
-    "stocks-dynamic",
-    `${region}.json`,
-  );
-  const stocksDynamic = readJsonFile<StockDynamicInfoMap>(stocksDynamicPath);
-  return stocksDynamic;
-};
+export const STOCKS_DYNAMIC_DATA = regions.reduce(
+  (acc, region) => {
+    const stocksDynamicPath = path.join(
+      DATA_DIR,
+      "stocks-dynamic",
+      `${region}.json`,
+    );
+    const stocksDynamic = readJsonFile<StockDynamicInfoMap>(stocksDynamicPath);
+    acc[region] = stocksDynamic;
+    return acc;
+  },
+  {} as Record<Region, StockDynamicInfoMap>,
+);
 
 export class StockAnalyzer {
   // Separate array for derived metrics to maintain type safety and make it easier to distinguish between base and calculated values
@@ -109,7 +113,7 @@ export class StockAnalyzer {
     this.config = stockConfig;
     this.inflation = INFLATION_DATA[this.region];
 
-    const stocksDynamic = getStocksDynamic({ region: this.region });
+    const stocksDynamic = STOCKS_DYNAMIC_DATA[this.region];
     const stockDynamic = stocksDynamic[this.stockSymbol];
     if (!stockDynamic) {
       throw new Error("Stock not found in dynamic data");
