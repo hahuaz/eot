@@ -9,8 +9,8 @@ import {
   LAST_DATE,
   round,
 } from "@/lib";
-import { DailyPrice, CumulativeReturn } from "@/types";
-import { Inflation } from "@/shared/types";
+import { DailyPrice } from "@/types";
+import { CumulativeReturn, CumulativeReturns, Inflation } from "@/shared/types";
 
 function ensureCommonDates(
   referenceDates: string[],
@@ -28,13 +28,7 @@ function ensureCommonDates(
 /**
  * This function computes cumulative performance metrics anchored to a specific observation start date. The resulting data series represents the hypothetical sold net profit, effectively simulating a liquidation event on each specific day. Because withholding tax obligations are calculated based on the total realized gain at the moment of sale, the algorithm recalculates the return from the original baseline for every single day to accurately apply the tax and derive the final net value.
  */
-export const getCummulativeReturns = (): {
-  usdtry: CumulativeReturn[];
-  eurtry: CumulativeReturn[];
-  mixed: CumulativeReturn[];
-  bgp: CumulativeReturn[];
-  gold: CumulativeReturn[];
-} => {
+export const getCummulativeReturns = (): CumulativeReturns => {
   // Load all symbol histories dynamically
   const histories: Record<
     string,
@@ -115,7 +109,7 @@ export const getCummulativeReturns = (): {
   return {
     usdtry: cumulativeUsdtry,
     eurtry: cumulativeEurtry,
-    mixed: cumulativeMixed,
+    mixedCurrency: cumulativeMixed,
     bgp: cumulativeBGP,
     gold: cumulativeGold,
   };

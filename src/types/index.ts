@@ -21,9 +21,3 @@ export type DailyPrice = {
   date: string; // YYYY-MM-DD
   value: number;
 };
-
-export type CumulativeReturn = {
-  date: string; // YYYY-MM-DD
-  // e.g. 0.05 means a 5% increase
-  value: number;
-};

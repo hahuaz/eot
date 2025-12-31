@@ -23,7 +23,7 @@ import {
   DerivedMetric,
   BaseMetric,
   MetricNames,
-} from "@shared/types";
+} from "@/shared/types";
 
 const TABLE_SECTION_HEADERS: MetricNames[] = [
   "Balance sheet",

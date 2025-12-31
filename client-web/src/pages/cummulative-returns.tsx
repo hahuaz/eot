@@ -11,23 +11,12 @@ import {
 } from "recharts";
 import type { InferGetStaticPropsType, GetStaticProps } from "next";
 import { API_URL } from "@/lib";
+import { CumulativeReturns } from "@/shared/types";
 
-// Props type
-type DataPoint = {
-  date: string;
-  value: number;
-};
-
-interface CarryTradeChartProps {
-  usdtry: DataPoint[];
-  eurtry: DataPoint[];
-  mixed: DataPoint[];
-  bgp: DataPoint[];
-  gold: DataPoint[];
-}
+interface CummulativeReturnsProps extends CumulativeReturns {}
 
 export const getStaticProps: GetStaticProps<{
-  cummulativeReturns: CarryTradeChartProps;
+  cummulativeReturns: CummulativeReturnsProps;
 }> = async () => {
   const cummulativeReturns = await fetch(
     `${API_URL}api/cummulative-returns`,
@@ -40,24 +29,28 @@ export const getStaticProps: GetStaticProps<{
   };
 };
 
-// Merge all data points by date
-const mergeData = (
-  usdtry: DataPoint[],
-  eurtry: DataPoint[],
-  mixed: DataPoint[],
-  bgp: DataPoint[],
-  gold: DataPoint[],
-): {
+/**
+ * Merges independent time-series arrays into a single array aligned by date.
+ * This unified format ensures all metrics can be plotted on a shared X-axis (date) and handles missing data points automatically.
+ */
+const alignTimeSeriesData = ({
+  usdtry,
+  eurtry,
+  mixedCurrency,
+  bgp,
+  gold,
+}: CumulativeReturns): {
   date: string;
   usdtry?: number;
   eurtry?: number;
-  mixed?: number;
+  mixedCurrency?: number;
   bgp?: number;
+  gold?: number;
 }[] => {
   const dateSet = new Set<string>([
     ...usdtry.map((d) => d.date),
     ...eurtry.map((d) => d.date),
-    ...mixed.map((d) => d.date),
+    ...mixedCurrency.map((d) => d.date),
     ...bgp.map((d) => d.date),
     ...gold.map((d) => d.date),
   ]);
@@ -70,18 +63,17 @@ const mergeData = (
     date,
     usdtry: usdtry.find((d) => d.date === date)?.value ?? undefined,
     eurtry: eurtry.find((d) => d.date === date)?.value ?? undefined,
-    mixed: mixed.find((d) => d.date === date)?.value ?? undefined,
+    mixedCurrency:
+      mixedCurrency.find((d) => d.date === date)?.value ?? undefined,
     bgp: bgp.find((d) => d.date === date)?.value ?? undefined,
     gold: gold.find((d) => d.date === date)?.value ?? undefined,
   }));
 };
 
-const CarryTradeChart = ({
+const CummulativeReturnsChart = ({
   cummulativeReturns,
 }: InferGetStaticPropsType<typeof getStaticProps>) => {
-  const { usdtry, eurtry, mixed, bgp, gold } = cummulativeReturns;
-
-  const data = mergeData(usdtry, eurtry, mixed, bgp, gold);
+  const data = alignTimeSeriesData(cummulativeReturns);
 
   return (
     <div className="w-full h-[500px]">
@@ -101,7 +93,7 @@ const CarryTradeChart = ({
             type="monotone"
             dataKey="bgp"
             stroke="#0008ff"
-            name="net BGP Yield Growth"
+            name="Real BGP Growth"
             dot={false}
           />
           <Line
@@ -113,7 +105,7 @@ const CarryTradeChart = ({
           />
           <Line
             type="monotone"
-            dataKey="mixed"
+            dataKey="mixedCurrency"
             stroke="#cc0000"
             name="Mixed Currency Growth"
             dot={false}
@@ -138,4 +130,4 @@ const CarryTradeChart = ({
   );
 };
 
-export default CarryTradeChart;
+export default CummulativeReturnsChart;

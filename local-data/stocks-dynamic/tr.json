@@ -1,6 +1,6 @@
 {
   "mgros": {
-    "price": 533,
+    "price": 521.5,
     "color": "yellow",
     "notes": [
       "Track assets/revenue only.",
@@ -8,277 +8,277 @@
     ]
   },
   "froto": {
-    "price": 96.9
+    "price": 92.65
   },
   "banvt": {
-    "price": 160.9,
+    "price": 158.4,
     "color": "green"
   },
   "raysg": {
-    "price": 231.8,
+    "price": 211.3,
     "color": "yellow"
   },
   "rgyas": {
-    "price": 140.8,
+    "price": 134.5,
     "notes": ["EV/BV irrelevant without profitability."]
   },
   "pgsus": {
-    "price": 205.1
+    "price": 192.2
   },
   "tabgd": {
-    "price": 222.5,
+    "price": 213,
     "color": "yellow"
   },
   "ttkom": {
-    "price": 57.95,
+    "price": 57.15,
     "color": "yellow"
   },
   "httbt": {
-    "price": 43.34,
+    "price": 41.58,
     "color": "yellow"
   },
   "ccola": {
-    "price": 58.9
+    "price": 58.8
   },
   "kboru": {
-    "price": 15.99,
+    "price": 14.4,
     "color": "green",
     "notes": [
       "Targets: '25 (125m Rev. 16m EBITDA), '26 (320m Rev. 51m EBITDA)."
     ]
   },
   "kimmr": {
-    "price": 13.71
+    "price": 13.13
   },
   "oyakc": {
-    "price": 24.88
+    "price": 22.86
   },
   "agesa": {
-    "price": 205.5
+    "price": 214.5
   },
   "cimsa": {
-    "price": 48.5,
+    "price": 44.82,
     "color": "yellow"
   },
   "asels": {
-    "price": 204
+    "price": 229
   },
   "thyao": {
-    "price": 272.25
+    "price": 267.75
   },
   "ansgr": {
-    "price": 23.86
+    "price": 22.98
   },
   "anhyt": {
-    "price": 103.2
+    "price": 98
   },
   "ykbnk": {
-    "price": 36.4
+    "price": 35.78
   },
   "garan": {
-    "price": 140.4,
+    "price": 142,
     "color": "yellow"
   },
   "tavhl": {
-    "price": 303.25,
+    "price": 304.75,
     "color": "yellow"
   },
   "tuprs": {
-    "price": 197.6
+    "price": 186.4
   },
   "ttrak": {
-    "price": 522.5
+    "price": 528
   },
   "toaso": {
-    "price": 240
+    "price": 248.6
   },
   "mpark": {
-    "price": 360,
+    "price": 372,
     "color": "yellow"
   },
   "arclk": {
-    "price": 109.3
+    "price": 101.5
   },
   "tursg": {
-    "price": 12.04,
+    "price": 11.03,
     "color": "yellow"
   },
   "ekgyo": {
-    "price": 20.82
+    "price": 20.24
   },
   "ulker": {
-    "price": 115.8,
+    "price": 108.7,
     "notes": [
       "High FX debt risk (8.5% USD, 10.5% EUR). Sensitive to TRY depreciation, as it earns revenue in a weakening currency but must repay debt in stronger foreign currencies.."
     ],
     "color": "red"
   },
   "bobet": {
-    "price": 19.02,
+    "price": 18.8,
     "color": "green"
   },
   "rysas": {
-    "price": 14.1,
+    "price": 14.7,
     "color": "green"
   },
   "cvkmd": {
-    "price": 22.36
+    "price": 26.8
   },
   "trgyo": {
-    "price": 74.1,
+    "price": 72.2,
     "notes": ["2025 Net Income target 20b vs Q1 actual 0.76b."]
   },
   "brsan": {
-    "price": 503,
+    "price": 529.5,
     "color": "green"
   },
   "enkai": {
-    "price": 80.15,
+    "price": 78.5,
     "notes": ["Heavy cash and non-current investment position."],
     "color": "yellow"
   },
   "eggub": {
-    "price": 99.1
+    "price": 93
   },
   "basgz": {
-    "price": 42.28
+    "price": 44.28
   },
   "penta": {
-    "price": 13.81
+    "price": 12.94
   },
   "tarkm": {
-    "price": 344.5
+    "price": 323.5
   },
   "eregl": {
-    "price": 24.56
+    "price": 23.94
   },
   "megmt": {
-    "price": 55.35
+    "price": 53.2
   },
   "zrgyo": {
-    "price": 22.46
+    "price": 23.04
   },
   "tcell": {
-    "price": 104.2
+    "price": 93.5
   },
   "vakko": {
-    "price": 57.35
+    "price": 56.8
   },
   "paseu": {
-    "price": 146
+    "price": 138.8
   },
   "glyho": {
-    "price": 12.59
+    "price": 11.92
   },
   "ofsym": {
-    "price": 60.3
+    "price": 68.25
   },
   "sokm": {
-    "price": 50.55
+    "price": 50.75
   },
   "rygyo": {
-    "price": 21.74
+    "price": 20.6
   },
   "marbl": {
-    "price": 12.85
+    "price": 12.16
   },
   "bsoke": {
-    "price": 16.1,
+    "price": 16.44,
     "color": "red",
     "notes": ["3 paid capital increases in last 10 years."]
   },
   "lmkdc": {
-    "price": 28.86
+    "price": 28.46
   },
   "gubrf": {
-    "price": 339.25
+    "price": 345.25
   },
   "tborg": {
-    "price": 164,
+    "price": 159.1,
     "color": "yellow"
   },
   "aksen": {
-    "price": 60.95
+    "price": 69.45
   },
   "bimas": {
-    "price": 557
+    "price": 539
   },
   "suwen": {
-    "price": 9.92,
+    "price": 9.91,
     "color": "yellow"
   },
   "ktlev": {
-    "price": 17.84
+    "price": 19.5
   },
   "vestl": {
-    "price": 32.64
+    "price": 28.64
   },
   "tgsas": {
-    "price": 168.1
+    "price": 163.4
   },
   "doas": {
-    "price": 193.1
+    "price": 187
   },
   "alfas": {
-    "price": 41.2,
+    "price": 40.6,
     "color": "green"
   },
   "ahgaz": {
-    "price": 24.56,
+    "price": 22.2,
     "color": "yellow",
     "notes": ["Buy after Q3 to capture strong winter seasonality."]
   },
   "grsel": {
-    "price": 323
+    "price": 319.5
   },
   "desa": {
-    "price": 18.3,
+    "price": 11.73,
     "notes": ["Q1 '25: 42% of equity is cash/bonds."]
   },
   "orge": {
-    "price": 66.65
+    "price": 66.35
   },
   "kontr": {
-    "price": 13.42
+    "price": 10.8
   },
   "genil": {
-    "price": 195.6
+    "price": 189.9
   },
   "koton": {
-    "price": 15.46,
+    "price": 15.28,
     "color": "green"
   },
   "selec": {
-    "price": 72.7
+    "price": 82.7
   },
   "kfein": {
-    "price": 9.07
+    "price": 8.48
   },
   "gesan": {
-    "price": 44.92
+    "price": 46.84
   },
   "eupwr": {
-    "price": 30.2
+    "price": 33.72
   },
   "pltur": {
-    "price": 21.46,
+    "price": 22.08,
     "color": "yellow"
   },
   "sekur": {
-    "price": 4.02
+    "price": 3.42
   },
   "goknr": {
-    "price": 20.6,
+    "price": 19.48,
     "notes": ["Heavily export-dependent revenue."]
   },
   "segmn": {
-    "price": 18.66
+    "price": 18.61
   },
   "suntk": {
-    "price": 40.1
+    "price": 58.95
   },
   "astor": {
-    "price": 104.3
+    "price": 117
   },
   "test": {
     "price": 27.63

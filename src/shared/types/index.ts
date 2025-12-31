@@ -109,3 +109,17 @@ export type Stock = {
   price: number;
   notes?: string[];
 };
+
+export type CumulativeReturn = {
+  date: string; // YYYY-MM-DD
+  // e.g. 0.05 means a 5% increase
+  value: number;
+};
+
+export type CumulativeReturns = {
+  usdtry: CumulativeReturn[];
+  eurtry: CumulativeReturn[];
+  mixedCurrency: CumulativeReturn[];
+  bgp: CumulativeReturn[];
+  gold: CumulativeReturn[];
+};

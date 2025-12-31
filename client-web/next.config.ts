@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   output: "export",
   experimental: {
-    // used to import types from `shared` directory
+    // import types from `shared` directory
     externalDir: true,
   },
 };
