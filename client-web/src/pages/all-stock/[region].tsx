@@ -13,7 +13,7 @@ import {
   flexRender,
   SortingState,
 } from "@tanstack/react-table";
-import { API_URL } from "@/lib";
+import { API_URL, formatNumber } from "@/lib";
 import { MetricNames } from "@/shared/types";
 
 interface StockSummary {
@@ -131,8 +131,7 @@ const numericSort = (rowA: any, rowB: any, id: string) => {
 };
 
 const formatCell = (val: unknown) => {
-  if (typeof val === "number") return val.toFixed(2);
-  if (val == null) return "-";
+  if (typeof val === "number") return formatNumber({ num: val, digits: 2 });
   return val;
 };
 

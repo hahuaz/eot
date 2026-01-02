@@ -119,14 +119,10 @@ const getDisplayMetrics = (metrics: (BaseMetric | DerivedMetric)[]) => {
 
     // Format Growth Columns
     GROWTH_COLUMNS.forEach((field) => {
-      const value = (metric as any)[field];
-      if (typeof value === "number") {
-        newMetric[field] = value.toFixed(2);
-      } else if (value === "N/A") {
-        newMetric[field] = "N/A";
-      } else {
-        newMetric[field] = "";
-      }
+      newMetric[field] = formatNumber({
+        num: metric[field],
+        digits: 2,
+      });
     });
 
     // Format Date Columns
@@ -138,13 +134,10 @@ const getDisplayMetrics = (metrics: (BaseMetric | DerivedMetric)[]) => {
           trim: normalizationDivisor,
         });
       } else {
-        if (typeof value === "number") {
-          newMetric[field] = value.toFixed(2);
-        } else if (value === "N/A") {
-          newMetric[field] = "N/A";
-        } else {
-          newMetric[field] = "";
-        }
+        newMetric[field] = formatNumber({
+          num: value,
+          digits: 2,
+        });
       }
     });
 
