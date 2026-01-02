@@ -122,7 +122,7 @@ const getDisplayMetrics = (metrics: (BaseMetric | DerivedMetric)[]) => {
       const value = (metric as any)[field];
       if (typeof value === "number") {
         newMetric[field] = value.toFixed(2);
-      } else if (value === "negative") {
+      } else if (value === "N/A") {
         newMetric[field] = "N/A";
       } else {
         newMetric[field] = "";
@@ -140,7 +140,7 @@ const getDisplayMetrics = (metrics: (BaseMetric | DerivedMetric)[]) => {
       } else {
         if (typeof value === "number") {
           newMetric[field] = value.toFixed(2);
-        } else if (value === "negative") {
+        } else if (value === "N/A") {
           newMetric[field] = "N/A";
         } else {
           newMetric[field] = "";

@@ -14,8 +14,9 @@ import {
   SortingState,
 } from "@tanstack/react-table";
 import { API_URL } from "@/lib";
+import { MetricNames } from "@/shared/types";
 
-interface StockData {
+interface StockSummary {
   stockName: string;
   "Total yield"?: number;
   "TTM yield"?: number;
@@ -31,15 +32,6 @@ interface StockData {
   color: string | null;
 }
 
-const STOCK_METRICS_OF_INTEREST = [
-  "Yield",
-  "EV / operating income",
-  "EV / net income",
-  "Net debt / operating income",
-  "Market value / book value",
-  "Selected growth median",
-] as const;
-
 export const getStaticPaths: GetStaticPaths = async () => {
   const regions = ["us", "tr"];
   const paths = regions.map((region: string) => ({
@@ -52,7 +44,7 @@ export const getStaticPaths: GetStaticPaths = async () => {
 };
 
 export const getStaticProps: GetStaticProps<{
-  stocks: StockData[];
+  stocks: StockSummary[];
   ttmNightlyYield: number;
   region: string;
 }> = async ({ params }) => {
@@ -65,72 +57,65 @@ export const getStaticProps: GetStaticProps<{
     ),
   ]);
 
-  const filteredStockData: StockData[] = allStock.map((data: any) => {
+  const stockSummary: StockSummary[] = allStock.map((data: any) => {
     const { baseMetrics, derivedMetrics, stockConfig, stockDynamic } = data;
     const { notes, color } = stockDynamic;
     const allMetrics = [...baseMetrics, ...derivedMetrics];
 
-    // Initialize flat object with defaults or nulls
-    const flat: Partial<StockData> = {
+    const findMetric = (name: MetricNames) =>
+      allMetrics.find((m: any) => m.metricName === name);
+
+    const yieldMetric = findMetric("Yield");
+    const selectedGrowthMetric = findMetric("Selected growth median");
+    const evOiMetric = findMetric("EV / operating income");
+    const evNiMetric = findMetric("EV / net income");
+    const netDebtMetric = findMetric("Net debt / operating income");
+    const mvBvMetric = findMetric("Market value / book value");
+
+    const evToOperatingIncome = evOiMetric?.current;
+    const ttmGrowth = selectedGrowthMetric?.["TTM growth"];
+    const yearlyGrowth = selectedGrowthMetric?.["Yearly growth"];
+
+    if (
+      evToOperatingIncome == null ||
+      ttmGrowth == null ||
+      yearlyGrowth == null
+    ) {
+      throw new Error("Missing critical data for " + stockConfig.stockSymbol);
+    }
+
+    const flat: StockSummary = {
       stockName: stockConfig.stockSymbol,
       Notes: notes?.length ? notes.join("|") : null,
       color: color || null,
+      "Total yield": yieldMetric?.["Total growth"],
+      "TTM yield": yieldMetric?.["TTM growth"],
+      "EV / operating income": evToOperatingIncome,
+      "EV / net income": evNiMetric?.current,
+      "Net debt / operating income": netDebtMetric?.current,
+      "TTM growth": ttmGrowth,
+      "Yearly growth": yearlyGrowth,
+      "Market value / book value": mvBvMetric?.current,
+      "(ev/oi) / ttm growth":
+        typeof evToOperatingIncome === "number" &&
+        typeof ttmGrowth === "number" &&
+        ttmGrowth > 0
+          ? evToOperatingIncome / ttmGrowth
+          : "N/A",
+      "(ev/oi) / yearly growth":
+        typeof evToOperatingIncome === "number" &&
+        typeof yearlyGrowth === "number" &&
+        yearlyGrowth > 0
+          ? evToOperatingIncome / yearlyGrowth
+          : "N/A",
     };
 
-    // Filter and map metrics to flat structure
-    const relevantMetrics = allMetrics.filter((m: any) =>
-      STOCK_METRICS_OF_INTEREST.includes(m.metricName),
-    );
-
-    for (const item of relevantMetrics) {
-      const { metricName } = item;
-
-      if (metricName === "Selected growth median") {
-        if ("Yearly growth" in item)
-          flat["Yearly growth"] = item["Yearly growth"];
-        if ("TTM growth" in item) flat["TTM growth"] = item["TTM growth"];
-      } else if (metricName === "Yield") {
-        flat["Total yield"] = item["Total growth"];
-        flat["TTM yield"] = item["TTM growth"];
-      } else {
-        // Direct assignment for other metrics
-        // We know these match keys in StockData approximately, but typescript needs help usually
-        // For simplicity in this mapped structure:
-        (flat as any)[metricName] = item["current"];
-      }
-    }
-
-    const evOi = flat["EV / operating income"];
-    const ttm = flat["TTM growth"];
-    const yearly = flat["Yearly growth"];
-
-    // Data validation / Sanitization
-    // If essential data is missing, we might want to skip or throw. Use original logic: throw.
-    if (evOi == null || ttm == null || yearly == null) {
-      // It's possible some stocks are incomplete. For now, we follow original logic to error out.
-      // But usually in production we might want to just skip or log.
-      // throw new Error(`Missing data for ${flat.stockName}`);
-      console.warn(
-        `Missing critical data for ${flat.stockName}, skipping calculations.`,
-      );
-    }
-
-    flat["(ev/oi) / ttm growth"] =
-      typeof evOi === "number" && typeof ttm === "number" && ttm > 0
-        ? evOi / ttm
-        : "negative";
-
-    flat["(ev/oi) / yearly growth"] =
-      typeof evOi === "number" && typeof yearly === "number" && yearly > 0
-        ? evOi / yearly
-        : "negative";
-
-    return flat as StockData;
+    return flat;
   });
 
   return {
     props: {
-      stocks: filteredStockData,
+      stocks: stockSummary,
       ttmNightlyYield: ttmYieldData.ttmNightlyYield,
       region,
     },
@@ -145,6 +130,12 @@ const numericSort = (rowA: any, rowB: any, id: string) => {
   return a - b;
 };
 
+const formatCell = (val: unknown) => {
+  if (typeof val === "number") return val.toFixed(2);
+  if (val == null) return "-";
+  return val;
+};
+
 const RegionalStocksPage = ({
   stocks,
   region,
@@ -154,7 +145,7 @@ const RegionalStocksPage = ({
     { id: "(ev/oi) / ttm growth", desc: false },
   ]);
 
-  const columnHelper = createColumnHelper<StockData>();
+  const columnHelper = createColumnHelper<StockSummary>();
 
   const columns = [
     columnHelper.display({
@@ -177,62 +168,47 @@ const RegionalStocksPage = ({
     }),
     columnHelper.accessor("Total yield", {
       header: "Total Yield",
-      cell: ({ getValue }) => getValue()?.toFixed(2) ?? "-",
+      cell: ({ getValue }) => formatCell(getValue()),
     }),
     columnHelper.accessor("TTM yield", {
       header: "TTM Yield",
-      cell: ({ getValue }) => getValue()?.toFixed(2) ?? "-",
+      cell: ({ getValue }) => formatCell(getValue()),
     }),
     columnHelper.accessor("EV / operating income", {
       header: "EV / OI",
-      cell: ({ getValue }) => {
-        const val = getValue();
-        return typeof val === "number" ? val.toFixed(2) : (val ?? "-");
-      },
+      cell: ({ getValue }) => formatCell(getValue()),
       sortingFn: numericSort,
     }),
     columnHelper.accessor("EV / net income", {
       header: "EV / Net Income",
-      cell: ({ getValue }) => {
-        const val = getValue();
-        return typeof val === "number" ? val.toFixed(2) : (val ?? "-");
-      },
+      cell: ({ getValue }) => formatCell(getValue()),
       sortingFn: numericSort,
     }),
     columnHelper.accessor("TTM growth", {
       header: "TTM Growth",
-      cell: ({ getValue }) => getValue() ?? "-",
+      cell: ({ getValue }) => formatCell(getValue()),
     }),
     columnHelper.accessor("(ev/oi) / ttm growth", {
       header: "(EV/OI) / TTM Growth",
-      cell: ({ getValue }) => {
-        const val = getValue();
-        return typeof val === "number" ? val.toFixed(2) : val;
-      },
+      cell: ({ getValue }) => formatCell(getValue()),
       sortingFn: numericSort,
     }),
     columnHelper.accessor("Yearly growth", {
       header: "Yearly Growth",
-      cell: ({ getValue }) => getValue() ?? "-",
+      cell: ({ getValue }) => formatCell(getValue()),
     }),
     columnHelper.accessor("(ev/oi) / yearly growth", {
       header: "(EV/OI) / Yr Growth",
-      cell: ({ getValue }) => {
-        const val = getValue();
-        return typeof val === "number" ? val.toFixed(2) : val;
-      },
+      cell: ({ getValue }) => formatCell(getValue()),
       sortingFn: numericSort,
     }),
     columnHelper.accessor("Net debt / operating income", {
       header: "Net Debt / OI",
-      cell: ({ getValue }) => {
-        const val = getValue();
-        return typeof val === "number" ? val.toFixed(2) : (val ?? "-");
-      },
+      cell: ({ getValue }) => formatCell(getValue()),
     }),
     columnHelper.accessor("Market value / book value", {
       header: "MV / BV",
-      cell: ({ getValue }) => getValue()?.toFixed(2) ?? "-",
+      cell: ({ getValue }) => formatCell(getValue()),
     }),
     columnHelper.accessor("Notes", {
       header: "Notes",

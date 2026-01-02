@@ -69,23 +69,22 @@ export const GROWTH_COLUMNS = [
 export type GrowthColumns = (typeof GROWTH_COLUMNS)[number];
 
 export type GrowthRecord = {
-  // If a metric (e.g., net income) is negative for a given date, growth cannot be calculated. the value "negative" is used to indicate this condition.
-  [key in GrowthColumns]?: number | null | "negative";
+  // If a metric (e.g., net income) is negative for a given date, growth cannot be calculated. the value "N/A" is used to indicate this condition.
+  // TODO: remove null if growth never assigned as null
+  [key in GrowthColumns]?: number | "N/A";
 };
 
 export type BaseMetric = {
   metricName: BaseMetricNames;
 } & {
-  // stock maybe recently made IPO and the value of equity for a date can be null in the db so to not deal with null values we are creating availableDates array and using it instead of dates array. Regardless, while equity is defined price can be null for newly listed stocks so null should be assigned as value
-  // stock may not have debt or cash for a given date so the value for that date is null in the db. we're always assigning 0 if the value retrival returns null. Instead of manually assigning 0 in the db, we using code to do so.
   [key in Dates]: number | null;
 } & GrowthRecord;
 
 export type DerivedMetric = {
   metricName: DerivedMetricNames;
 } & {
-  // while calculating the metric, if one of the base metrics is negative, the value is set to "negative". e.g., net debt / operating income can be negative if operating income is negative.
-  [key in Dates]: number | "negative";
+  // while calculating the derived metric, if one of the base metrics is negative, the value is set to "N/A". e.g., net debt / operating income can be "N/A" if operating income is negative.
+  [key in Dates]: number | "N/A";
 } & GrowthRecord;
 
 export type StockDynamicInfo = {

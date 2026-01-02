@@ -324,7 +324,7 @@ export class StockAnalyzer {
       }
 
       if (operatingIncome <= 0) {
-        debtMetric[date] = "negative";
+        debtMetric[date] = "N/A";
       } else {
         const netDebt = shortTermLiabilities + longTermLiabilities - cash;
         debtMetric[date] = round(netDebt / operatingIncome);
@@ -372,7 +372,7 @@ export class StockAnalyzer {
       metricName: "EV / operating income",
     } as Partial<DerivedMetric>;
 
-    for (const date of this.equityDates) {
+    for (const date of this.priceDates) {
       const enterpriseValue = this.derivedMetrics.find(
         (item) => item.metricName === "Enterprise value",
       )![date];
@@ -385,13 +385,11 @@ export class StockAnalyzer {
       }
 
       if (enterpriseValue == null) {
-        // TODO
-        console.log("how can enterprise value be null?", this.stockSymbol);
-        continue;
+        throw new Error(`Enterprise value not found for date ${date}`);
       }
 
-      if (operatingIncome <= 0 || enterpriseValue == "negative") {
-        evToOIMetric[date] = "negative";
+      if (operatingIncome <= 0 || enterpriseValue == "N/A") {
+        evToOIMetric[date] = "N/A";
       } else {
         evToOIMetric[date] = round(enterpriseValue / operatingIncome);
       }
@@ -420,8 +418,8 @@ export class StockAnalyzer {
         continue;
       }
 
-      if (netIncome <= 0 || enterpriseValue == "negative") {
-        evNIMetric[date] = "negative";
+      if (netIncome <= 0 || enterpriseValue == "N/A") {
+        evNIMetric[date] = "N/A";
       } else {
         evNIMetric[date] = round(enterpriseValue / netIncome);
       }
@@ -482,7 +480,7 @@ export class StockAnalyzer {
       }
 
       if (firstDateValue <= 0 || lastDateValue <= 0) {
-        metric["Total growth"] = "negative";
+        metric["Total growth"] = "N/A";
       } else {
         const totalGrowth = (lastDateValue - firstDateValue) / firstDateValue;
         metric["Total growth"] = round(totalGrowth);
@@ -514,7 +512,7 @@ export class StockAnalyzer {
       }
 
       if (ttmStartValue <= 0 || lastDateValue <= 0) {
-        metric["TTM growth"] = "negative";
+        metric["TTM growth"] = "N/A";
       } else {
         const ttmGrowth = (lastDateValue - ttmStartValue) / ttmStartValue;
         metric["TTM growth"] = round(ttmGrowth);
@@ -543,9 +541,9 @@ export class StockAnalyzer {
         throw new Error(`Total growth not found for metric ${metricName}`);
       }
 
-      if (metric["Total growth"] === "negative") {
-        metric["Total growth"] = "negative";
-        metric["Yearly growth"] = "negative";
+      if (metric["Total growth"] === "N/A") {
+        metric["Total growth"] = "N/A";
+        metric["Yearly growth"] = "N/A";
       } else {
         let accumulatedInflation = 0;
         for (let i = 0; i < this.equityDates.length; i++) {
@@ -592,7 +590,7 @@ export class StockAnalyzer {
         throw new Error(`TTM growth not found for metric ${metricName}`);
       }
 
-      if (metric["TTM growth"] !== "negative" && metric["TTM growth"] != null) {
+      if (metric["TTM growth"] !== "N/A" && metric["TTM growth"] != null) {
         metric["TTM growth"] = round(
           calcRealRate({
             nominalRate: metric["TTM growth"]!,

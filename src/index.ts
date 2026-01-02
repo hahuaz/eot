@@ -142,7 +142,7 @@ router.get("/stock", validateRegion, async (req, res) => {
   const stockService = new StockAnalyzer(stockSymbol, region);
   const metrics = stockService.getMetrics();
 
-  if (["ktlev", "froto"].includes(stockSymbol)) {
+  if (["ktlev", "froto", "alfas"].includes(stockSymbol)) {
     // write data to temp file
     const tempFilePath = path.join(DATA_DIR, "snapshot", `${stockSymbol}.json`);
     fs.writeFileSync(tempFilePath, JSON.stringify(metrics, null, 2));
