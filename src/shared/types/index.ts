@@ -70,8 +70,7 @@ export type GrowthColumns = (typeof GROWTH_COLUMNS)[number];
 
 export type GrowthRecord = {
   // If a metric (e.g., net income) is negative for a given date, growth cannot be calculated. the value "N/A" is used to indicate this condition.
-  // TODO: remove null if growth never assigned as null
-  [key in GrowthColumns]?: number | "N/A";
+  [key in GrowthColumns]: number | "N/A";
 };
 
 export type BaseMetric = {
