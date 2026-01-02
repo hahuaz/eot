@@ -3,6 +3,7 @@ export type StockSymbol = string;
 export type StockConfig = {
   stockSymbol: StockSymbol;
   outstandingShares: number;
+  // trim digit indicates how many digits are removed from the end of the metric value
   trimDigit: number;
   selectedGrowthMetrics: string[];
 };
@@ -17,22 +18,18 @@ export type Inflation = {
 };
 
 export const BASE_METRIC_NAMES = [
-  "Balance sheet",
   "Cash & cash equivalents",
   "Short term liabilities",
   "Long term liabilities",
   "Equity",
   "Total assets",
-  "Income statement",
   "Revenue",
   "Operating income",
   "Net income",
-  "Statistics",
   "Price",
   "Dividend",
   "#config",
 ] as const;
-
 export type BaseMetricNames = (typeof BASE_METRIC_NAMES)[number];
 
 export const DERIVED_METRIC_NAMES = [
@@ -44,7 +41,6 @@ export const DERIVED_METRIC_NAMES = [
   "Yield",
   "Selected growth median",
 ] as const;
-
 export type DerivedMetricNames = (typeof DERIVED_METRIC_NAMES)[number];
 
 export type MetricNames = BaseMetricNames | DerivedMetricNames;
@@ -122,4 +118,12 @@ export type CumulativeReturns = {
   mixedCurrency: CumulativeReturn[];
   bgp: CumulativeReturn[];
   gold: CumulativeReturn[];
+};
+
+// API responses
+
+export type StockResponse = {
+  baseMetrics: BaseMetric[];
+  derivedMetrics: DerivedMetric[];
+  stockConfig: StockConfig;
 };

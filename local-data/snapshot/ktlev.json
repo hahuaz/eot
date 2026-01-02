@@ -1,19 +1,6 @@
 {
   "baseMetrics": [
     {
-      "metricName": "Balance sheet",
-      "2019/12/30": null,
-      "2020/12/30": null,
-      "2021/12/30": null,
-      "2022/12/30": null,
-      "2023/12/30": null,
-      "2024/12/30": null,
-      "2025/3/30": null,
-      "2025/6/30": null,
-      "2025/9/30": null,
-      "current": null
-    },
-    {
       "metricName": "Cash & cash equivalents",
       "2019/12/30": null,
       "2020/12/30": null,
@@ -85,19 +72,6 @@
       "Yearly growth": 0.79138
     },
     {
-      "metricName": "Income statement",
-      "2019/12/30": null,
-      "2020/12/30": null,
-      "2021/12/30": null,
-      "2022/12/30": null,
-      "2023/12/30": null,
-      "2024/12/30": null,
-      "2025/3/30": null,
-      "2025/6/30": null,
-      "2025/9/30": null,
-      "current": null
-    },
-    {
       "metricName": "Revenue",
       "2019/12/30": null,
       "2020/12/30": 86505856,
@@ -146,19 +120,6 @@
       "Yearly growth": 2.83054
     },
     {
-      "metricName": "Statistics",
-      "2019/12/30": null,
-      "2020/12/30": null,
-      "2021/12/30": null,
-      "2022/12/30": null,
-      "2023/12/30": null,
-      "2024/12/30": null,
-      "2025/3/30": null,
-      "2025/6/30": null,
-      "2025/9/30": null,
-      "current": null
-    },
-    {
       "metricName": "Price",
       "2019/12/30": null,
       "2020/12/30": null,
@@ -169,7 +130,7 @@
       "2025/3/30": 6,
       "2025/6/30": 8.15,
       "2025/9/30": 13,
-      "current": 17.84
+      "current": 19.5
     },
     {
       "metricName": "Dividend",
@@ -187,14 +148,14 @@
   "derivedMetrics": [
     {
       "metricName": "Yield",
-      "current": 0.37231,
+      "current": 0.5,
       "2025/9/30": 0.48367,
       "2025/6/30": 0.28133,
       "2025/3/30": 0.10167,
       "2024/12/30": -0.49461,
-      "Total growth": 0.45254,
-      "Yearly growth": 0.23778,
-      "TTM growth": 1.51871
+      "Total growth": 0.5877,
+      "Yearly growth": 0.30234,
+      "TTM growth": 1.75307
     },
     {
       "metricName": "Net debt / operating income",
@@ -210,7 +171,7 @@
     },
     {
       "metricName": "Enterprise value",
-      "current": 36928800000,
+      "current": 40365000000,
       "2025/9/30": 26910000000,
       "2025/6/30": 16870500000,
       "2025/3/30": 12420000000,
@@ -219,7 +180,7 @@
     },
     {
       "metricName": "EV / operating income",
-      "current": 4.09627,
+      "current": 4.47743,
       "2025/9/30": 2.98495,
       "2025/6/30": 2.70767,
       "2025/3/30": 3.20898,
@@ -228,7 +189,7 @@
     },
     {
       "metricName": "EV / net income",
-      "current": 5.85526,
+      "current": 6.40008,
       "2025/9/30": 4.26672,
       "2025/6/30": 3.90986,
       "2025/3/30": 4.72219,
@@ -237,7 +198,7 @@
     },
     {
       "metricName": "Market value / book value",
-      "current": 4.08283,
+      "current": 4.46274,
       "2025/9/30": 2.97516,
       "2025/6/30": 2.56916,
       "2025/3/30": 2.45929,

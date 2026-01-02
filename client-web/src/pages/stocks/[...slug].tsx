@@ -1,5 +1,4 @@
 import React from "react";
-
 import type {
   InferGetStaticPropsType,
   GetStaticProps,
@@ -19,68 +18,61 @@ import { formatNumber, API_URL } from "@/lib";
 import {
   DATES,
   GROWTH_COLUMNS,
-  StockConfig,
   DerivedMetric,
   BaseMetric,
   MetricNames,
+  StockResponse,
 } from "@/shared/types";
 
-const TABLE_SECTION_HEADERS: MetricNames[] = [
-  "Balance sheet",
-  "Income statement",
-  "Statistics",
-];
-
-// remove trailing digits from these metric names
-const NORMALIZED_METRIC_NAMES: MetricNames[] = [
-  "Cash & cash equivalents",
-  "Short term liabilities",
-  "Long term liabilities",
-  "Equity",
-  "Total assets",
-  "Revenue",
-  "Operating income",
-  "Net income",
-  "Enterprise value",
-];
-
-// force two digits for these metric names
+const SECTIONS: Record<string, MetricNames[]> = {
+  "Balance sheet": [
+    "Cash & cash equivalents",
+    "Short term liabilities",
+    "Long term liabilities",
+    "Equity",
+    "Total assets",
+  ],
+  "Income statement": ["Revenue", "Operating income", "Net income"],
+  Valuation: [
+    "Enterprise value",
+    "Net debt / operating income",
+    "EV / operating income",
+    "EV / net income",
+    "Market value / book value",
+    "Price",
+    "Dividend",
+    "Yield",
+    "Selected growth median",
+  ],
+};
 
 export const getStaticPaths: GetStaticPaths = async () => {
-  const stockNamesTr = await fetch(`${API_URL}api/stock-names?region=tr`).then(
-    (res) => {
+  const [stockNamesTr, stockNamesUs] = await Promise.all([
+    fetch(`${API_URL}api/stock-names?region=tr`).then((res) => {
       console.log("res", res);
       return res.json();
-    },
-  );
+    }),
+    fetch(`${API_URL}api/stock-names?region=us`).then((res) => res.json()),
+  ]);
 
   const pathsTr = stockNamesTr.map((stock: string) => ({
     params: { slug: ["tr", stock] },
   }));
 
-  const stockNamesUs = await fetch(`${API_URL}api/stock-names?region=us`).then(
-    (res) => res.json(),
-  );
-
   const pathsUs = stockNamesUs.map((stock: string) => ({
     params: { slug: ["us", stock] },
   }));
 
-  const mergedPaths = [...pathsTr, ...pathsUs];
-
   return {
-    paths: mergedPaths,
+    paths: [...pathsTr, ...pathsUs],
     fallback: false,
   };
 };
 
-export const getStaticProps: GetStaticProps<{
-  baseMetrics: BaseMetric[];
-  derivedMetrics: DerivedMetric[];
-  stockConfig: StockConfig;
-}> = async ({ params }) => {
-  const { slug } = params as { slug: string };
-
+export const getStaticProps: GetStaticProps<StockResponse> = async ({
+  params,
+}) => {
+  const { slug } = params as { slug: string[] };
   const [region, stock] = slug;
 
   const { stockConfig, baseMetrics, derivedMetrics } = await fetch(
@@ -96,143 +88,134 @@ export const getStaticProps: GetStaticProps<{
   };
 };
 
-const AllPage = ({
+/**
+ * Prepares metrics for display.
+ */
+const getDisplayMetrics = (metrics: (BaseMetric | DerivedMetric)[]) => {
+  // for some symbols, the metric values are too large, so we need to normalize them to make them more readable
+  const NORMALIZED_METRIC_NAMES: MetricNames[] = [
+    "Cash & cash equivalents",
+    "Short term liabilities",
+    "Long term liabilities",
+    "Equity",
+    "Total assets",
+    "Revenue",
+    "Operating income",
+    "Net income",
+    "Enterprise value",
+  ];
+
+  const evMetric = metrics.find((m) => m.metricName === "Enterprise value");
+  const evValue = (evMetric as any)?.current ?? 0;
+
+  let normalizationDivisor = 1;
+  if (typeof evValue === "number") {
+    if (evValue > 999_999_999) normalizationDivisor = 1_000_000;
+    else if (evValue > 99_999_999) normalizationDivisor = 1_000;
+  }
+
+  return metrics.map((metric) => {
+    const newMetric: any = { ...metric };
+
+    // Format Growth Columns
+    GROWTH_COLUMNS.forEach((field) => {
+      const value = (metric as any)[field];
+      if (typeof value === "number") {
+        newMetric[field] = value.toFixed(2);
+      } else if (value === "negative") {
+        newMetric[field] = "N/A";
+      } else {
+        newMetric[field] = "";
+      }
+    });
+
+    // Format Date Columns
+    DATES.forEach((field) => {
+      const value = (metric as any)[field];
+      if (NORMALIZED_METRIC_NAMES.includes(metric.metricName as MetricNames)) {
+        newMetric[field] = formatNumber({
+          num: value,
+          trim: normalizationDivisor,
+        });
+      } else {
+        if (typeof value === "number") {
+          newMetric[field] = value.toFixed(2);
+        } else if (value === "negative") {
+          newMetric[field] = "N/A";
+        } else {
+          newMetric[field] = "";
+        }
+      }
+    });
+
+    return newMetric;
+  });
+};
+
+const StockDetailPage = ({
   baseMetrics,
   derivedMetrics,
   stockConfig,
 }: InferGetStaticPropsType<typeof getStaticProps>) => {
-  let allMetrics = [...baseMetrics, ...derivedMetrics];
+  const allMetrics = [...baseMetrics, ...derivedMetrics];
 
-  // move price, dividend and yield to the end of the table before selected growth
-  const priceIndex = allMetrics.findIndex(
-    (item) => item.metricName === "Price",
-  );
-  const dividendIndex = allMetrics.findIndex(
-    (item) => item.metricName === "Dividend",
-  );
-  const yieldIndex = allMetrics.findIndex(
-    (item) => item.metricName === "Yield",
-  );
-  const selectedGrowthIndex = allMetrics.findIndex(
-    (item) => item.metricName === "Selected growth median",
-  );
-
-  const price = allMetrics[priceIndex];
-  const dividend = allMetrics[dividendIndex];
-  const yieldMetric = allMetrics[yieldIndex];
-  const selectedGrowth = allMetrics[selectedGrowthIndex];
-  allMetrics = allMetrics.filter(
-    (item) =>
-      item.metricName !== "Price" &&
-      item.metricName !== "Dividend" &&
-      item.metricName !== "Yield" &&
-      item.metricName !== "Selected growth median",
-  );
-  if (priceIndex !== -1) {
-    allMetrics.push(price);
-  }
-  if (dividendIndex !== -1) {
-    allMetrics.push(dividend);
-  }
-  if (yieldIndex !== -1) {
-    allMetrics.push(yieldMetric);
-  }
-  if (selectedGrowthIndex !== -1) {
-    allMetrics.push(selectedGrowth);
-  }
-  // console.log("stockConfig", stockConfig);
   console.log("allMetrics", allMetrics);
 
-  let trimNumber = 1;
-  // if ev digit is more than 9 digit, set trim to 1000. if it's more than 12 digit, set trim to 1000000
-  const evIndex = allMetrics.findIndex(
-    (item) => item.metricName === "Enterprise value",
-  );
-  const ev = allMetrics[evIndex];
-  const evValue = ev?.["current"] ?? 0;
-  if ((evValue as number) > 999999999) {
-    trimNumber = 1000000;
-  } else if ((evValue as number) > 99999999) {
-    trimNumber = 1000;
-  }
+  const displayMetrics = getDisplayMetrics(allMetrics);
 
   return (
     <>
       <div className="max-w-[1300px]">
-        <Table className="table-fixed ">
+        <Table className="table-fixed">
           <TableHeader>
             <TableRow>
-              <TableHead key={0} className="text-left "></TableHead>
-
-              {[...GROWTH_COLUMNS, ...DATES]?.map((field) => (
-                <TableHead key={field} className={`text-right w-[90px]`}>
+              <TableHead className="text-left" />
+              {[...GROWTH_COLUMNS, ...DATES].map((field) => (
+                <TableHead key={field} className="text-right w-[90px]">
                   {field}
                 </TableHead>
               ))}
             </TableRow>
           </TableHeader>
           <TableBody>
-            {allMetrics.map((metric, rowIndex) => {
-              // if section header, render only first column and leave the rest empty
-              if (TABLE_SECTION_HEADERS.includes(metric.metricName)) {
-                return (
-                  <TableRow key={rowIndex}>
-                    <TableCell className="text-left font-bold">
-                      {metric.metricName}
-                    </TableCell>
-                  </TableRow>
-                );
-              }
-
-              return (
-                <TableRow key={rowIndex}>
-                  <TableCell className="text-left">
-                    {metric.metricName}
+            {Object.entries(SECTIONS).map(([sectionName, metrics]) => (
+              <React.Fragment key={sectionName}>
+                <TableRow>
+                  <TableCell className="text-left font-bold" colSpan={1}>
+                    {sectionName}
                   </TableCell>
-
-                  {GROWTH_COLUMNS.map((field, colIndex) => {
-                    let displayValue;
-                    if (typeof metric[field] === "number") {
-                      displayValue = metric[field]?.toFixed(2);
-                    } else if (metric[field] === "negative") {
-                      displayValue = "N/A";
-                    } else {
-                      displayValue = "";
-                    }
-                    return (
-                      <TableCell key={colIndex} className="text-right">
-                        {displayValue}
-                      </TableCell>
-                    );
-                  })}
-
-                  {DATES?.map((field, colIndex) => {
-                    let displayValue;
-
-                    if (NORMALIZED_METRIC_NAMES.includes(metric.metricName)) {
-                      displayValue = formatNumber({
-                        num: (metric as BaseMetric)[field],
-                        trim: trimNumber,
-                      });
-                    } else {
-                      // if type is number, format it to 2 decimal places or return na
-                      if (typeof metric[field] === "number") {
-                        displayValue = metric[field]?.toFixed(2);
-                      } else if (metric[field] === "negative") {
-                        displayValue = "N/A";
-                      } else {
-                        displayValue = "";
-                      }
-                    }
-                    return (
-                      <TableCell key={colIndex} className="text-right">
-                        {displayValue}
-                      </TableCell>
-                    );
-                  })}
                 </TableRow>
-              );
-            })}
+                {metrics.map((metricName) => {
+                  const metric = displayMetrics.find(
+                    (m) => m.metricName === metricName,
+                  );
+
+                  if (!metric) return null;
+
+                  return (
+                    <TableRow key={metric.metricName}>
+                      <TableCell className="text-left">
+                        {metric.metricName}
+                      </TableCell>
+
+                      {/* Growth Columns */}
+                      {GROWTH_COLUMNS.map((field) => (
+                        <TableCell key={field} className="text-right">
+                          {metric[field]}
+                        </TableCell>
+                      ))}
+
+                      {/* Date Columns */}
+                      {DATES.map((field) => (
+                        <TableCell key={field} className="text-right">
+                          {metric[field]}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  );
+                })}
+              </React.Fragment>
+            ))}
           </TableBody>
         </Table>
       </div>
@@ -241,4 +224,4 @@ const AllPage = ({
   );
 };
 
-export default AllPage;
+export default StockDetailPage;

@@ -99,6 +99,11 @@ export class StockAnalyzer {
       delimiter: "\t",
     });
 
+    const SHEET_SECTIONS = ["Balance sheet", "Income statement", "Statistics"];
+    baseMetrics = baseMetrics.filter(
+      (m) => !SHEET_SECTIONS.includes(m.metricName),
+    );
+
     const configIndex = baseMetrics.findIndex(
       (item) => item.metricName === "#config",
     );
@@ -118,6 +123,7 @@ export class StockAnalyzer {
     baseMetrics = baseMetrics.filter((_, i) => i !== configIndex);
 
     this.baseMetrics = baseMetrics;
+
     this.config = stockConfig;
     this.inflation = INFLATION_DATA[this.region];
 

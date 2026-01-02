@@ -16,6 +16,7 @@ import { Region, regions } from "@/types";
 import { getCummulativeReturns } from "@/lib/symbol-returns.js";
 import path from "path";
 import fs from "fs";
+import { StockResponse } from "./shared/types/index.js";
 
 // --- Express App Setup ---
 const app = express();
@@ -147,7 +148,7 @@ router.get("/stock", validateRegion, async (req, res) => {
     fs.writeFileSync(tempFilePath, JSON.stringify(metrics, null, 2));
   }
 
-  res.status(200).json(metrics);
+  res.status(200).json(metrics as StockResponse);
 });
 
 // Mount the router under the /api prefix
