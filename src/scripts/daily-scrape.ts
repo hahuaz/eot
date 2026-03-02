@@ -77,7 +77,7 @@ async function main() {
 
     saveToLocalDailyCsv(allResults, currentDate);
 
-    // await scrapeTrStocks();
+    await scrapeTrStocks();
     // console.log("scraped TR stocks and saved in local-data");
 
     console.log("all done!");

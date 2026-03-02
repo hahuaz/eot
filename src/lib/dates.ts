@@ -2,9 +2,7 @@ import { DATES, BaseMetricNames, BaseMetric } from "@shared/types";
 
 export const CURRENT_DATE = DATES[0];
 export const LAST_DATE = DATES[1];
-// TODO: finished year date either increasing or decreasing based on current date
-export const LAST_FINISHED_YEAR_DATE = DATES[4];
-export const PREVIOUS_FINISHED_YEAR_DATE = DATES[5];
+export const TTM_START_DATE = DATES[5];
 
 export const lastDateObj = new Date(LAST_DATE);
 

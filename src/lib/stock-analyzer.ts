@@ -17,8 +17,7 @@ import {
   getAvailableDates,
   LAST_DATE,
   CURRENT_DATE,
-  LAST_FINISHED_YEAR_DATE,
-  PREVIOUS_FINISHED_YEAR_DATE,
+  TTM_START_DATE,
   whichQuarter,
   lastDateObj,
 } from "@/lib/dates";
@@ -226,16 +225,20 @@ export class StockAnalyzer {
 
       if (date === CURRENT_DATE) {
         inflationForDate = 0;
-      } else if (new Date(date).getMonth() !== 11) {
-        if (inflationData?.qoq == null) {
-          throw new Error(`qoq data not found for date ${date}`);
-        }
-        inflationForDate = inflationData.qoq;
-      } else {
+      } else if (
+        // for the dates earlier than 2025, only yoy data is calculated
+        new Date(date).getMonth() === 11 &&
+        new Date(date).getFullYear() < 2025
+      ) {
         if (inflationData?.yoy == null) {
           throw new Error(`yoy data not found for date ${date}`);
         }
         inflationForDate = inflationData.yoy;
+      } else {
+        if (inflationData?.qoq == null) {
+          throw new Error(`qoq data not found for date ${date}`);
+        }
+        inflationForDate = inflationData.qoq;
       }
 
       if (inflationForDate === undefined) {
@@ -268,28 +271,13 @@ export class StockAnalyzer {
     yieldMetric["Yearly growth"] = round(yearlyGrowth);
 
     // calculate ttm growth: current date price change is included
-    // TODO: soon there will be exact growth rates for all necessary dates:
-    // growthFromFinishedYear will be removed
-    // quarter will be removed since current + last 4 dates will be used
     let ttmGrowth = 1;
-    const quarter = whichQuarter(LAST_DATE);
-    // increase the quarter by 1 since current date is included
-    const curQuarters = DATES.slice(0, quarter + 1);
-
-    curQuarters.forEach((date) => {
+    const ttmQuarters = DATES.slice(0, DATES.indexOf(TTM_START_DATE));
+    ttmQuarters.forEach((date) => {
       const dateYield = yieldMetric[date] as number;
       ttmGrowth = ttmGrowth * (1 + dateYield);
     });
-
-    let growthFromFinishedYear: number;
-    if (quarter === 4) {
-      throw new Error("TTM growth for end of the year not implemented");
-    } else {
-      const lastFinishedYearYield = yieldMetric[LAST_FINISHED_YEAR_DATE];
-      const quarterlyYield = (lastFinishedYearYield as number) / 4;
-      growthFromFinishedYear = quarterlyYield * (4 - quarter);
-    }
-    ttmGrowth = ttmGrowth * (1 + growthFromFinishedYear) - 1;
+    ttmGrowth = ttmGrowth - 1;
 
     yieldMetric["TTM growth"] = round(ttmGrowth);
 
@@ -486,26 +474,9 @@ export class StockAnalyzer {
         metric["Total growth"] = round(totalGrowth);
       }
 
-      // TODO: soon there will be exact growth rates for all necessary dates and this will be removed
-      const lastQuarter = whichQuarter(LAST_DATE);
-      let ttmStartValue: number | undefined = undefined;
-      if (lastQuarter === 4) {
-        throw new Error(
-          "calcGrowths: TTM growth for end of the year not implemented",
-        );
-      } else {
-        const lastFinishedYearValue = metric[LAST_FINISHED_YEAR_DATE] as number;
-        const previousFinishedYearValue = metric[
-          PREVIOUS_FINISHED_YEAR_DATE
-        ] as number;
+      let ttmStartValue = metric?.[TTM_START_DATE];
 
-        const quarterlyIncrease =
-          (lastFinishedYearValue - previousFinishedYearValue) / 4;
-        ttmStartValue =
-          previousFinishedYearValue + quarterlyIncrease * lastQuarter;
-      }
-
-      if (ttmStartValue === undefined || lastDateValue === undefined) {
+      if (ttmStartValue == undefined || lastDateValue == undefined) {
         throw new Error(
           `calcGrowths: ${metricName} ttmStartValue: ${ttmStartValue}, lastDateValue: ${lastDateValue}`,
         );
