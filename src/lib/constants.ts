@@ -34,7 +34,6 @@ export const TR_FUND_SYMBOLS: Site = {
     "fonlar/PRY",
     "fonlar/GTZ",
     "fonlar/GRO",
-    "fonlar/EIL",
   ],
   querySelector:
     "div.flex-shrink-0.relative span.inline-flex.items-center.tabular-nums",
@@ -51,7 +50,7 @@ export const GENERIC_SYMBOLS: Site = {
     "symbols/AMEX-GLD",
   ],
   querySelector:
-    "#js-category-content > div.js-symbol-page-header-root > div > div.symbolRow-NopKb87z > div > div.quotesRow-iJMmXWiA > div:nth-child(1) > div > div.lastContainer-zoF9r75I > span.last-zoF9r75I.js-symbol-last",
+    "#js-category-content > div.js-symbol-page-header-root > div > div.symbolRow-IzU2Iqkz > div > div.quotesRow-QSRrQgkm > div:nth-child(1) > div > div.lastContainer-fzcYMweq > span.last-fzcYMweq.js-symbol-last",
 };
 
 export const TR_STOCK_SYMBOLS: Site = {

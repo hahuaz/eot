@@ -228,7 +228,8 @@ const RegionalStocksPage = ({
     <div className="p-4 overflow-x-auto bg-white min-h-screen">
       <div className="mb-4 text-gray-700">
         <p>
-          <strong>TTM Nightly (BGP) Yield:</strong> {ttmNightlyYield}
+          <strong>Nightly (BGP) Yield from 2024/12/30:</strong>{" "}
+          {ttmNightlyYield}
         </p>
         <p>
           <strong>TCMB House Index:</strong> -0.01

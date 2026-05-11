@@ -10,7 +10,12 @@ import {
   round,
 } from "@/lib";
 import { DailyPrice } from "@/types";
-import { CumulativeReturn, CumulativeReturns, Inflation } from "@/shared/types";
+import {
+  CumulativeReturn,
+  CumulativeReturns,
+  DATES,
+  Inflation,
+} from "@/shared/types";
 
 function ensureCommonDates(
   referenceDates: string[],
@@ -116,7 +121,7 @@ export const getCummulativeReturns = (): CumulativeReturns => {
 };
 
 /**
- * Return TTM (including current price change) nightly real rate, which is adjusted for inflation and withholding tax.
+ * Turkey started appreciating its currency around 2025. Calc nightly yield of Turkish lira.
  */
 export const getNightlyRealRate = ({
   inflation,
@@ -132,18 +137,30 @@ export const getNightlyRealRate = ({
     throw new Error("BGP data not found or empty");
   }
 
-  // ttm bgp price on 2024/9/30
-  const previousTtmBGPPrice = 2.946158;
+  // ttm bgp price on 2024/12/30
+  const previousTtmBGPPrice = 3.329272;
   const liveTtmBGPPrice = bgpData[0].value;
   const nominalBGPYield =
     (liveTtmBGPPrice - previousTtmBGPPrice) / previousTtmBGPPrice;
 
   const netBGPYield = nominalBGPYield * (1 - TAXES.tr.withholdingTax);
 
-  const ttmInflation = inflation?.find((item) => item.date === LAST_DATE)?.yoy;
-  if (ttmInflation == null) {
-    throw new Error(`Inflation data not found for date ${LAST_DATE}`);
+  // calc inflation qoq since 2024/12/30
+  const ttmInflationData = inflation.filter(
+    (item) =>
+      new Date(item.date) > new Date("2024/12/30") &&
+      new Date(item.date) <= new Date(LAST_DATE),
+  );
+
+  if (ttmInflationData.length === 0) {
+    throw new Error("No inflation data found for the TTM period");
   }
+
+  const ttmInflation =
+    ttmInflationData.reduce((acc, item) => {
+      return acc * (1 + item.qoq);
+    }, 1) - 1;
+
   const ttmNightlyYield = calcRealRate({
     nominalRate: netBGPYield,
     inflationRate: ttmInflation,
