@@ -516,6 +516,7 @@ export class StockAnalyzer {
         metric["Total growth"] = "N/A";
         metric["Yearly growth"] = "N/A";
       } else {
+        // for the given symbol, calculate accumulated inflation for its lifetime.
         let accumulatedInflation = 0;
         for (let i = 0; i < this.equityDates.length; i++) {
           const date = this.equityDates[i];
@@ -529,16 +530,19 @@ export class StockAnalyzer {
             throw new Error(`Inflation data not found for date ${date}`);
           }
 
-          if (date === LAST_DATE) {
-            accumulatedInflation =
-              (1 + accumulatedInflation) * (1 + inflationData.ytd) - 1;
-          } else if (
-            date.slice(0, 4) === lastDateObj.getFullYear().toString()
-          ) {
-            continue;
-          } else {
+          // for the before of 2024/12/30, use yoy inflation, for the others use qoq inflation to calculate accumulated inflation.
+          if (new Date(date) <= new Date("2024-12-30")) {
+            if (inflationData.yoy == null) {
+              throw new Error(`yoy data not found for date ${date}`);
+            }
             accumulatedInflation =
               (1 + accumulatedInflation) * (1 + inflationData.yoy) - 1;
+          } else {
+            if (inflationData.qoq == null) {
+              throw new Error(`qoq data not found for date ${date}`);
+            }
+            accumulatedInflation =
+              (1 + accumulatedInflation) * (1 + inflationData.qoq) - 1;
           }
         }
 

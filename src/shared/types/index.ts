@@ -47,6 +47,7 @@ export type MetricNames = BaseMetricNames | DerivedMetricNames;
 
 export const DATES = [
   "current",
+  "2026/3/30",
   "2025/12/30",
   "2025/9/30",
   "2025/6/30",

@@ -158,7 +158,7 @@ const StockDetailPage = ({
 
   return (
     <>
-      <div className="max-w-[1400px]">
+      <div className="max-w-[1500px]">
         <Table className="table-fixed">
           <TableHeader>
             <TableRow>

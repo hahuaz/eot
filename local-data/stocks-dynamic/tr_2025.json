@@ -1,0 +1,283 @@
+{
+  "tursg": {
+    "price": 14.54,
+    "color": "yellow"
+  },
+  "arclk": {
+    "price": 116.4
+  },
+  "mpark": {
+    "price": 490.5,
+    "color": "yellow"
+  },
+  "toaso": {
+    "price": 317
+  },
+  "ttrak": {
+    "price": 450.25
+  },
+  "tuprs": {
+    "price": 259.5
+  },
+  "tavhl": {
+    "price": 279,
+    "color": "yellow"
+  },
+  "garan": {
+    "price": 138.2,
+    "color": "yellow"
+  },
+  "ykbnk": {
+    "price": 39.72
+  },
+  "anhyt": {
+    "price": 119.3
+  },
+  "ansgr": {
+    "price": 30.7
+  },
+  "thyao": {
+    "price": 308.5
+  },
+  "asels": {
+    "price": 431.75
+  },
+  "banvt": {
+    "price": 167.5,
+    "color": "green"
+  },
+  "cimsa": {
+    "price": 57.55,
+    "color": "yellow"
+  },
+  "agesa": {
+    "price": 249.5
+  },
+  "mgros": {
+    "price": 680.5,
+    "color": "yellow",
+    "notes": [
+      "Track assets/revenue only.",
+      "Online revenue share: 18.5% ('24) -> 21.1% (Q1 '25) -> 20.4% (Q3 '25)."
+    ]
+  },
+  "oyakc": {
+    "price": 23.8
+  },
+  "kimmr": {
+    "price": 17.8
+  },
+  "kboru": {
+    "price": 27,
+    "color": "green",
+    "notes": [
+      "Targets: '25 (125m Rev. 16m EBITDA), '26 (320m Rev. 51m EBITDA)."
+    ]
+  },
+  "ccola": {
+    "price": 87.75
+  },
+  "httbt": {
+    "price": 43.9,
+    "color": "yellow"
+  },
+  "ttkom": {
+    "price": 66.85,
+    "color": "yellow"
+  },
+  "tabgd": {
+    "price": 281.5,
+    "color": "yellow"
+  },
+  "pgsus": {
+    "price": 185
+  },
+  "rgyas": {
+    "price": 186.2,
+    "notes": ["EV/BV irrelevant without profitability."]
+  },
+  "desa": {
+    "price": 13.5,
+    "notes": ["Q1 '25: 42% of equity is cash/bonds."]
+  },
+  "grsel": {
+    "price": 337.75
+  },
+  "alfas": {
+    "price": 543.8,
+    "color": "green"
+  },
+  "doas": {
+    "price": 184.6
+  },
+  "tgsas": {
+    "price": 160
+  },
+  "vestl": {
+    "price": 29.72
+  },
+  "ktlev": {
+    "price": 119.1
+  },
+  "suwen": {
+    "price": 8.94,
+    "color": "yellow"
+  },
+  "bimas": {
+    "price": 774.5
+  },
+  "koton": {
+    "price": 16.18,
+    "color": "green"
+  },
+  "raysg": {
+    "price": 200.5,
+    "color": "yellow"
+  },
+  "aksen": {
+    "price": 88.2
+  },
+  "ekgyo": {
+    "price": 22.24
+  },
+  "ulker": {
+    "price": 130,
+    "notes": [
+      "High FX debt risk (8.5% USD, 10.5% EUR). Sensitive to TRY depreciation, as it earns revenue in a weakening currency but must repay debt in stronger foreign currencies.."
+    ],
+    "color": "red"
+  },
+  "bobet": {
+    "price": 20.44,
+    "color": "green"
+  },
+  "cvkmd": {
+    "price": 40.5
+  },
+  "trgyo": {
+    "price": 104.8,
+    "notes": ["2025 Net Income target 20b vs Q1 actual 0.76b."]
+  },
+  "brsan": {
+    "price": 596.5,
+    "color": "green"
+  },
+  "enkai": {
+    "price": 105.2,
+    "notes": ["Heavy cash and non-current investment position."],
+    "color": "yellow"
+  },
+  "orge": {
+    "price": 86.55
+  },
+  "eggub": {
+    "price": 142.2
+  },
+  "kontr": {
+    "price": 10.39
+  },
+  "basgz": {
+    "price": 51.36
+  },
+  "penta": {
+    "price": 16.15
+  },
+  "tarkm": {
+    "price": 486.75
+  },
+  "eregl": {
+    "price": 40.86
+  },
+  "megmt": {
+    "price": 93.25
+  },
+  "genil": {
+    "price": 9.46
+  },
+  "zrgyo": {
+    "price": 21.98
+  },
+  "tcell": {
+    "price": 121.9
+  },
+  "vakko": {
+    "price": 79.4
+  },
+  "paseu": {
+    "price": 113.2
+  },
+  "glyho": {
+    "price": 15.11
+  },
+  "ofsym": {
+    "price": 63.8
+  },
+  "sokm": {
+    "price": 51.75
+  },
+  "marbl": {
+    "price": 13.94
+  },
+  "selec": {
+    "price": 113
+  },
+  "kfein": {
+    "price": 9.69
+  },
+  "gesan": {
+    "price": 61.35
+  },
+  "eupwr": {
+    "price": 57.65
+  },
+  "odine": {
+    "price": 1131
+  },
+  "pltur": {
+    "price": 25.98,
+    "color": "yellow"
+  },
+  "sekur": {
+    "price": 8
+  },
+  "goknr": {
+    "price": 23.16,
+    "notes": ["Heavily export-dependent revenue."]
+  },
+  "segmn": {
+    "price": 69.45
+  },
+  "suntk": {
+    "price": 36.28
+  },
+  "astor": {
+    "price": 339.5
+  },
+  "bsoke": {
+    "price": 38.98,
+    "color": "red",
+    "notes": ["3 paid capital increases in last 10 years."]
+  },
+  "lmkdc": {
+    "price": 37.7
+  },
+  "tborg": {
+    "price": 148.4,
+    "color": "yellow"
+  },
+  "rysas": {
+    "price": 19.7,
+    "color": "green"
+  },
+  "rygyo": {
+    "price": 31.34
+  },
+  "gubrf": {
+    "price": 617.5
+  },
+  "ahgaz": {
+    "price": 28.86,
+    "color": "yellow",
+    "notes": ["Buy after Q3 to capture strong winter seasonality."]
+  }
+}
