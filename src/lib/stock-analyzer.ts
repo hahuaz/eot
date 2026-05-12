@@ -89,14 +89,14 @@ export class StockAnalyzer {
       DATA_DIR,
       "stocks",
       this.region,
-      `${this.stockSymbol}.tsv`,
+      `${this.stockSymbol}.csv`,
     );
 
     let { data: baseMetrics } = parseCSV<BaseMetric>({
       filePath: stockPath,
       header: true,
-      delimiter: "\t",
     });
+    console.log("baseMetrics", baseMetrics);
 
     const SHEET_SECTIONS = ["Balance sheet", "Income statement", "Statistics"];
     baseMetrics = baseMetrics.filter(
