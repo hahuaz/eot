@@ -9,6 +9,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { useState } from "react";
 import type { InferGetStaticPropsType, GetStaticProps } from "next";
 import { API_URL } from "@/lib";
 import { CumulativeReturns } from "@/shared/types";
@@ -87,8 +88,47 @@ const CummulativeReturnsChart = ({
 }: InferGetStaticPropsType<typeof getStaticProps>) => {
   const data = alignTimeSeriesData(cummulativeReturns);
 
+  // pre-determined symbols (keys from CumulativeReturns)
+  const allowedSymbols = [
+    "bgp",
+    "tp2",
+    "bgpUsdtry",
+    "tp2Usdtry",
+    "gold",
+    "mixedCurrency",
+    "usdtry",
+    "eurtry",
+  ];
+
+  const [selectedSymbols, setSelectedSymbols] = useState<string[]>([
+    "bgp",
+    "tp2",
+    "gold",
+  ]);
+
   return (
     <div className="w-full h-[500px]">
+      {/* Controls: checkboxes to include symbols in the chart */}
+      <div
+        style={{ display: "flex", gap: 12, marginBottom: 12, flexWrap: "wrap" }}
+      >
+        {allowedSymbols.map((key) => (
+          <label key={key} style={{ fontSize: 12 }}>
+            <input
+              type="checkbox"
+              checked={selectedSymbols.includes(key)}
+              onChange={() =>
+                setSelectedSymbols((prev) =>
+                  prev.includes(key)
+                    ? prev.filter((p) => p !== key)
+                    : [...prev, key],
+                )
+              }
+            />{" "}
+            {key}
+          </label>
+        ))}
+      </div>
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" />
@@ -101,62 +141,37 @@ const CummulativeReturnsChart = ({
             formatter={(value: number) => `${(value * 100).toFixed(2)}%`}
           />
           <Legend />
-          <Line
-            type="monotone"
-            dataKey="bgp"
-            stroke="#0008ff"
-            name="BGP Growth"
-            dot={false}
-          />
-          <Line
-            type="monotone"
-            dataKey="tp2"
-            stroke="#00ff00"
-            name="TP2 Growth"
-            dot={false}
-          />
-          <Line
-            type="monotone"
-            dataKey="bgpUsdtry"
-            stroke="#8A2BE2"
-            name="BGP / USDTRY"
-            dot={false}
-          />
-          <Line
-            type="monotone"
-            dataKey="tp2Usdtry"
-            stroke="#FF4500"
-            name="TP2 / USDTRY"
-            dot={false}
-          />
-          <Line
-            type="monotone"
-            dataKey="gold"
-            stroke="#FFD700"
-            name="Gold Growth"
-            dot={false}
-          />
-          <Line
-            type="monotone"
-            dataKey="mixedCurrency"
-            stroke="#cc0000"
-            name="Mixed Currency Growth"
-            dot={false}
-          />
-          <Line
-            type="monotone"
-            dataKey="usdtry"
-            stroke="gray"
-            name="USDTRY Growth"
-            dot={false}
-          />
-          <Line
-            type="monotone"
-            dataKey="eurtry"
-            stroke="#8884d8"
-            name="EURTRY Growth"
-            dot={false}
-          />
+
+          {/* Render only selected symbol lines */}
+          {data.length > 0 &&
+            selectedSymbols.map((key) => (
+              <Line
+                key={key}
+                type="monotone"
+                dataKey={key}
+                stroke={
+                  key === "bgp"
+                    ? "#0008ff"
+                    : key === "tp2"
+                      ? "#00ff00"
+                      : key === "bgpUsdtry"
+                        ? "#8A2BE2"
+                        : key === "tp2Usdtry"
+                          ? "#FF4500"
+                          : key === "gold"
+                            ? "#FFD700"
+                            : key === "mixedCurrency"
+                              ? "#cc0000"
+                              : key === "usdtry"
+                                ? "gray"
+                                : key === "eurtry"
+                                  ? "#8884d8"
+                                  : "#333333"
+                }
+                name={key}
+                dot={false}
+              />
+            ))}
         </LineChart>
       </ResponsiveContainer>
     </div>
