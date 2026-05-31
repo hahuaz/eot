@@ -23,6 +23,7 @@ export const getStaticProps: GetStaticProps<{
     `${API_URL}api/cummulative-returns`,
   ).then((res) => res.json());
 
+  console.log("cummulativeReturns", cummulativeReturns);
   return {
     props: {
       cummulativeReturns,
@@ -101,8 +102,8 @@ const CummulativeReturnsChart = ({
   ];
 
   const [selectedSymbols, setSelectedSymbols] = useState<string[]>([
-    "bgp",
-    "tp2",
+    "bgpUsdtry",
+    "tp2Usdtry",
     "gold",
   ]);
 
