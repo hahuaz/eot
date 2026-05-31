@@ -1,4 +1,7 @@
-import "./config.ts";
+import "./config";
+
+import path from "path";
+import fs from "fs";
 
 import express, { Response, Request, NextFunction, Router } from "express";
 import cors from "cors";
@@ -10,12 +13,8 @@ import {
   DATA_DIR,
   StockAnalyzer,
 } from "@/lib";
-
 import { Region, regions } from "@/types";
-
 import { getCummulativeReturns } from "@/lib/symbol-returns.js";
-import path from "path";
-import fs from "fs";
 import { StockResponse } from "./shared/types/index.js";
 
 // --- Express App Setup ---

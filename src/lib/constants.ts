@@ -14,7 +14,13 @@ if (!fs.existsSync(TR_DYNAMIC_PATH)) {
 
 export const OBSERVATION_START_DATE = "2024-12-30";
 
-export const DAILY_SAVED_SYMBOLS = ["BGP", "USDTRY", "EURTRY", "GOLD"] as const;
+export const DAILY_SAVED_SYMBOLS = [
+  "BGP",
+  "TP2",
+  "USDTRY",
+  "EURTRY",
+  "GOLD",
+] as const;
 
 export const TR_FUND_SYMBOLS: Site = {
   domain: "https://fintables.com/",

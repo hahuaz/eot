@@ -17,24 +17,11 @@ import {
   Inflation,
 } from "@/shared/types";
 
-function ensureCommonDates(
-  referenceDates: string[],
-  allHistory: DailyPrice[][],
-) {
-  for (const symbolHistory of allHistory) {
-    for (const date of referenceDates) {
-      if (!symbolHistory.some((e) => e.date === date)) {
-        throw new Error(`Date ${date} not found in all CSV files`);
-      }
-    }
-  }
-}
-
 /**
  * This function computes cumulative performance metrics anchored to a specific observation start date. The resulting data series represents the hypothetical sold net profit, effectively simulating a liquidation event on each specific day. Because withholding tax obligations are calculated based on the total realized gain at the moment of sale, the algorithm recalculates the return from the original baseline for every single day to accurately apply the tax and derive the final net value.
  */
 export const getCummulativeReturns = (): CumulativeReturns => {
-  // Load all symbol histories dynamically
+  // Load all symbol histories
   const histories: Record<
     string,
     {
@@ -59,54 +46,106 @@ export const getCummulativeReturns = (): CumulativeReturns => {
     histories[symbol] = { data, startValue };
   }
 
-  // take USDTRY dates as reference
-  let commonDates = histories.USDTRY.data.map((d) => d.date);
-  commonDates = commonDates.filter(
-    (d) => new Date(d) >= new Date(OBSERVATION_START_DATE),
-  );
-  ensureCommonDates(commonDates, [
-    histories.EURTRY.data,
-    histories.BGP.data,
-    histories.GOLD.data,
-  ]);
+  const isAtOrAfterObservationStart = (date: string) =>
+    new Date(date).getTime() >= new Date(OBSERVATION_START_DATE).getTime();
 
-  // calculate cumulative returns from levels
-  const cumulativeUsdtry: CumulativeReturn[] = [];
-  const cumulativeEurtry: CumulativeReturn[] = [];
-  const cumulativeMixed: CumulativeReturn[] = [];
-  const cumulativeGrossBGP: CumulativeReturn[] = [];
-  const cumulativeGold: CumulativeReturn[] = [];
+  const sortByDateAsc = (a: DailyPrice, b: DailyPrice) =>
+    new Date(a.date).getTime() - new Date(b.date).getTime();
 
-  for (const date of commonDates) {
-    if (date === OBSERVATION_START_DATE) continue;
-    const usd = histories.USDTRY.data.find((d) => d.date === date)?.value;
-    const eur = histories.EURTRY.data.find((d) => d.date === date)?.value;
-    const bgp = histories.BGP.data.find((d) => d.date === date)?.value;
-    const gold = histories.GOLD.data.find((d) => d.date === date)?.value;
-
-    if (usd == null || eur == null || bgp == null || gold == null)
-      throw new Error(`Missing data for date ${date}`);
-
-    // this is the return multiplier (e.g., 1.05 means a 5% increase)
-    const usdFactor = usd / histories.USDTRY.startValue;
-    const eurFactor = eur / histories.EURTRY.startValue;
-    const bgpFactor = bgp / histories.BGP.startValue;
-    const goldFactor = gold / histories.GOLD.startValue;
-
-    // this is the return percentage (e.g., 0.05 means a 5% increase)
-    cumulativeUsdtry.push({ date, value: usdFactor - 1 });
-    cumulativeEurtry.push({ date, value: eurFactor - 1 });
-    cumulativeGold.push({ date, value: goldFactor - 1 });
-
-    // use geometric mean to calculate basket currency increase
-    const mixedReturn = Math.sqrt(usdFactor * eurFactor) - 1;
-    cumulativeMixed.push({ date, value: mixedReturn });
-
-    cumulativeGrossBGP.push({ date, value: bgpFactor - 1 });
+  for (const symbol of DAILY_SAVED_SYMBOLS) {
+    histories[symbol].data.sort(sortByDateAsc);
   }
 
-  // calc net returns for some series
-  const cumulativeBGP = cumulativeGrossBGP.map((point) => ({
+  const commonDates = histories.USDTRY.data
+    .map((entry) => entry.date)
+    .filter(isAtOrAfterObservationStart)
+    .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
+  const getLastKnownValue = (history: DailyPrice[], date: string) => {
+    let lastValue: number | null = null;
+    const targetTime = new Date(date).getTime();
+    for (const entry of history) {
+      const entryTime = new Date(entry.date).getTime();
+      if (entryTime > targetTime) break;
+      if (entry.value != null) {
+        lastValue = entry.value;
+      }
+    }
+    if (lastValue == null) {
+      throw new Error(`Missing historical price for date ${date}`);
+    }
+    return lastValue;
+  };
+
+  const cumulativeUsdtry: CumulativeReturn[] = commonDates
+    .filter((date) => date !== OBSERVATION_START_DATE)
+    .map((date) => ({
+      date,
+      value:
+        getLastKnownValue(histories.USDTRY.data, date) /
+          histories.USDTRY.startValue -
+        1,
+    }));
+
+  const cumulativeEurtry: CumulativeReturn[] = commonDates
+    .filter((date) => date !== OBSERVATION_START_DATE)
+    .map((date) => ({
+      date,
+      value:
+        getLastKnownValue(histories.EURTRY.data, date) /
+          histories.EURTRY.startValue -
+        1,
+    }));
+
+  const cumulativeGold: CumulativeReturn[] = commonDates
+    .filter((date) => date !== OBSERVATION_START_DATE)
+    .map((date) => ({
+      date,
+      value:
+        getLastKnownValue(histories.GOLD.data, date) /
+          histories.GOLD.startValue -
+        1,
+    }));
+
+  const cumulativeTp2: CumulativeReturn[] = commonDates
+    .filter((date) => date !== OBSERVATION_START_DATE)
+    .map((date) => ({
+      date,
+      value:
+        getLastKnownValue(histories.TP2.data, date) / histories.TP2.startValue -
+        1,
+    }));
+
+  const cumulativeGrossBGP: CumulativeReturn[] = commonDates
+    .filter((date) => date !== OBSERVATION_START_DATE)
+    .map((date) => ({
+      date,
+      value:
+        getLastKnownValue(histories.BGP.data, date) / histories.BGP.startValue -
+        1,
+    }));
+
+  const cumulativeMixed: CumulativeReturn[] = commonDates
+    .filter((date) => date !== OBSERVATION_START_DATE)
+    .map((date) => {
+      const usdFactor =
+        getLastKnownValue(histories.USDTRY.data, date) /
+        histories.USDTRY.startValue;
+      const eurFactor =
+        getLastKnownValue(histories.EURTRY.data, date) /
+        histories.EURTRY.startValue;
+      return {
+        date,
+        value: Math.sqrt(usdFactor * eurFactor) - 1,
+      };
+    });
+
+  const netCumulativeBGP = cumulativeGrossBGP.map((point) => ({
+    date: point.date,
+    value: point.value * (1 - TAXES.tr.withholdingTax),
+  }));
+
+  const netCumulativeTp2 = cumulativeTp2.map((point) => ({
     date: point.date,
     value: point.value * (1 - TAXES.tr.withholdingTax),
   }));
@@ -115,8 +154,9 @@ export const getCummulativeReturns = (): CumulativeReturns => {
     usdtry: cumulativeUsdtry,
     eurtry: cumulativeEurtry,
     mixedCurrency: cumulativeMixed,
-    bgp: cumulativeBGP,
+    bgp: netCumulativeBGP,
     gold: cumulativeGold,
+    tp2: netCumulativeTp2,
   };
 };
 

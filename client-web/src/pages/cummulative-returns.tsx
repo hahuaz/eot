@@ -38,6 +38,7 @@ const alignTimeSeriesData = ({
   eurtry,
   mixedCurrency,
   bgp,
+  tp2,
   gold,
 }: CumulativeReturns): {
   date: string;
@@ -45,6 +46,7 @@ const alignTimeSeriesData = ({
   eurtry?: number;
   mixedCurrency?: number;
   bgp?: number;
+  tp2?: number;
   gold?: number;
 }[] => {
   const dateSet = new Set<string>([
@@ -52,6 +54,7 @@ const alignTimeSeriesData = ({
     ...eurtry.map((d) => d.date),
     ...mixedCurrency.map((d) => d.date),
     ...bgp.map((d) => d.date),
+    ...tp2.map((d) => d.date),
     ...gold.map((d) => d.date),
   ]);
 
@@ -66,6 +69,7 @@ const alignTimeSeriesData = ({
     mixedCurrency:
       mixedCurrency.find((d) => d.date === date)?.value ?? undefined,
     bgp: bgp.find((d) => d.date === date)?.value ?? undefined,
+    tp2: tp2.find((d) => d.date === date)?.value ?? undefined,
     gold: gold.find((d) => d.date === date)?.value ?? undefined,
   }));
 };
@@ -94,6 +98,13 @@ const CummulativeReturnsChart = ({
             dataKey="bgp"
             stroke="#0008ff"
             name="Real BGP Growth"
+            dot={false}
+          />
+          <Line
+            type="monotone"
+            dataKey="tp2"
+            stroke="#00ff00"
+            name="TP2 Growth"
             dot={false}
           />
           <Line

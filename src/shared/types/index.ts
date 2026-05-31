@@ -118,6 +118,7 @@ export type CumulativeReturns = {
   mixedCurrency: CumulativeReturn[];
   bgp: CumulativeReturn[];
   gold: CumulativeReturn[];
+  tp2: CumulativeReturn[];
 };
 
 // API responses
