@@ -125,6 +125,34 @@ export const getCummulativeReturns = (): CumulativeReturns => {
         1,
     }));
 
+  const cumulativeBGPUsdtry: CumulativeReturn[] = commonDates
+    .filter((date) => date !== OBSERVATION_START_DATE)
+    .map((date) => {
+      const currentBGPValue = getLastKnownValue(histories.BGP.data, date);
+      const usdtryFactor = getLastKnownValue(histories.USDTRY.data, date);
+      const grossBGPReturn = currentBGPValue / histories.BGP.startValue - 1;
+      const netBGPFactor = 1 + grossBGPReturn * (1 - TAXES.tr.withholdingTax);
+
+      return {
+        date,
+        value: netBGPFactor * (histories.USDTRY.startValue / usdtryFactor) - 1,
+      };
+    });
+
+  const cumulativeTp2Usdtry: CumulativeReturn[] = commonDates
+    .filter((date) => date !== OBSERVATION_START_DATE)
+    .map((date) => {
+      const currentTp2Value = getLastKnownValue(histories.TP2.data, date);
+      const usdtryFactor = getLastKnownValue(histories.USDTRY.data, date);
+      const grossTp2Return = currentTp2Value / histories.TP2.startValue - 1;
+      const netTp2Factor = 1 + grossTp2Return * (1 - TAXES.tr.withholdingTax);
+
+      return {
+        date,
+        value: netTp2Factor * (histories.USDTRY.startValue / usdtryFactor) - 1,
+      };
+    });
+
   const cumulativeMixed: CumulativeReturn[] = commonDates
     .filter((date) => date !== OBSERVATION_START_DATE)
     .map((date) => {
@@ -157,6 +185,8 @@ export const getCummulativeReturns = (): CumulativeReturns => {
     bgp: netCumulativeBGP,
     gold: cumulativeGold,
     tp2: netCumulativeTp2,
+    bgpUsdtry: cumulativeBGPUsdtry,
+    tp2Usdtry: cumulativeTp2Usdtry,
   };
 };
 

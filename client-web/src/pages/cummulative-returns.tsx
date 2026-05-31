@@ -40,6 +40,8 @@ const alignTimeSeriesData = ({
   bgp,
   tp2,
   gold,
+  bgpUsdtry,
+  tp2Usdtry,
 }: CumulativeReturns): {
   date: string;
   usdtry?: number;
@@ -48,6 +50,8 @@ const alignTimeSeriesData = ({
   bgp?: number;
   tp2?: number;
   gold?: number;
+  bgpUsdtry?: number;
+  tp2Usdtry?: number;
 }[] => {
   const dateSet = new Set<string>([
     ...usdtry.map((d) => d.date),
@@ -56,6 +60,8 @@ const alignTimeSeriesData = ({
     ...bgp.map((d) => d.date),
     ...tp2.map((d) => d.date),
     ...gold.map((d) => d.date),
+    ...bgpUsdtry.map((d) => d.date),
+    ...tp2Usdtry.map((d) => d.date),
   ]);
 
   const sortedDates = [...dateSet].sort(
@@ -71,6 +77,8 @@ const alignTimeSeriesData = ({
     bgp: bgp.find((d) => d.date === date)?.value ?? undefined,
     tp2: tp2.find((d) => d.date === date)?.value ?? undefined,
     gold: gold.find((d) => d.date === date)?.value ?? undefined,
+    bgpUsdtry: bgpUsdtry.find((d) => d.date === date)?.value ?? undefined,
+    tp2Usdtry: tp2Usdtry.find((d) => d.date === date)?.value ?? undefined,
   }));
 };
 
@@ -97,7 +105,7 @@ const CummulativeReturnsChart = ({
             type="monotone"
             dataKey="bgp"
             stroke="#0008ff"
-            name="Real BGP Growth"
+            name="BGP Growth"
             dot={false}
           />
           <Line
@@ -105,6 +113,20 @@ const CummulativeReturnsChart = ({
             dataKey="tp2"
             stroke="#00ff00"
             name="TP2 Growth"
+            dot={false}
+          />
+          <Line
+            type="monotone"
+            dataKey="bgpUsdtry"
+            stroke="#8A2BE2"
+            name="BGP / USDTRY"
+            dot={false}
+          />
+          <Line
+            type="monotone"
+            dataKey="tp2Usdtry"
+            stroke="#FF4500"
+            name="TP2 / USDTRY"
             dot={false}
           />
           <Line
