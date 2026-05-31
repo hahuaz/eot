@@ -119,7 +119,8 @@ export class StockAnalyzer {
         .map((param) => param.trim()),
     };
 
-    baseMetrics = baseMetrics.filter((_, i) => i !== configIndex);
+    // Ignore CSV content after the config metric
+    baseMetrics = baseMetrics.filter((_, i) => i < configIndex);
 
     this.baseMetrics = baseMetrics;
 
@@ -369,7 +370,9 @@ export class StockAnalyzer {
       )![date];
 
       if (operatingIncome == null) {
-        throw new Error(`Operating income not found for date ${date}`);
+        throw new Error(
+          `Operating income not found for date ${date} and symbol ${this.config.stockSymbol}`,
+        );
       }
 
       if (enterpriseValue == null) {

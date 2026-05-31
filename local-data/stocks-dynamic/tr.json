@@ -1,5 +1,251 @@
 {
+  "ahgaz": {
+    "price": 32.92,
+    "color": "yellow",
+    "notes": [
+      "Buy after Q3 to capture strong winter seasonality."
+    ]
+  },
+  "aksen": {
+    "price": 80
+  },
+  "alfas": {
+    "price": 53.75,
+    "color": "green"
+  },
+  "arclk": {
+    "price": 103.7
+  },
+  "asels": {
+    "price": 380.25
+  },
+  "astor": {
+    "price": 312.75
+  },
+  "banvt": {
+    "price": 150,
+    "color": "green"
+  },
+  "basgz": {
+    "price": 48.48
+  },
+  "bimas": {
+    "price": 373
+  },
+  "bobet": {
+    "price": 18.71,
+    "color": "green"
+  },
+  "brsan": {
+    "price": 489,
+    "color": "green"
+  },
+  "ccola": {
+    "price": 80.05
+  },
+  "cimsa": {
+    "price": 50.65,
+    "color": "yellow"
+  },
+  "cvkmd": {
+    "price": 47.24
+  },
+  "desa": {
+    "price": 20,
+    "notes": [
+      "Q1 '25: 42% of equity is cash/bonds."
+    ]
+  },
+  "doas": {
+    "price": 184.8
+  },
+  "eggub": {
+    "price": 103.8
+  },
+  "ekgyo": {
+    "price": 19.1
+  },
+  "enkai": {
+    "price": 100.5,
+    "notes": [
+      "Heavy cash and non-current investment position."
+    ],
+    "color": "yellow"
+  },
+  "eupwr": {
+    "price": 76.1
+  },
   "froto": {
-    "price": 97
+    "price": 84.15
+  },
+  "genil": {
+    "price": 9.36
+  },
+  "gesan": {
+    "price": 75.5
+  },
+  "glyho": {
+    "price": 15.1
+  },
+  "goknr": {
+    "price": 24.56,
+    "notes": [
+      "Heavily export-dependent revenue."
+    ]
+  },
+  "grsel": {
+    "price": 316.5
+  },
+  "httbt": {
+    "price": 40.38,
+    "color": "yellow"
+  },
+  "kboru": {
+    "price": 24.88,
+    "color": "green",
+    "notes": [
+      "Targets: '25 (125m Rev. 16m EBITDA), '26 (320m Rev. 51m EBITDA)."
+    ]
+  },
+  "kfein": {
+    "price": 10.18
+  },
+  "kimmr": {
+    "price": 17.04
+  },
+  "kontr": {
+    "price": 7.85
+  },
+  "koton": {
+    "price": 14.89,
+    "color": "green"
+  },
+  "lmkdc": {
+    "price": 36.7
+  },
+  "marbl": {
+    "price": 12.96
+  },
+  "megmt": {
+    "price": 75.85
+  },
+  "mgros": {
+    "price": 659,
+    "color": "yellow",
+    "notes": [
+      "Track assets/revenue only.",
+      "Online revenue share: 18.5% ('24) -> 21.1% (Q1 '25) -> 20.4% (Q3 '25)."
+    ]
+  },
+  "mpark": {
+    "price": 453,
+    "color": "yellow"
+  },
+  "odine": {
+    "price": 1264
+  },
+  "ofsym": {
+    "price": 58.35
+  },
+  "orge": {
+    "price": 102
+  },
+  "oyakc": {
+    "price": 20.82
+  },
+  "paseu": {
+    "price": 115.8
+  },
+  "penta": {
+    "price": 4.56
+  },
+  "pgsus": {
+    "price": 170.1
+  },
+  "pltur": {
+    "price": 23.84,
+    "color": "yellow"
+  },
+  "rgyas": {
+    "price": 192.2,
+    "notes": [
+      "EV/BV irrelevant without profitability."
+    ]
+  },
+  "rygyo": {
+    "price": 31.48
+  },
+  "rysas": {
+    "price": 22.2,
+    "color": "green"
+  },
+  "segmn": {
+    "price": 54
+  },
+  "sekur": {
+    "price": 7.9
+  },
+  "selec": {
+    "price": 103.4
+  },
+  "sokm": {
+    "price": 47.84
+  },
+  "suntk": {
+    "price": 33.24
+  },
+  "suwen": {
+    "price": 7.64,
+    "color": "yellow"
+  },
+  "tabgd": {
+    "price": 267,
+    "color": "yellow"
+  },
+  "tarkm": {
+    "price": 566
+  },
+  "tavhl": {
+    "price": 251.75,
+    "color": "yellow"
+  },
+  "tborg": {
+    "price": 136.4,
+    "color": "yellow"
+  },
+  "tcell": {
+    "price": 101
+  },
+  "tgsas": {
+    "price": 177.5
+  },
+  "thyao": {
+    "price": 296.75
+  },
+  "toaso": {
+    "price": 296
+  },
+  "ttkom": {
+    "price": 61.25,
+    "color": "yellow"
+  },
+  "ttrak": {
+    "price": 449.25
+  },
+  "tuprs": {
+    "price": 236.2
+  },
+  "ulker": {
+    "price": 115.8,
+    "notes": [
+      "High FX debt risk (8.5% USD, 10.5% EUR). Sensitive to TRY depreciation, as it earns revenue in a weakening currency but must repay debt in stronger foreign currencies.."
+    ],
+    "color": "red"
+  },
+  "vakko": {
+    "price": 75
+  },
+  "zrgyo": {
+    "price": 16.39
   }
 }

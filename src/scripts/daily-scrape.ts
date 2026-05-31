@@ -7,7 +7,7 @@ import path from "path";
 import type { DailyPrice, ScrapeItem } from "@/types";
 import {
   scrape,
-  updateSheet,
+  updateScrapeSheet,
   updateCsvFile,
   TR_DYNAMIC_PATH,
   DAILY_SAVED_SYMBOLS,
@@ -72,7 +72,7 @@ async function main() {
 
     const allResults = await scrape([GENERIC_SYMBOLS, TR_FUND_SYMBOLS]);
 
-    await updateSheet(allResults);
+    await updateScrapeSheet(allResults);
     console.log("Updated Google Sheet with all scraped data");
 
     saveToLocalDailyCsv(allResults, currentDate);

@@ -8,8 +8,11 @@ dotenv.config({
 
 interface AppConfig {
   NODE_ENV: string;
-  GOOGLE_SHEET_ID: string;
-  GOOGLE_CREDENTIAL_PATH: string;
+  SHEETS: {
+    name: string;
+    id: string;
+    credentialPath: string;
+  }[];
 }
 
 function getEnv(key: string, required: boolean = true): string {
@@ -22,12 +25,18 @@ function getEnv(key: string, required: boolean = true): string {
 
 export const APP_CONFIG: AppConfig = {
   NODE_ENV: getEnv("NODE_ENV", false) || "development",
-  GOOGLE_SHEET_ID: getEnv("GOOGLE_SHEET_ID"),
-  GOOGLE_CREDENTIAL_PATH: path.join(
-    process.cwd(),
-    "credentials",
-    "google.json",
-  ),
+  SHEETS: [
+    {
+      name: "invest",
+      id: getEnv("INVEST_SHEET_ID"),
+      credentialPath: path.join(process.cwd(), "credentials", "invest.json"),
+    },
+    {
+      name: "tr-stocks",
+      id: getEnv("TR_STOCKS_SHEET_ID"),
+      credentialPath: path.join(process.cwd(), "credentials", "tr-stocks.json"),
+    },
+  ],
 };
 
 // Log config only in development mode for debugging
