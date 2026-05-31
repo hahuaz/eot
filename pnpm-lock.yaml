@@ -28,7 +28,7 @@ importers:
         version: 5.5.3
       puppeteer:
         specifier: ^24.43.1
-        version: 24.43.1
+        version: 24.43.1(typescript@5.9.3)
       tsx:
         specifier: ^4.22.3
         version: 4.22.3
@@ -69,6 +69,9 @@ importers:
       prettier:
         specifier: ^3.8.3
         version: 3.8.3
+      typescript:
+        specifier: ^5.2.2
+        version: 5.9.3
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/node@22.19.19)(tsx@4.22.3)(yaml@2.9.0)
@@ -1735,6 +1738,11 @@ packages:
   typed-query-selector@2.12.2:
     resolution: {integrity: sha512-EOPFbyIub4ngnEdqi2yOcNeDLaX/0jcE1JoAXQDDMIthap7FoN795lc/SHfIq2d416VufXpM8z/lD+WRm2gfOQ==}
 
+  typescript@5.9.3:
+    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+
   undici-types@6.21.0:
     resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
 
@@ -2486,12 +2494,14 @@ snapshots:
       object-assign: 4.1.1
       vary: 1.1.2
 
-  cosmiconfig@9.0.1:
+  cosmiconfig@9.0.1(typescript@5.9.3):
     dependencies:
       env-paths: 2.2.1
       import-fresh: 3.3.1
       js-yaml: 4.1.1
       parse-json: 5.2.0
+    optionalDependencies:
+      typescript: 5.9.3
 
   cross-env@10.1.0:
     dependencies:
@@ -3117,11 +3127,11 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  puppeteer@24.43.1:
+  puppeteer@24.43.1(typescript@5.9.3):
     dependencies:
       '@puppeteer/browsers': 2.13.2
       chromium-bidi: 14.0.0(devtools-protocol@0.0.1608973)
-      cosmiconfig: 9.0.1
+      cosmiconfig: 9.0.1(typescript@5.9.3)
       devtools-protocol: 0.0.1608973
       puppeteer-core: 24.43.1
       typed-query-selector: 2.12.2
@@ -3432,6 +3442,8 @@ snapshots:
       mime-types: 3.0.2
 
   typed-query-selector@2.12.2: {}
+
+  typescript@5.9.3: {}
 
   undici-types@6.21.0: {}
 
