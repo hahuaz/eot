@@ -8,6 +8,9 @@ export default defineConfig({
     coverage: {
       reporter: ["text", "lcov"],
     },
+    env: {
+      NODE_ENV: "development",
+    },
   },
   resolve: {
     // should be same as tsconfig.json

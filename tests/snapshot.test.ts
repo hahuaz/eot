@@ -1,7 +1,123 @@
 import { describe, it, expect } from "vitest";
 import { execSync } from "child_process";
+import fs from "fs";
+import path from "path";
+import { getCummulativeReturns, getYoyReturns } from "@/lib/symbol-returns";
+import { CUMULATIVE_ALL_SYMBOLS } from "@/shared/constants";
+
+const SNAPSHOT_DIR = path.join(process.cwd(), "local-data", "snapshot");
+const DATE_THRESHOLD = 1780261200000;
+
+interface SymbolSnapshot {
+  symbol: string;
+  cumulativeReturns: ReturnType<typeof getCummulativeReturns>;
+  yoyReturns: ReturnType<typeof getYoyReturns>;
+}
+
+/**
+ * Filter returns to only include dates less than threshold
+ */
+function filterByDateThreshold<T extends { date: number }>(
+  data: T[],
+  threshold: number,
+): T[] {
+  return data.filter((item) => item.date < threshold);
+}
+
+/**
+ * Generate snapshots for all symbols and save to JSON files
+ */
+function generateSnapshots() {
+  // Ensure snapshot directory exists
+  if (!fs.existsSync(SNAPSHOT_DIR)) {
+    fs.mkdirSync(SNAPSHOT_DIR, { recursive: true });
+  }
+
+  console.log(
+    `📸 Starting snapshot generation for ${CUMULATIVE_ALL_SYMBOLS.length} symbols...`,
+  );
+  console.log(`💾 Snapshots will be saved to: ${SNAPSHOT_DIR}`);
+
+  for (const symbol of CUMULATIVE_ALL_SYMBOLS) {
+    try {
+      console.log(`\n📊 Processing ${symbol}...`);
+
+      // Get cumulative and YoY returns
+      let cumulativeReturns = getCummulativeReturns(symbol);
+      let yoyReturns = getYoyReturns(symbol);
+
+      // Filter to only include dates less than threshold
+      cumulativeReturns = filterByDateThreshold(
+        cumulativeReturns,
+        DATE_THRESHOLD,
+      );
+      yoyReturns = filterByDateThreshold(yoyReturns, DATE_THRESHOLD);
+
+      // Create snapshot object
+      const snapshot: SymbolSnapshot = {
+        symbol,
+        cumulativeReturns,
+        yoyReturns,
+      };
+
+      // Save to JSON file
+      const fileName = `${symbol}.json`;
+      const filePath = path.join(SNAPSHOT_DIR, fileName);
+      fs.writeFileSync(filePath, JSON.stringify(snapshot, null, 2));
+
+      console.log(
+        `   ✅ Saved ${cumulativeReturns.length} cumulative returns and ${yoyReturns.length} YoY returns`,
+      );
+    } catch (error) {
+      console.error(
+        `   ❌ Error processing ${symbol}:`,
+        error instanceof Error ? error.message : error,
+      );
+    }
+  }
+
+  // Create summary file
+  const summary = {
+    totalSymbols: CUMULATIVE_ALL_SYMBOLS.length,
+    symbols: CUMULATIVE_ALL_SYMBOLS,
+  };
+
+  const summaryPath = path.join(SNAPSHOT_DIR, "snapshot-summary.json");
+  fs.writeFileSync(summaryPath, JSON.stringify(summary, null, 2));
+
+  console.log(
+    `\n✨ Snapshot generation complete! Summary saved to snapshot-summary.json`,
+  );
+}
 
 describe("Snapshot Integrity", () => {
+  it("should regenerate snapshots and verify they are up-to-date", () => {
+    try {
+      // Generate fresh snapshots
+      generateSnapshots();
+
+      // Check if any snapshots have changed using git diff
+      try {
+        execSync("git diff --exit-code local-data/snapshot/", {
+          stdio: "pipe",
+        });
+        // If no error, snapshots are up-to-date
+      } catch (error: unknown) {
+        // Exit code non-zero means there are changes
+        if (error instanceof Error && "status" in error && error.status !== 0) {
+          // Show the diff
+          execSync("git diff local-data/snapshot/", { stdio: "inherit" });
+          throw new Error(
+            "Snapshots are out of date! Generated snapshots differ from committed ones. Please regenerate and commit them.",
+          );
+        }
+        throw error;
+      }
+    } catch (error) {
+      throw error;
+    }
+  });
+
   it("should not have any changes in local-data/snapshot", () => {
     try {
       // Check if there are any changes (staged or unstaged) in the snapshot directory
