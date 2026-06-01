@@ -16,34 +16,24 @@ import {
   DATES,
   Inflation,
 } from "@/shared/types";
+import {
+  CUMULATIVE_ALL_SYMBOLS,
+  CUMULATIVE_BASE_SYMBOLS,
+  CUMULATIVE_COMPOSITE_SYMBOLS,
+} from "@/shared/constants";
 
 /**
- * This function computes cumulative performance metrics anchored to a specific observation start date. The resulting data series represents the hypothetical sold net profit, effectively simulating a liquidation event on each specific day. Because withholding tax obligations are calculated based on the total realized gain at the moment of sale, the algorithm recalculates the return from the original baseline for every single day to accurately apply the tax and derive the final net value.
+ * This function computes cumulative performance metrics for a specific symbol anchored to a specific observation start date. The resulting data series represents the hypothetical sold net profit, effectively simulating a liquidation event on each specific day. Because withholding tax obligations are calculated based on the total realized gain at the moment of sale, the algorithm recalculates the return from the original baseline for every single day to accurately apply the tax and derive the final net value.
+ * @param symbol - The symbol to calculate cumulative returns for
  */
-export const getCummulativeReturns = (): CumulativeReturns => {
-  // Load all symbol histories
-  const histories: Record<
-    string,
-    {
-      data: DailyPrice[];
-      startValue: number;
-    }
-  > = {};
-  for (const symbol of DAILY_SAVED_SYMBOLS) {
-    const { data } = parseCSV<DailyPrice>({
-      filePath: path.join(DAILY_DIR, `${symbol}.csv`),
-      header: true,
-    });
+export const getCummulativeReturns = (symbol: string): CumulativeReturn[] => {
+  // Validate symbol
+  const normalizedSymbol = symbol.toLowerCase();
 
-    const startValue = data.find(
-      (d) => d.date === OBSERVATION_START_DATE,
-    )?.value;
-    if (startValue == null) {
-      throw new Error(
-        `Baseline date ${OBSERVATION_START_DATE} not found in one of the data sources.`,
-      );
-    }
-    histories[symbol] = { data, startValue };
+  if (!CUMULATIVE_ALL_SYMBOLS.includes(normalizedSymbol)) {
+    throw new Error(
+      `Invalid symbol: ${symbol}. Valid symbols are: ${[...CUMULATIVE_BASE_SYMBOLS, ...CUMULATIVE_COMPOSITE_SYMBOLS].join(", ")}`,
+    );
   }
 
   const isAtOrAfterObservationStart = (date: string) =>
@@ -51,15 +41,6 @@ export const getCummulativeReturns = (): CumulativeReturns => {
 
   const sortByDateAsc = (a: DailyPrice, b: DailyPrice) =>
     new Date(a.date).getTime() - new Date(b.date).getTime();
-
-  for (const symbol of DAILY_SAVED_SYMBOLS) {
-    histories[symbol].data.sort(sortByDateAsc);
-  }
-
-  const commonDates = histories.USDTRY.data
-    .map((entry) => entry.date)
-    .filter(isAtOrAfterObservationStart)
-    .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
 
   const getLastKnownValue = (history: DailyPrice[], date: string) => {
     let lastValue: number | null = null;
@@ -77,117 +58,154 @@ export const getCummulativeReturns = (): CumulativeReturns => {
     return lastValue;
   };
 
-  const cumulativeUsdtry: CumulativeReturn[] = commonDates
-    .filter((date) => date !== OBSERVATION_START_DATE)
-    .map((date) => ({
-      date,
-      value:
-        getLastKnownValue(histories.USDTRY.data, date) /
-          histories.USDTRY.startValue -
-        1,
-    }));
-
-  const cumulativeEurtry: CumulativeReturn[] = commonDates
-    .filter((date) => date !== OBSERVATION_START_DATE)
-    .map((date) => ({
-      date,
-      value:
-        getLastKnownValue(histories.EURTRY.data, date) /
-          histories.EURTRY.startValue -
-        1,
-    }));
-
-  const cumulativeGold: CumulativeReturn[] = commonDates
-    .filter((date) => date !== OBSERVATION_START_DATE)
-    .map((date) => ({
-      date,
-      value:
-        getLastKnownValue(histories.GOLD.data, date) /
-          histories.GOLD.startValue -
-        1,
-    }));
-
-  const cumulativeTp2: CumulativeReturn[] = commonDates
-    .filter((date) => date !== OBSERVATION_START_DATE)
-    .map((date) => ({
-      date,
-      value:
-        getLastKnownValue(histories.TP2.data, date) / histories.TP2.startValue -
-        1,
-    }));
-
-  const cumulativeGrossBGP: CumulativeReturn[] = commonDates
-    .filter((date) => date !== OBSERVATION_START_DATE)
-    .map((date) => ({
-      date,
-      value:
-        getLastKnownValue(histories.BGP.data, date) / histories.BGP.startValue -
-        1,
-    }));
-
-  const cumulativeBGPUsdtry: CumulativeReturn[] = commonDates
-    .filter((date) => date !== OBSERVATION_START_DATE)
-    .map((date) => {
-      const currentBGPValue = getLastKnownValue(histories.BGP.data, date);
-      const usdtryFactor = getLastKnownValue(histories.USDTRY.data, date);
-      const grossBGPReturn = currentBGPValue / histories.BGP.startValue - 1;
-      const netBGPFactor = 1 + grossBGPReturn * (1 - TAXES.tr.withholdingTax);
-
-      return {
-        date,
-        value: netBGPFactor * (histories.USDTRY.startValue / usdtryFactor) - 1,
-      };
+  const loadSymbolData = (sym: string) => {
+    const upperSym = sym.toUpperCase();
+    const { data } = parseCSV<DailyPrice>({
+      filePath: path.join(DAILY_DIR, `${upperSym}.csv`),
+      header: true,
     });
 
-  const cumulativeTp2Usdtry: CumulativeReturn[] = commonDates
-    .filter((date) => date !== OBSERVATION_START_DATE)
-    .map((date) => {
-      const currentTp2Value = getLastKnownValue(histories.TP2.data, date);
-      const usdtryFactor = getLastKnownValue(histories.USDTRY.data, date);
-      const grossTp2Return = currentTp2Value / histories.TP2.startValue - 1;
-      const netTp2Factor = 1 + grossTp2Return * (1 - TAXES.tr.withholdingTax);
+    const startValue = data.find(
+      (d) => d.date === OBSERVATION_START_DATE,
+    )?.value;
+    if (startValue == null) {
+      throw new Error(
+        `Baseline date ${OBSERVATION_START_DATE} not found for symbol ${upperSym}.`,
+      );
+    }
 
-      return {
-        date,
-        value: netTp2Factor * (histories.USDTRY.startValue / usdtryFactor) - 1,
-      };
-    });
-
-  const cumulativeMixed: CumulativeReturn[] = commonDates
-    .filter((date) => date !== OBSERVATION_START_DATE)
-    .map((date) => {
-      const usdFactor =
-        getLastKnownValue(histories.USDTRY.data, date) /
-        histories.USDTRY.startValue;
-      const eurFactor =
-        getLastKnownValue(histories.EURTRY.data, date) /
-        histories.EURTRY.startValue;
-      return {
-        date,
-        value: Math.sqrt(usdFactor * eurFactor) - 1,
-      };
-    });
-
-  const netCumulativeBGP = cumulativeGrossBGP.map((point) => ({
-    date: point.date,
-    value: point.value * (1 - TAXES.tr.withholdingTax),
-  }));
-
-  const netCumulativeTp2 = cumulativeTp2.map((point) => ({
-    date: point.date,
-    value: point.value * (1 - TAXES.tr.withholdingTax),
-  }));
-
-  return {
-    usdtry: cumulativeUsdtry,
-    eurtry: cumulativeEurtry,
-    mixedCurrency: cumulativeMixed,
-    bgp: netCumulativeBGP,
-    gold: cumulativeGold,
-    tp2: netCumulativeTp2,
-    bgpUsdtry: cumulativeBGPUsdtry,
-    tp2Usdtry: cumulativeTp2Usdtry,
+    const sortedData = [...data].sort(sortByDateAsc);
+    return { data: sortedData, startValue };
   };
+
+  const calculateBaseSymbolReturns = (
+    symData: { data: DailyPrice[]; startValue: number },
+    isTRSymbol: boolean,
+  ): CumulativeReturn[] => {
+    const commonDates = symData.data
+      .map((entry) => entry.date)
+      .filter(isAtOrAfterObservationStart)
+      .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
+    return commonDates
+      .filter((date) => date !== OBSERVATION_START_DATE)
+      .map((date) => {
+        const currentValue = getLastKnownValue(symData.data, date);
+        const grossReturn = currentValue / symData.startValue - 1;
+
+        // Apply withholding tax for TR-based symbols
+        const netReturn = isTRSymbol
+          ? grossReturn * (1 - TAXES.tr.withholdingTax)
+          : grossReturn;
+
+        return {
+          date,
+          value: netReturn,
+        };
+      });
+  };
+
+  // Handle base symbols
+  if (CUMULATIVE_BASE_SYMBOLS.includes(normalizedSymbol)) {
+    const symData = loadSymbolData(normalizedSymbol);
+    const isTRSymbol = ["bgp", "tp2"].includes(normalizedSymbol);
+    return calculateBaseSymbolReturns(symData, isTRSymbol);
+  }
+
+  console.log(`Calculating returns for composite symbol: ${normalizedSymbol}`);
+  // Handle composite symbols
+  if (normalizedSymbol === "mixedcurrency") {
+    const usdData = loadSymbolData("USDTRY");
+    const eurData = loadSymbolData("EURTRY");
+
+    const commonDates = [
+      ...new Set([
+        ...usdData.data.map((d) => d.date),
+        ...eurData.data.map((d) => d.date),
+      ]),
+    ]
+      .filter(isAtOrAfterObservationStart)
+      .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
+    return commonDates
+      .filter((date) => date !== OBSERVATION_START_DATE)
+      .map((date) => {
+        const usdValue = getLastKnownValue(usdData.data, date);
+        const eurValue = getLastKnownValue(eurData.data, date);
+
+        const usdReturn = usdValue / usdData.startValue - 1;
+        const eurReturn = eurValue / eurData.startValue - 1;
+
+        return {
+          date,
+          value: Math.sqrt((1 + usdReturn) * (1 + eurReturn)) - 1,
+        };
+      });
+  }
+
+  if (normalizedSymbol === "bgpusdtry") {
+    const bgpData = loadSymbolData("BGP");
+    const usdData = loadSymbolData("USDTRY");
+
+    const commonDates = [
+      ...new Set([
+        ...bgpData.data.map((d) => d.date),
+        ...usdData.data.map((d) => d.date),
+      ]),
+    ]
+      .filter(isAtOrAfterObservationStart)
+      .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
+    return commonDates
+      .filter((date) => date !== OBSERVATION_START_DATE)
+      .map((date) => {
+        const bgpValue = getLastKnownValue(bgpData.data, date);
+        const usdValue = getLastKnownValue(usdData.data, date);
+
+        const bgpGrossReturn = bgpValue / bgpData.startValue - 1;
+        const bgpNetReturn = bgpGrossReturn * (1 - TAXES.tr.withholdingTax);
+
+        const usdReturn = usdValue / usdData.startValue - 1;
+
+        return {
+          date,
+          value: (1 + bgpNetReturn) / (1 + usdReturn) - 1,
+        };
+      });
+  }
+
+  if (normalizedSymbol === "tp2usdtry") {
+    const tp2Data = loadSymbolData("TP2");
+    const usdData = loadSymbolData("USDTRY");
+
+    const commonDates = [
+      ...new Set([
+        ...tp2Data.data.map((d) => d.date),
+        ...usdData.data.map((d) => d.date),
+      ]),
+    ]
+      .filter(isAtOrAfterObservationStart)
+      .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
+    return commonDates
+      .filter((date) => date !== OBSERVATION_START_DATE)
+      .map((date) => {
+        const tp2Value = getLastKnownValue(tp2Data.data, date);
+        const usdValue = getLastKnownValue(usdData.data, date);
+
+        const tp2GrossReturn = tp2Value / tp2Data.startValue - 1;
+        const tp2NetReturn = tp2GrossReturn * (1 - TAXES.tr.withholdingTax);
+
+        const usdReturn = usdValue / usdData.startValue - 1;
+
+        return {
+          date,
+          value: (1 + tp2NetReturn) / (1 + usdReturn) - 1,
+        };
+      });
+  }
+
+  throw new Error(`Unhandled symbol: ${normalizedSymbol}`);
 };
 
 /**

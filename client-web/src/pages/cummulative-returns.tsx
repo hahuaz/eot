@@ -12,18 +12,35 @@ import {
 import { useState } from "react";
 import type { InferGetStaticPropsType, GetStaticProps } from "next";
 import { API_URL } from "@/lib";
-import { CumulativeReturns } from "@/shared/types";
+import { CumulativeReturns, CumulativeReturn } from "@/shared/types";
+import { CUMULATIVE_ALL_SYMBOLS } from "@/shared/constants";
 
 interface CummulativeReturnsProps extends CumulativeReturns {}
 
 export const getStaticProps: GetStaticProps<{
   cummulativeReturns: CummulativeReturnsProps;
 }> = async () => {
-  const cummulativeReturns = await fetch(
-    `${API_URL}api/cummulative-returns`,
-  ).then((res) => res.json());
+  // Fetch data for all base and composite symbols
+  const symbolData: Record<string, CumulativeReturn[]> = {};
 
-  console.log("cummulativeReturns", cummulativeReturns);
+  for (const symbol of CUMULATIVE_ALL_SYMBOLS) {
+    const data = await fetch(
+      `${API_URL}api/cummulative-returns?symbol=${symbol}`,
+    ).then((res) => res.json());
+    symbolData[symbol] = data;
+  }
+
+  const cummulativeReturns: CummulativeReturnsProps = {
+    bgp: symbolData.bgp,
+    tp2: symbolData.tp2,
+    usdtry: symbolData.usdtry,
+    eurtry: symbolData.eurtry,
+    gold: symbolData.gold,
+    mixedCurrency: symbolData.mixedcurrency,
+    bgpUsdtry: symbolData.bgpusdtry,
+    tp2Usdtry: symbolData.tp2usdtry,
+  };
+
   return {
     props: {
       cummulativeReturns,

@@ -48,11 +48,22 @@ app.use((req, res, next) => {
 
 /**
  * @route GET /api/cummulative-returns
- * @description Returns carry trade data. This route is independent of region.
+ * @description Returns cumulative returns for a specific symbol.
+ * @queryparam {string} symbol - The symbol to get returns for (e.g., 'BGP', 'TP2', 'USDTRY', 'EURTRY', 'GOLD').
  */
 router.get("/cummulative-returns", (req, res) => {
+  const { symbol } = req.query;
+
+  if (!symbol || typeof symbol !== "string") {
+    res.status(400).json({
+      error:
+        "Symbol query parameter is required (e.g., BGP, TP2, USDTRY, EURTRY, GOLD).",
+    });
+    return;
+  }
+
   try {
-    const cummulativeReturns = getCummulativeReturns();
+    const cummulativeReturns = getCummulativeReturns(symbol);
     res.status(200).json(cummulativeReturns);
   } catch (error) {
     console.error("Failed to get cummulative returns data:", error);
