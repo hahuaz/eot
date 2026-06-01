@@ -12,7 +12,7 @@ if (!fs.existsSync(TR_DYNAMIC_PATH)) {
   throw new Error(`File not found: ${TR_DYNAMIC_PATH}`);
 }
 
-export const OBSERVATION_START_DATE = "2024-12-30";
+export const OBSERVATION_START_DATE = 1735516800000;
 
 export const DAILY_SAVED_SYMBOLS = [
   "BGP",

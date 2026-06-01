@@ -18,6 +18,6 @@ export const regions = ["tr", "us"] as const;
 export type Region = (typeof regions)[number];
 
 export type DailyPrice = {
-  date: string; // YYYY-MM-DD
+  date: number;
   value: number;
 };

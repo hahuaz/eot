@@ -24,6 +24,7 @@
   "packageManager": "pnpm@11.5.0",
   "dependencies": {
     "cors": "^2.8.6",
+    "csv": "^6.5.1",
     "csv-writer": "^1.6.0",
     "dotenv": "^16.6.1",
     "express": "^5.2.1",
@@ -45,8 +46,8 @@
     "oxlint": "^1.67.0",
     "pnpm": "^10.34.1",
     "prettier": "^3.8.3",
-    "vitest": "^3.2.4",
-    "typescript": "^5.2.2"
+    "typescript": "^5.2.2",
+    "vitest": "^3.2.4"
   },
   "lint-staged": {
     "**/*.{js,ts,tsx,json,md}": "prettier --write",

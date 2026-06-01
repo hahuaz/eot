@@ -107,9 +107,19 @@ export type Stock = {
 };
 
 export type CumulativeReturn = {
-  date: string; // YYYY-MM-DD
+  date: number;
   // e.g. 0.05 means a 5% increase
   value: number;
+};
+
+export type YoyReturn = {
+  date: number;
+  // Date 1 year ago used as baseline, or oldest available if 1 year not available
+  baselineDate: number;
+  // Actual days passed from baseline
+  daysPassed: number;
+  // e.g. 0.05 means a 5% annualized return
+  yoyReturnPercent: number;
 };
 
 export type CumulativeReturns = {

@@ -43,7 +43,7 @@ async function scrapeTrStocks() {
   fs.writeFileSync(TR_DYNAMIC_PATH, JSON.stringify(trStocks, null, 2));
 }
 
-function updateDailyCsv(symbol: string, currentDate: string, value: string) {
+function updateDailyCsv(symbol: string, currentDate: number, value: string) {
   const fileName = `${symbol}.csv`;
   const filePath = path.join(process.cwd(), "local-data", "daily", fileName);
   updateCsvFile<DailyPrice>(
@@ -53,7 +53,7 @@ function updateDailyCsv(symbol: string, currentDate: string, value: string) {
   );
 }
 
-function saveToLocalDailyCsv(allResults: ScrapeItem[], currentDate: string) {
+function saveToLocalDailyCsv(allResults: ScrapeItem[], currentDate: number) {
   const filteredResults = allResults.filter((result) => {
     return DAILY_SAVED_SYMBOLS.includes(
       result.symbol as (typeof DAILY_SAVED_SYMBOLS)[number],
@@ -68,7 +68,8 @@ function saveToLocalDailyCsv(allResults: ScrapeItem[], currentDate: string) {
 async function main() {
   try {
     const now = new Date();
-    const currentDate = now.toLocaleDateString("en-CA"); // YYYY-MM-DD format
+    now.setHours(0, 0, 0, 0); // Set to start of day
+    const currentDate = now.getTime(); // Unix timestamp at start of day
 
     const allResults = await scrape([GENERIC_SYMBOLS, TR_FUND_SYMBOLS]);
 
@@ -77,8 +78,8 @@ async function main() {
 
     saveToLocalDailyCsv(allResults, currentDate);
 
-    await scrapeTrStocks();
-    console.log("scraped TR stocks and saved in local-data");
+    // await scrapeTrStocks();
+    // console.log("scraped TR stocks and saved in local-data");
 
     console.log("all done!");
   } catch (error) {

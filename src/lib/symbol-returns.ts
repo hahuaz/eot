@@ -15,6 +15,7 @@ import {
   CumulativeReturns,
   DATES,
   Inflation,
+  YoyReturn,
 } from "@/shared/types";
 import {
   CUMULATIVE_ALL_SYMBOLS,
@@ -36,13 +37,13 @@ export const getCummulativeReturns = (symbol: string): CumulativeReturn[] => {
     );
   }
 
-  const isAtOrAfterObservationStart = (date: string) =>
+  const isAtOrAfterObservationStart = (date: number) =>
     new Date(date).getTime() >= new Date(OBSERVATION_START_DATE).getTime();
 
   const sortByDateAsc = (a: DailyPrice, b: DailyPrice) =>
     new Date(a.date).getTime() - new Date(b.date).getTime();
 
-  const getLastKnownValue = (history: DailyPrice[], date: string) => {
+  const getLastKnownValue = (history: DailyPrice[], date: number) => {
     let lastValue: number | null = null;
     const targetTime = new Date(date).getTime();
     for (const entry of history) {
@@ -255,4 +256,316 @@ export const getNightlyRealRate = ({
   });
 
   return round(ttmNightlyYield);
+};
+
+/**
+ * Calculates year-over-year (YoY) annualized returns for a specific symbol.
+ * For each date, finds the closest data point 1 year prior (or uses the oldest if 1 year unavailable)
+ * and calculates the annualized return based on actual days passed.
+ * @param symbol - The symbol to calculate YoY returns for
+ */
+export const getYoyReturns = (symbol: string): YoyReturn[] => {
+  // Validate symbol
+  const normalizedSymbol = symbol.toLowerCase();
+
+  if (!CUMULATIVE_ALL_SYMBOLS.includes(normalizedSymbol)) {
+    throw new Error(
+      `Invalid symbol: ${symbol}. Valid symbols are: ${[...CUMULATIVE_BASE_SYMBOLS, ...CUMULATIVE_COMPOSITE_SYMBOLS].join(", ")}`,
+    );
+  }
+
+  const MS_IN_DAY = 24 * 60 * 60 * 1000;
+  const DAYS_IN_YEAR = 365;
+
+  /**
+   * Finds the index of the data point closest to 1 year (365 days) prior to the current index.
+   * If 1 year of history is not available, it returns 0 (the oldest available point).
+   */
+  const getYoYBaselineIndex = (
+    dataPoints: DailyPrice[],
+    currentIndex: number,
+  ): number => {
+    const currentPoint = dataPoints[currentIndex];
+    const targetTime =
+      new Date(currentPoint.date).getTime() - DAYS_IN_YEAR * MS_IN_DAY;
+
+    if (new Date(dataPoints[0].date).getTime() >= targetTime) {
+      return 0;
+    }
+
+    let bestIndex = 0;
+    let minDiff = Infinity;
+
+    for (let j = 0; j < currentIndex; j++) {
+      const diff = Math.abs(
+        new Date(dataPoints[j].date).getTime() - targetTime,
+      );
+      if (diff < minDiff) {
+        minDiff = diff;
+        bestIndex = j;
+      }
+    }
+
+    return bestIndex;
+  };
+
+  const loadSymbolData = (sym: string) => {
+    const upperSym = sym.toUpperCase();
+    const { data } = parseCSV<DailyPrice>({
+      filePath: path.join(DAILY_DIR, `${upperSym}.csv`),
+      header: true,
+    });
+
+    const sortedData = [...data].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+    );
+    return sortedData;
+  };
+
+  const calculateBaseSymbolYoyReturns = (
+    symData: DailyPrice[],
+  ): YoyReturn[] => {
+    const results: YoyReturn[] = [];
+
+    for (let i = 1; i < symData.length; i++) {
+      const curr = symData[i];
+      const baselineIndex = getYoYBaselineIndex(symData, i);
+      const baseline = symData[baselineIndex];
+
+      const currDate = new Date(curr.date).getTime();
+      const baselineDate = new Date(baseline.date).getTime();
+      const yoyDaysPassed = Math.round((currDate - baselineDate) / MS_IN_DAY);
+
+      let yoyReturnPercent = 0;
+      if (yoyDaysPassed > 0 && curr.value != null && baseline.value != null) {
+        const valueRatio = curr.value / baseline.value;
+        // Annualize the return to 365 days
+        yoyReturnPercent =
+          Math.pow(valueRatio, DAYS_IN_YEAR / yoyDaysPassed) - 1;
+      }
+
+      results.push({
+        date: new Date(curr.date).getTime(),
+        baselineDate: new Date(baseline.date).getTime(),
+        daysPassed: yoyDaysPassed,
+        yoyReturnPercent: round(yoyReturnPercent),
+      });
+    }
+
+    return results;
+  };
+
+  // Handle base symbols
+  if (CUMULATIVE_BASE_SYMBOLS.includes(normalizedSymbol)) {
+    const symData = loadSymbolData(normalizedSymbol);
+    return calculateBaseSymbolYoyReturns(symData);
+  }
+
+  // Handle composite symbols
+  if (normalizedSymbol === "mixedcurrency") {
+    const usdData = loadSymbolData("USDTRY");
+    const eurData = loadSymbolData("EURTRY");
+
+    const allDates = [
+      ...new Set([
+        ...usdData.map((d) => d.date),
+        ...eurData.map((d) => d.date),
+      ]),
+    ].sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
+    const results: YoyReturn[] = [];
+
+    for (let i = 1; i < allDates.length; i++) {
+      const currDate = allDates[i];
+      const targetTime =
+        new Date(currDate).getTime() - DAYS_IN_YEAR * MS_IN_DAY;
+
+      // Find closest baseline dates for both symbols
+      const getBaselineDate = (data: DailyPrice[]) => {
+        if (new Date(data[0].date).getTime() >= targetTime) {
+          return data[0];
+        }
+        let best = data[0];
+        let minDiff = Infinity;
+        for (const point of data) {
+          const diff = Math.abs(new Date(point.date).getTime() - targetTime);
+          if (diff < minDiff) {
+            minDiff = diff;
+            best = point;
+          }
+        }
+        return best;
+      };
+
+      const usdBaseline = getBaselineDate(usdData);
+      const eurBaseline = getBaselineDate(eurData);
+
+      const usdCurrent = usdData.find((d) => d.date === currDate);
+      const eurCurrent = eurData.find((d) => d.date === currDate);
+
+      if (usdCurrent && eurCurrent && usdCurrent.value && eurCurrent.value) {
+        const currUsdDate = new Date(currDate).getTime();
+        const baselineUsdDate = new Date(usdBaseline.date).getTime();
+        const yoyDaysPassed = Math.round(
+          (currUsdDate - baselineUsdDate) / MS_IN_DAY,
+        );
+
+        if (yoyDaysPassed > 0 && usdBaseline.value && eurBaseline.value) {
+          const usdRatio = usdCurrent.value / usdBaseline.value;
+          const eurRatio = eurCurrent.value / eurBaseline.value;
+          const compositeRatio = Math.sqrt(usdRatio * eurRatio);
+
+          const yoyReturnPercent =
+            Math.pow(compositeRatio, DAYS_IN_YEAR / yoyDaysPassed) - 1;
+
+          results.push({
+            date: new Date(currDate).getTime(),
+            baselineDate: new Date(usdBaseline.date).getTime(),
+            daysPassed: yoyDaysPassed,
+            yoyReturnPercent: round(yoyReturnPercent),
+          });
+        }
+      }
+    }
+
+    return results;
+  }
+
+  if (normalizedSymbol === "bgpusdtry") {
+    const bgpData = loadSymbolData("BGP");
+    const usdData = loadSymbolData("USDTRY");
+
+    const allDates = [
+      ...new Set([
+        ...bgpData.map((d) => d.date),
+        ...usdData.map((d) => d.date),
+      ]),
+    ].sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
+    const results: YoyReturn[] = [];
+
+    for (let i = 1; i < allDates.length; i++) {
+      const currDate = allDates[i];
+      const targetTime =
+        new Date(currDate).getTime() - DAYS_IN_YEAR * MS_IN_DAY;
+
+      const getBaselineDate = (data: DailyPrice[]) => {
+        if (new Date(data[0].date).getTime() >= targetTime) {
+          return data[0];
+        }
+        let best = data[0];
+        let minDiff = Infinity;
+        for (const point of data) {
+          const diff = Math.abs(new Date(point.date).getTime() - targetTime);
+          if (diff < minDiff) {
+            minDiff = diff;
+            best = point;
+          }
+        }
+        return best;
+      };
+
+      const bgpBaseline = getBaselineDate(bgpData);
+      const usdBaseline = getBaselineDate(usdData);
+
+      const bgpCurrent = bgpData.find((d) => d.date === currDate);
+      const usdCurrent = usdData.find((d) => d.date === currDate);
+
+      if (bgpCurrent && usdCurrent && bgpCurrent.value && usdCurrent.value) {
+        const currDate_ms = new Date(currDate).getTime();
+        const baselineDate_ms = new Date(bgpBaseline.date).getTime();
+        const yoyDaysPassed = Math.round(
+          (currDate_ms - baselineDate_ms) / MS_IN_DAY,
+        );
+
+        if (yoyDaysPassed > 0 && bgpBaseline.value && usdBaseline.value) {
+          const bgpRatio = bgpCurrent.value / bgpBaseline.value;
+          const usdRatio = usdCurrent.value / usdBaseline.value;
+          const compositeRatio = bgpRatio / usdRatio;
+
+          const yoyReturnPercent =
+            Math.pow(compositeRatio, DAYS_IN_YEAR / yoyDaysPassed) - 1;
+
+          results.push({
+            date: new Date(currDate).getTime(),
+            baselineDate: new Date(bgpBaseline.date).getTime(),
+            daysPassed: yoyDaysPassed,
+            yoyReturnPercent: round(yoyReturnPercent),
+          });
+        }
+      }
+    }
+
+    return results;
+  }
+
+  if (normalizedSymbol === "tp2usdtry") {
+    const tp2Data = loadSymbolData("TP2");
+    const usdData = loadSymbolData("USDTRY");
+
+    const allDates = [
+      ...new Set([
+        ...tp2Data.map((d) => d.date),
+        ...usdData.map((d) => d.date),
+      ]),
+    ].sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
+    const results: YoyReturn[] = [];
+
+    for (let i = 1; i < allDates.length; i++) {
+      const currDate = allDates[i];
+      const targetTime =
+        new Date(currDate).getTime() - DAYS_IN_YEAR * MS_IN_DAY;
+
+      const getBaselineDate = (data: DailyPrice[]) => {
+        if (new Date(data[0].date).getTime() >= targetTime) {
+          return data[0];
+        }
+        let best = data[0];
+        let minDiff = Infinity;
+        for (const point of data) {
+          const diff = Math.abs(new Date(point.date).getTime() - targetTime);
+          if (diff < minDiff) {
+            minDiff = diff;
+            best = point;
+          }
+        }
+        return best;
+      };
+
+      const tp2Baseline = getBaselineDate(tp2Data);
+      const usdBaseline = getBaselineDate(usdData);
+
+      const tp2Current = tp2Data.find((d) => d.date === currDate);
+      const usdCurrent = usdData.find((d) => d.date === currDate);
+
+      if (tp2Current && usdCurrent && tp2Current.value && usdCurrent.value) {
+        const currDate_ms = new Date(currDate).getTime();
+        const baselineDate_ms = new Date(tp2Baseline.date).getTime();
+        const yoyDaysPassed = Math.round(
+          (currDate_ms - baselineDate_ms) / MS_IN_DAY,
+        );
+
+        if (yoyDaysPassed > 0 && tp2Baseline.value && usdBaseline.value) {
+          const tp2Ratio = tp2Current.value / tp2Baseline.value;
+          const usdRatio = usdCurrent.value / usdBaseline.value;
+          const compositeRatio = tp2Ratio / usdRatio;
+
+          const yoyReturnPercent =
+            Math.pow(compositeRatio, DAYS_IN_YEAR / yoyDaysPassed) - 1;
+
+          results.push({
+            date: new Date(currDate).getTime(),
+            baselineDate: new Date(tp2Baseline.date).getTime(),
+            daysPassed: yoyDaysPassed,
+            yoyReturnPercent: round(yoyReturnPercent),
+          });
+        }
+      }
+    }
+
+    return results;
+  }
+
+  throw new Error(`Unhandled symbol: ${normalizedSymbol}`);
 };

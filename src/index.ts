@@ -14,7 +14,7 @@ import {
   StockAnalyzer,
 } from "@/lib";
 import { Region, regions } from "@/types";
-import { getCummulativeReturns } from "@/lib/symbol-returns.js";
+import { getCummulativeReturns, getYoyReturns } from "@/lib/symbol-returns.js";
 import { StockResponse } from "./shared/types/index.js";
 
 // --- Express App Setup ---
@@ -70,6 +70,31 @@ router.get("/cummulative-returns", (req, res) => {
     res
       .status(500)
       .json({ error: "Failed to calculate cummulative returns data." });
+  }
+});
+
+/**
+ * @route GET /api/yoy-returns
+ * @description Returns year-over-year annualized returns for a specific symbol.
+ * @queryparam {string} symbol - The symbol to get returns for (e.g., 'BGP', 'TP2', 'USDTRY', 'EURTRY', 'GOLD').
+ */
+router.get("/yoy-returns", (req, res) => {
+  const { symbol } = req.query;
+
+  if (!symbol || typeof symbol !== "string") {
+    res.status(400).json({
+      error:
+        "Symbol query parameter is required (e.g., BGP, TP2, USDTRY, EURTRY, GOLD).",
+    });
+    return;
+  }
+
+  try {
+    const yoyReturns = getYoyReturns(symbol);
+    res.status(200).json(yoyReturns);
+  } catch (error) {
+    console.error("Failed to get YoY returns data:", error);
+    res.status(500).json({ error: "Failed to calculate YoY returns data." });
   }
 });
 

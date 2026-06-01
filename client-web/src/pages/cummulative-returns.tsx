@@ -62,7 +62,7 @@ const alignTimeSeriesData = ({
   bgpUsdtry,
   tp2Usdtry,
 }: CumulativeReturns): {
-  date: string;
+  date: number;
   usdtry?: number;
   eurtry?: number;
   mixedCurrency?: number;
@@ -72,7 +72,7 @@ const alignTimeSeriesData = ({
   bgpUsdtry?: number;
   tp2Usdtry?: number;
 }[] => {
-  const dateSet = new Set<string>([
+  const dateSet = new Set<number>([
     ...usdtry.map((d) => d.date),
     ...eurtry.map((d) => d.date),
     ...mixedCurrency.map((d) => d.date),
@@ -104,7 +104,20 @@ const alignTimeSeriesData = ({
 const CummulativeReturnsChart = ({
   cummulativeReturns,
 }: InferGetStaticPropsType<typeof getStaticProps>) => {
-  const data = alignTimeSeriesData(cummulativeReturns);
+  const allData = alignTimeSeriesData(cummulativeReturns);
+  const allDates = [...new Set(allData.map((d) => d.date))].sort(
+    (a, b) => new Date(a).getTime() - new Date(b).getTime(),
+  );
+
+  const [selectedStartDate, setSelectedStartDate] = useState<number>(
+    allDates[0],
+  );
+  const filteredData = allData.filter((d) => {
+    const date = new Date(d.date).setHours(0, 0, 0, 0);
+    const startDate = new Date(selectedStartDate).setHours(0, 0, 0, 0);
+    return date >= startDate;
+  });
+  console.log("Filtered data for chart:", filteredData);
 
   // pre-determined symbols (keys from CumulativeReturns)
   const allowedSymbols = [
@@ -147,21 +160,52 @@ const CummulativeReturnsChart = ({
           </label>
         ))}
       </div>
+
+      {/* Date range selector */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          marginBottom: 12,
+        }}
+      >
+        <label style={{ fontSize: 12 }}>Start Date:</label>
+        <select
+          style={{ fontSize: 12, padding: "4px 8px" }}
+          value={selectedStartDate}
+          onChange={(e) => setSelectedStartDate(Number(e.target.value))}
+        >
+          {allDates.map((date) => (
+            <option key={date} value={date}>
+              {new Date(date).toLocaleDateString()}
+            </option>
+          ))}
+        </select>
+      </div>
+
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data}>
+        <LineChart data={filteredData}>
           <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="date" minTickGap={20} />
+          <XAxis
+            dataKey="date"
+            minTickGap={20}
+            tickFormatter={(date) => new Date(date).toLocaleDateString()}
+          />
           <YAxis
             tickFormatter={(v) => `${(v * 100).toFixed(2)}%`}
             domain={["auto", "auto"]}
           />
           <Tooltip
             formatter={(value: number) => `${(value * 100).toFixed(2)}%`}
+            labelFormatter={(label: number) =>
+              new Date(label).toLocaleDateString()
+            }
           />
           <Legend />
 
           {/* Render only selected symbol lines */}
-          {data.length > 0 &&
+          {filteredData.length > 0 &&
             selectedSymbols.map((key) => (
               <Line
                 key={key}
