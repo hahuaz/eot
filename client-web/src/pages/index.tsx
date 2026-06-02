@@ -8,6 +8,8 @@ export default function Home() {
       <Link href="/all-stock/tr">View TR Stocks</Link>
       <br />
       <Link href="/cummulative-returns">Cummulative Returns</Link>
+      <br />
+      <Link href="/yoy-returns">YoY Returns</Link>
     </div>
   );
 }
