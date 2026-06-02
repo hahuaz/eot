@@ -9,3 +9,9 @@ export const cumulativeSymbolsAll = [
   ...cumulativeSymbolsBase,
   ...cumulativeSymbolsComposite,
 ];
+
+// symbol tax config
+export const SYMBOL_TAX_CONFIG: Record<string, { withholdingTax: number }> = {
+  bgp: { withholdingTax: 0.175 },
+  tp2: { withholdingTax: 0.175 },
+};

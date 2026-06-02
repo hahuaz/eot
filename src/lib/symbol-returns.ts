@@ -21,6 +21,7 @@ import {
   cumulativeSymbolsAll,
   cumulativeSymbolsBase,
   cumulativeSymbolsComposite,
+  SYMBOL_TAX_CONFIG,
 } from "@/shared/constants";
 
 export function isValidSymbol(symbol: any): boolean {
@@ -36,6 +37,37 @@ export function isValidSymbol(symbol: any): boolean {
   return true;
 }
 
+function getSymbolData(symbol: string): DailyPrice[] {
+  const upperSym = symbol.toUpperCase();
+  const { data } = parseCSV<DailyPrice>({
+    filePath: path.join(DAILY_DIR, `${upperSym}.csv`),
+    header: true,
+  });
+
+  if (!data || data.length === 0) {
+    throw new Error(`Data for symbol ${symbol} not found or empty.`);
+  }
+
+  // symbol data stored as date descending, reverse the data to make it ascending without sorting
+  const dataAsc = [];
+  for (let i = data.length - 1; i >= 0; i--) {
+    dataAsc.push(data[i]);
+  }
+
+  // check corruption if previous date is less than next date
+  for (let i = 1; i < dataAsc.length; i++) {
+    const prevDate = new Date(dataAsc[i - 1].date).getTime();
+    const nextDate = new Date(dataAsc[i].date).getTime();
+    if (prevDate >= nextDate) {
+      throw new Error(
+        `Data for symbol ${symbol} is corrupted. Date order is incorrect.`,
+      );
+    }
+  }
+
+  return dataAsc;
+}
+
 /**
  * This function computes cumulative performance metrics for a specific symbol anchored to a specific observation start date. The resulting data series represents the hypothetical sold net profit, effectively simulating a liquidation event on each specific day. Because withholding tax obligations are calculated based on the total realized gain at the moment of sale, the algorithm recalculates the return from the original baseline for every single day to accurately apply the tax and derive the final net value.
  * @param symbol - The symbol to calculate cumulative returns for
@@ -44,9 +76,6 @@ export const getCummulativeReturns = (symbol: string): CumulativeReturn[] => {
   const normalizedSymbol = symbol.toLowerCase();
   const isAtOrAfterObservationStart = (date: number) =>
     new Date(date).getTime() >= new Date(OBSERVATION_START_DATE).getTime();
-
-  const sortByDateAsc = (a: DailyPrice, b: DailyPrice) =>
-    new Date(a.date).getTime() - new Date(b.date).getTime();
 
   const getLastKnownValue = (history: DailyPrice[], date: number) => {
     let lastValue: number | null = null;
@@ -65,29 +94,24 @@ export const getCummulativeReturns = (symbol: string): CumulativeReturn[] => {
   };
 
   const loadSymbolData = (sym: string) => {
-    const upperSym = sym.toUpperCase();
-    const { data } = parseCSV<DailyPrice>({
-      filePath: path.join(DAILY_DIR, `${upperSym}.csv`),
-      header: true,
-    });
+    const data = getSymbolData(sym);
 
     const startValue = data.find(
       (d) => d.date === OBSERVATION_START_DATE,
     )?.value;
     if (startValue == null) {
       throw new Error(
-        `Baseline date ${OBSERVATION_START_DATE} not found for symbol ${upperSym}.`,
+        `Baseline date ${OBSERVATION_START_DATE} not found for symbol ${sym}.`,
       );
     }
 
-    const sortedData = [...data].sort(sortByDateAsc);
-    return { data: sortedData, startValue };
+    return { data, startValue };
   };
 
-  const calculateBaseSymbolReturns = (
-    symData: { data: DailyPrice[]; startValue: number },
-    isTRSymbol: boolean,
-  ): CumulativeReturn[] => {
+  const calculateBaseSymbolReturns = (symData: {
+    data: DailyPrice[];
+    startValue: number;
+  }): CumulativeReturn[] => {
     const commonDates = symData.data
       .map((entry) => entry.date)
       .filter(isAtOrAfterObservationStart)
@@ -100,9 +124,9 @@ export const getCummulativeReturns = (symbol: string): CumulativeReturn[] => {
         const grossReturn = currentValue / symData.startValue - 1;
 
         // Apply withholding tax for TR-based symbols
-        const netReturn = isTRSymbol
-          ? grossReturn * (1 - TAXES.tr.withholdingTax)
-          : grossReturn;
+        const withholdingTax =
+          SYMBOL_TAX_CONFIG[normalizedSymbol]?.withholdingTax || 0;
+        const netReturn = grossReturn * (1 - withholdingTax);
 
         return {
           date,
@@ -114,8 +138,7 @@ export const getCummulativeReturns = (symbol: string): CumulativeReturn[] => {
   // Handle base symbols
   if (cumulativeSymbolsBase.includes(normalizedSymbol)) {
     const symData = loadSymbolData(normalizedSymbol);
-    const isTRSymbol = ["bgp", "tp2"].includes(normalizedSymbol);
-    return calculateBaseSymbolReturns(symData, isTRSymbol);
+    return calculateBaseSymbolReturns(symData);
   }
 
   console.log(`Calculating returns for composite symbol: ${normalizedSymbol}`);
