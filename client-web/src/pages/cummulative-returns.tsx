@@ -13,7 +13,7 @@ import { useState } from "react";
 import type { InferGetStaticPropsType, GetStaticProps } from "next";
 import { API_URL } from "@/lib";
 import { CumulativeReturns, CumulativeReturn } from "@/shared/types";
-import { CUMULATIVE_ALL_SYMBOLS } from "@/shared/constants";
+import { cumulativeSymbolsAll } from "@/shared/constants";
 
 interface CummulativeReturnsProps extends CumulativeReturns {}
 
@@ -23,7 +23,7 @@ export const getStaticProps: GetStaticProps<{
   // Fetch data for all base and composite symbols
   const symbolData: Record<string, CumulativeReturn[]> = {};
 
-  for (const symbol of CUMULATIVE_ALL_SYMBOLS) {
+  for (const symbol of cumulativeSymbolsAll) {
     const data = await fetch(
       `${API_URL}api/cummulative-returns?symbol=${symbol}`,
     ).then((res) => res.json());

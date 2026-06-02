@@ -18,25 +18,30 @@ import {
   YoyReturn,
 } from "@/shared/types";
 import {
-  CUMULATIVE_ALL_SYMBOLS,
-  CUMULATIVE_BASE_SYMBOLS,
-  CUMULATIVE_COMPOSITE_SYMBOLS,
+  cumulativeSymbolsAll,
+  cumulativeSymbolsBase,
+  cumulativeSymbolsComposite,
 } from "@/shared/constants";
+
+export function isValidSymbol(symbol: any): boolean {
+  if (!symbol || typeof symbol !== "string") {
+    console.error(`Symbol must be a string.`);
+    return false;
+  }
+  const normalizedSymbol = symbol.toLowerCase();
+  if (!cumulativeSymbolsAll.includes(normalizedSymbol)) {
+    console.error(`Invalid symbol.`);
+    return false;
+  }
+  return true;
+}
 
 /**
  * This function computes cumulative performance metrics for a specific symbol anchored to a specific observation start date. The resulting data series represents the hypothetical sold net profit, effectively simulating a liquidation event on each specific day. Because withholding tax obligations are calculated based on the total realized gain at the moment of sale, the algorithm recalculates the return from the original baseline for every single day to accurately apply the tax and derive the final net value.
  * @param symbol - The symbol to calculate cumulative returns for
  */
 export const getCummulativeReturns = (symbol: string): CumulativeReturn[] => {
-  // Validate symbol
   const normalizedSymbol = symbol.toLowerCase();
-
-  if (!CUMULATIVE_ALL_SYMBOLS.includes(normalizedSymbol)) {
-    throw new Error(
-      `Invalid symbol: ${symbol}. Valid symbols are: ${[...CUMULATIVE_BASE_SYMBOLS, ...CUMULATIVE_COMPOSITE_SYMBOLS].join(", ")}`,
-    );
-  }
-
   const isAtOrAfterObservationStart = (date: number) =>
     new Date(date).getTime() >= new Date(OBSERVATION_START_DATE).getTime();
 
@@ -107,7 +112,7 @@ export const getCummulativeReturns = (symbol: string): CumulativeReturn[] => {
   };
 
   // Handle base symbols
-  if (CUMULATIVE_BASE_SYMBOLS.includes(normalizedSymbol)) {
+  if (cumulativeSymbolsBase.includes(normalizedSymbol)) {
     const symData = loadSymbolData(normalizedSymbol);
     const isTRSymbol = ["bgp", "tp2"].includes(normalizedSymbol);
     return calculateBaseSymbolReturns(symData, isTRSymbol);
@@ -265,14 +270,7 @@ export const getNightlyRealRate = ({
  * @param symbol - The symbol to calculate YoY returns for
  */
 export const getYoyReturns = (symbol: string): YoyReturn[] => {
-  // Validate symbol
   const normalizedSymbol = symbol.toLowerCase();
-
-  if (!CUMULATIVE_ALL_SYMBOLS.includes(normalizedSymbol)) {
-    throw new Error(
-      `Invalid symbol: ${symbol}. Valid symbols are: ${[...CUMULATIVE_BASE_SYMBOLS, ...CUMULATIVE_COMPOSITE_SYMBOLS].join(", ")}`,
-    );
-  }
 
   const MS_IN_DAY = 24 * 60 * 60 * 1000;
   const DAYS_IN_YEAR = 365;
@@ -356,7 +354,7 @@ export const getYoyReturns = (symbol: string): YoyReturn[] => {
   };
 
   // Handle base symbols
-  if (CUMULATIVE_BASE_SYMBOLS.includes(normalizedSymbol)) {
+  if (cumulativeSymbolsBase.includes(normalizedSymbol)) {
     const symData = loadSymbolData(normalizedSymbol);
     return calculateBaseSymbolYoyReturns(symData);
   }

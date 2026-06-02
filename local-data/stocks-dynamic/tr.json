@@ -2,9 +2,7 @@
   "ahgaz": {
     "price": 32.92,
     "color": "yellow",
-    "notes": [
-      "Buy after Q3 to capture strong winter seasonality."
-    ]
+    "notes": ["Buy after Q3 to capture strong winter seasonality."]
   },
   "aksen": {
     "price": 80
@@ -52,9 +50,7 @@
   },
   "desa": {
     "price": 20,
-    "notes": [
-      "Q1 '25: 42% of equity is cash/bonds."
-    ]
+    "notes": ["Q1 '25: 42% of equity is cash/bonds."]
   },
   "doas": {
     "price": 184.8
@@ -67,9 +63,7 @@
   },
   "enkai": {
     "price": 100.5,
-    "notes": [
-      "Heavy cash and non-current investment position."
-    ],
+    "notes": ["Heavy cash and non-current investment position."],
     "color": "yellow"
   },
   "eupwr": {
@@ -89,9 +83,7 @@
   },
   "goknr": {
     "price": 24.56,
-    "notes": [
-      "Heavily export-dependent revenue."
-    ]
+    "notes": ["Heavily export-dependent revenue."]
   },
   "grsel": {
     "price": 316.5
@@ -168,9 +160,7 @@
   },
   "rgyas": {
     "price": 192.2,
-    "notes": [
-      "EV/BV irrelevant without profitability."
-    ]
+    "notes": ["EV/BV irrelevant without profitability."]
   },
   "rygyo": {
     "price": 31.48

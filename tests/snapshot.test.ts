@@ -3,7 +3,7 @@ import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
 import { getCummulativeReturns, getYoyReturns } from "@/lib/symbol-returns";
-import { CUMULATIVE_ALL_SYMBOLS } from "@/shared/constants";
+import { cumulativeSymbolsAll } from "@/shared/constants";
 
 const SNAPSHOT_DIR = path.join(process.cwd(), "local-data", "snapshot");
 const DATE_THRESHOLD = 1780261200000;
@@ -34,11 +34,11 @@ function generateSnapshots() {
   }
 
   console.log(
-    `📸 Starting snapshot generation for ${CUMULATIVE_ALL_SYMBOLS.length} symbols...`,
+    `📸 Starting snapshot generation for ${cumulativeSymbolsAll.length} symbols...`,
   );
   console.log(`💾 Snapshots will be saved to: ${SNAPSHOT_DIR}`);
 
-  for (const symbol of CUMULATIVE_ALL_SYMBOLS) {
+  for (const symbol of cumulativeSymbolsAll) {
     try {
       console.log(`\n📊 Processing ${symbol}...`);
 
@@ -78,8 +78,8 @@ function generateSnapshots() {
 
   // Create summary file
   const summary = {
-    totalSymbols: CUMULATIVE_ALL_SYMBOLS.length,
-    symbols: CUMULATIVE_ALL_SYMBOLS,
+    totalSymbols: cumulativeSymbolsAll.length,
+    symbols: cumulativeSymbolsAll,
   };
 
   const summaryPath = path.join(SNAPSHOT_DIR, "snapshot-summary.json");

@@ -13,7 +13,7 @@ import { useState } from "react";
 import type { InferGetStaticPropsType, GetStaticProps } from "next";
 import { API_URL } from "@/lib";
 import { YoyReturn } from "@/shared/types";
-import { CUMULATIVE_ALL_SYMBOLS } from "@/shared/constants";
+import { cumulativeSymbolsAll } from "@/shared/constants";
 
 interface YoyReturnsData {
   [key: string]: YoyReturn[];
@@ -25,7 +25,7 @@ export const getStaticProps: GetStaticProps<{
   // Fetch data for all base and composite symbols
   const symbolData: Record<string, YoyReturn[]> = {};
 
-  for (const symbol of CUMULATIVE_ALL_SYMBOLS) {
+  for (const symbol of cumulativeSymbolsAll) {
     try {
       const data = await fetch(
         `${API_URL}api/yoy-returns?symbol=${symbol}`,

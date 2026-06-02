@@ -31,9 +31,7 @@
   },
   "trgyo": {
     "price": 104.8,
-    "notes": [
-      "2025 Net Income target 20b vs Q1 actual 0.76b."
-    ]
+    "notes": ["2025 Net Income target 20b vs Q1 actual 0.76b."]
   },
   "eregl": {
     "price": 40.86
@@ -41,9 +39,7 @@
   "bsoke": {
     "price": 38.98,
     "color": "red",
-    "notes": [
-      "3 paid capital increases in last 10 years."
-    ]
+    "notes": ["3 paid capital increases in last 10 years."]
   },
   "gubrf": {
     "price": 617.5
