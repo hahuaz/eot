@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
-import { getCummulativeReturns, getYoyReturns } from "@/lib/symbol-returns";
+import { SymbolReturnsCalculator } from "@/lib/symbol-returns";
 import { cumulativeSymbolsAll } from "@/shared/constants";
 
 const SNAPSHOT_DIR = path.join(process.cwd(), "local-data", "snapshot");
@@ -10,8 +10,10 @@ const DATE_THRESHOLD = 1780261200000;
 
 interface SymbolSnapshot {
   symbol: string;
-  cumulativeReturns: ReturnType<typeof getCummulativeReturns>;
-  yoyReturns: ReturnType<typeof getYoyReturns>;
+  cumulativeReturns: ReturnType<
+    SymbolReturnsCalculator["getCummulativeReturns"]
+  >;
+  yoyReturns: ReturnType<SymbolReturnsCalculator["getYoyReturns"]>;
 }
 
 /**
@@ -43,8 +45,9 @@ function generateSnapshots() {
       console.log(`\n📊 Processing ${symbol}...`);
 
       // Get cumulative and YoY returns
-      let cumulativeReturns = getCummulativeReturns(symbol);
-      let yoyReturns = getYoyReturns(symbol);
+      const calculator = new SymbolReturnsCalculator(symbol);
+      let cumulativeReturns = calculator.getCummulativeReturns();
+      let yoyReturns = calculator.getYoyReturns();
 
       // Filter to only include dates less than threshold
       cumulativeReturns = filterByDateThreshold(

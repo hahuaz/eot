@@ -44,8 +44,8 @@ export const getStaticProps: GetStaticProps<{
     eurtry: symbolData.eurtry,
     gold: symbolData.gold,
     mixedcurrency: symbolData.mixedcurrency,
-    bgpusdtry: symbolData.bgpusdtry,
-    tp2usdtry: symbolData.tp2usdtry,
+    bgp_usdtry: symbolData.bgp_usdtry,
+    tp2_usdtry: symbolData.tp2_usdtry,
   };
 
   return {
@@ -123,8 +123,8 @@ const YoyReturnsChart = ({
   const allowedSymbols = [
     "bgp",
     "tp2",
-    "bgpusdtry",
-    "tp2usdtry",
+    "bgp_usdtry",
+    "tp2_usdtry",
     "gold",
     "mixedcurrency",
     "usdtry",
@@ -132,8 +132,8 @@ const YoyReturnsChart = ({
   ];
 
   const [selectedSymbols, setSelectedSymbols] = useState<string[]>([
-    "bgpusdtry",
-    "tp2usdtry",
+    "bgp_usdtry",
+    "tp2_usdtry",
     "gold",
   ]);
 
@@ -144,8 +144,8 @@ const YoyReturnsChart = ({
     eurtry: "#FFD700",
     gold: "#FFD700",
     mixedcurrency: "#FF8C00",
-    bgpusdtry: "#9932CC",
-    tp2usdtry: "#FF1493",
+    bgp_usdtry: "#9932CC",
+    tp2_usdtry: "#FF1493",
   };
 
   return (
@@ -209,7 +209,7 @@ const YoyReturnsChart = ({
 
       {/* Chart */}
       <div className="mt-6 bg-white rounded-lg shadow p-4">
-        <ResponsiveContainer width="100%" height={500}>
+        <ResponsiveContainer width="100%" height={1000}>
           <LineChart data={filteredData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis

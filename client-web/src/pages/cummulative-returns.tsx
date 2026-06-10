@@ -36,9 +36,9 @@ export const getStaticProps: GetStaticProps<{
     usdtry: symbolData.usdtry,
     eurtry: symbolData.eurtry,
     gold: symbolData.gold,
-    mixedCurrency: symbolData.mixedcurrency,
-    bgpUsdtry: symbolData.bgpusdtry,
-    tp2Usdtry: symbolData.tp2usdtry,
+    mixedcurrency: symbolData.mixedcurrency,
+    bgp_usdtry: symbolData.bgp_usdtry,
+    tp2_usdtry: symbolData.tp2_usdtry,
   };
 
   return {
@@ -55,32 +55,32 @@ export const getStaticProps: GetStaticProps<{
 const alignTimeSeriesData = ({
   usdtry,
   eurtry,
-  mixedCurrency,
+  mixedcurrency,
   bgp,
   tp2,
   gold,
-  bgpUsdtry,
-  tp2Usdtry,
+  bgp_usdtry,
+  tp2_usdtry,
 }: CumulativeReturns): {
   date: number;
   usdtry?: number;
   eurtry?: number;
-  mixedCurrency?: number;
+  mixedcurrency?: number;
   bgp?: number;
   tp2?: number;
   gold?: number;
-  bgpUsdtry?: number;
-  tp2Usdtry?: number;
+  bgp_usdtry?: number;
+  tp2_usdtry?: number;
 }[] => {
   const dateSet = new Set<number>([
     ...usdtry.map((d) => d.date),
     ...eurtry.map((d) => d.date),
-    ...mixedCurrency.map((d) => d.date),
+    ...mixedcurrency.map((d) => d.date),
     ...bgp.map((d) => d.date),
     ...tp2.map((d) => d.date),
     ...gold.map((d) => d.date),
-    ...bgpUsdtry.map((d) => d.date),
-    ...tp2Usdtry.map((d) => d.date),
+    ...bgp_usdtry.map((d) => d.date),
+    ...tp2_usdtry.map((d) => d.date),
   ]);
 
   const sortedDates = [...dateSet].sort(
@@ -91,13 +91,13 @@ const alignTimeSeriesData = ({
     date,
     usdtry: usdtry.find((d) => d.date === date)?.value ?? undefined,
     eurtry: eurtry.find((d) => d.date === date)?.value ?? undefined,
-    mixedCurrency:
-      mixedCurrency.find((d) => d.date === date)?.value ?? undefined,
+    mixedcurrency:
+      mixedcurrency.find((d) => d.date === date)?.value ?? undefined,
     bgp: bgp.find((d) => d.date === date)?.value ?? undefined,
     tp2: tp2.find((d) => d.date === date)?.value ?? undefined,
     gold: gold.find((d) => d.date === date)?.value ?? undefined,
-    bgpUsdtry: bgpUsdtry.find((d) => d.date === date)?.value ?? undefined,
-    tp2Usdtry: tp2Usdtry.find((d) => d.date === date)?.value ?? undefined,
+    bgp_usdtry: bgp_usdtry.find((d) => d.date === date)?.value ?? undefined,
+    tp2_usdtry: tp2_usdtry.find((d) => d.date === date)?.value ?? undefined,
   }));
 };
 
@@ -123,17 +123,17 @@ const CummulativeReturnsChart = ({
   const allowedSymbols = [
     "bgp",
     "tp2",
-    "bgpUsdtry",
-    "tp2Usdtry",
+    "bgp_usdtry",
+    "tp2_usdtry",
     "gold",
-    "mixedCurrency",
+    "mixedcurrency",
     "usdtry",
     "eurtry",
   ];
 
   const [selectedSymbols, setSelectedSymbols] = useState<string[]>([
-    "bgpUsdtry",
-    "tp2Usdtry",
+    "bgp_usdtry",
+    "tp2_usdtry",
     "gold",
   ]);
 
@@ -216,13 +216,13 @@ const CummulativeReturnsChart = ({
                     ? "#0008ff"
                     : key === "tp2"
                       ? "#00ff00"
-                      : key === "bgpUsdtry"
+                      : key === "bgp_usdtry"
                         ? "#8A2BE2"
-                        : key === "tp2Usdtry"
+                        : key === "tp2_usdtry"
                           ? "#FF4500"
                           : key === "gold"
                             ? "#FFD700"
-                            : key === "mixedCurrency"
+                            : key === "mixedcurrency"
                               ? "#cc0000"
                               : key === "usdtry"
                                 ? "gray"

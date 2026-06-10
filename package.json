@@ -16,7 +16,8 @@
     "check:ts": "pnpm -w exec tsc --noEmit && pnpm -w exec tsc --noEmit --project client-web/tsconfig.json",
     "check:lint": "oxlint",
     "check:prettier": "prettier --write .",
-    "check": "concurrently \"pnpm check:ts\" \"pnpm check:lint\" \"pnpm check:prettier\""
+    "check:all": "concurrently \"pnpm check:ts\" \"pnpm check:lint\" \"pnpm check:prettier\"",
+    "check": "git add . && sh .husky/pre-commit"
   },
   "keywords": [],
   "author": "",

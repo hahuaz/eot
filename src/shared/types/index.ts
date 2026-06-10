@@ -125,12 +125,12 @@ export type YoyReturn = {
 export type CumulativeReturns = {
   usdtry: CumulativeReturn[];
   eurtry: CumulativeReturn[];
-  mixedCurrency: CumulativeReturn[];
+  mixedcurrency: CumulativeReturn[];
   bgp: CumulativeReturn[];
   gold: CumulativeReturn[];
   tp2: CumulativeReturn[];
-  bgpUsdtry: CumulativeReturn[];
-  tp2Usdtry: CumulativeReturn[];
+  bgp_usdtry: CumulativeReturn[];
+  tp2_usdtry: CumulativeReturn[];
 };
 
 // API responses

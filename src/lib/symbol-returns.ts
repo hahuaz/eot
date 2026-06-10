@@ -3,26 +3,33 @@ import {
   parseCSV,
   DAILY_DIR,
   OBSERVATION_START_DATE,
-  DAILY_SAVED_SYMBOLS,
   TAXES,
   calcRealRate,
   LAST_DATE,
   round,
 } from "@/lib";
 import { DailyPrice } from "@/types";
-import {
-  CumulativeReturn,
-  CumulativeReturns,
-  DATES,
-  Inflation,
-  YoyReturn,
-} from "@/shared/types";
-import {
-  cumulativeSymbolsAll,
-  cumulativeSymbolsBase,
-  cumulativeSymbolsComposite,
-  SYMBOL_TAX_CONFIG,
-} from "@/shared/constants";
+import { CumulativeReturn, Inflation, YoyReturn } from "@/shared/types";
+import { returnSymbolConfig, cumulativeSymbolsAll } from "@/shared/constants";
+
+const USDTRY_SYMBOL = "USDTRY";
+
+export const MS_IN_DAY = 24 * 60 * 60 * 1000;
+export const DAYS_IN_YEAR = 365;
+
+/**
+ * Given two timestamps, calculates the number of days between them.
+ */
+export const getDaysBetween = (startDate: number, endDate: number): number => {
+  return Math.round((endDate - startDate) / MS_IN_DAY);
+};
+
+/**
+ * Given a price ratio and the number of days it represents, annualizes the return.
+ */
+export const annualizeRatio = (ratio: number, days: number): number => {
+  return Math.pow(ratio, DAYS_IN_YEAR / days) - 1;
+};
 
 export function isValidSymbol(symbol: any): boolean {
   if (!symbol || typeof symbol !== "string") {
@@ -37,205 +44,408 @@ export function isValidSymbol(symbol: any): boolean {
   return true;
 }
 
-function getSymbolData(symbol: string): DailyPrice[] {
-  const upperSym = symbol.toUpperCase();
-  const { data } = parseCSV<DailyPrice>({
-    filePath: path.join(DAILY_DIR, `${upperSym}.csv`),
-    header: true,
-  });
+/**
+ * A cohesive calculator class for computing cumulative and YoY returns.
+ * Caches CSV parsed data and constructed price maps to optimize performance.
+ */
+export class SymbolReturnsCalculator {
+  private readonly symbol: string;
+  private readonly config: (typeof returnSymbolConfig)[keyof typeof returnSymbolConfig];
 
-  if (!data || data.length === 0) {
-    throw new Error(`Data for symbol ${symbol} not found or empty.`);
+  private static readonly symbolDataCache = new Map<string, DailyPrice[]>();
+  private static readonly priceMapCache = new Map<
+    string,
+    Map<number, number>
+  >();
+
+  constructor(symbol: string) {
+    if (!isValidSymbol(symbol)) {
+      throw new Error(`Invalid symbol: ${symbol}`);
+    }
+    this.symbol = symbol.toLowerCase();
+    const config =
+      returnSymbolConfig[this.symbol as keyof typeof returnSymbolConfig];
+    if (!config) {
+      throw new Error(`Unhandled symbol: ${this.symbol}`);
+    }
+    this.config = config;
   }
 
-  // symbol data stored as date descending, reverse the data to make it ascending without sorting
-  const dataAsc = [];
-  for (let i = data.length - 1; i >= 0; i--) {
-    dataAsc.push(data[i]);
+  /**
+   * Retrieves historical price data for a given symbol, caching the result.
+   */
+  private getSymbolData(symbol: string): DailyPrice[] {
+    const upperSym = symbol.toUpperCase();
+    let data = SymbolReturnsCalculator.symbolDataCache.get(upperSym);
+    if (!data) {
+      const { data: parsedData } = parseCSV<DailyPrice>({
+        filePath: path.join(DAILY_DIR, `${upperSym}.csv`),
+        header: true,
+      });
+
+      if (!parsedData || parsedData.length === 0) {
+        throw new Error(`Data for symbol ${symbol} not found or empty.`);
+      }
+
+      const startEntry = parsedData.find(
+        (d) => d.date === OBSERVATION_START_DATE,
+      );
+      if (!startEntry || startEntry.value == null) {
+        throw new Error(
+          `Baseline date ${OBSERVATION_START_DATE} not found for symbol ${symbol}.`,
+        );
+      }
+
+      // Safely reverse descending data to ascending order without mutating original array
+      const dataAsc = [...parsedData].reverse();
+
+      // Validate date integrity
+      for (let i = 1; i < dataAsc.length; i++) {
+        const prevDate = new Date(dataAsc[i - 1].date).getTime();
+        const nextDate = new Date(dataAsc[i].date).getTime();
+        if (prevDate >= nextDate) {
+          throw new Error(
+            `Data for symbol ${symbol} is corrupted. Date order is incorrect.`,
+          );
+        }
+      }
+
+      data = dataAsc;
+      SymbolReturnsCalculator.symbolDataCache.set(upperSym, data);
+    }
+    return data;
   }
 
-  // check corruption if previous date is less than next date
-  for (let i = 1; i < dataAsc.length; i++) {
-    const prevDate = new Date(dataAsc[i - 1].date).getTime();
-    const nextDate = new Date(dataAsc[i].date).getTime();
-    if (prevDate >= nextDate) {
+  /**
+   * Retrieves the price map for a given symbol, caching the result.
+   */
+  private getPriceMap(symbol: string): Map<number, number> {
+    const upperSym = symbol.toUpperCase();
+    let priceMap = SymbolReturnsCalculator.priceMapCache.get(upperSym);
+    if (!priceMap) {
+      const data = this.getSymbolData(symbol);
+      priceMap = new Map(data.map((entry) => [entry.date, entry.value]));
+      SymbolReturnsCalculator.priceMapCache.set(upperSym, priceMap);
+    }
+    return priceMap;
+  }
+
+  /**
+   * Safely retrieves a value from a symbol's price map.
+   */
+  private getValue(symbol: string, date: number): number {
+    const priceMap = this.getPriceMap(symbol);
+    const value = priceMap.get(date);
+    if (value === undefined) {
       throw new Error(
-        `Data for symbol ${symbol} is corrupted. Date order is incorrect.`,
+        `Missing historical price for date ${date} in symbol ${symbol}`,
       );
     }
+    return value;
   }
 
-  return dataAsc;
-}
+  /**
+   * Finds the intersection of dates present in both datasets and
+   * filters by the observation window.
+   */
+  private getCommonDates(dataA: DailyPrice[], dataB: DailyPrice[]): number[] {
+    const datesA = new Set(dataA.map((d) => d.date));
 
-/**
- * This function computes cumulative performance metrics for a specific symbol anchored to a specific observation start date. The resulting data series represents the hypothetical sold net profit, effectively simulating a liquidation event on each specific day. Because withholding tax obligations are calculated based on the total realized gain at the moment of sale, the algorithm recalculates the return from the original baseline for every single day to accurately apply the tax and derive the final net value.
- * @param symbol - The symbol to calculate cumulative returns for
- */
-export const getCummulativeReturns = (symbol: string): CumulativeReturn[] => {
-  const normalizedSymbol = symbol.toLowerCase();
-  const isAtOrAfterObservationStart = (date: number) =>
-    new Date(date).getTime() >= new Date(OBSERVATION_START_DATE).getTime();
+    return dataB
+      .map((d) => d.date)
+      .filter(
+        (date) =>
+          datesA.has(date) &&
+          date >= OBSERVATION_START_DATE &&
+          date !== OBSERVATION_START_DATE,
+      );
+  }
 
-  const getLastKnownValue = (history: DailyPrice[], date: number) => {
-    let lastValue: number | null = null;
-    const targetTime = new Date(date).getTime();
-    for (const entry of history) {
-      const entryTime = new Date(entry.date).getTime();
-      if (entryTime > targetTime) break;
-      if (entry.value != null) {
-        lastValue = entry.value;
+  /**
+   * Gets the start entry and returns slice starting after the observation date.
+   */
+  private getObservationStart(
+    data: DailyPrice[],
+    symbol: string,
+  ): { startEntry: DailyPrice; returnDates: DailyPrice[] } {
+    const startIndex = data.findIndex(
+      (entry) => entry.date === OBSERVATION_START_DATE,
+    );
+
+    if (startIndex === -1) {
+      throw new Error(
+        `Baseline date ${OBSERVATION_START_DATE} not found for symbol ${symbol}.`,
+      );
+    }
+
+    return {
+      startEntry: data[startIndex],
+      returnDates: data.slice(startIndex + 1),
+    };
+  }
+
+  /**
+   * For given historical price data and target date, finds the closest prior-year entry.
+   */
+  private getClosestEntry(data: DailyPrice[], targetDate: number): DailyPrice {
+    let closestEntry = data[0];
+    let minDiff = Infinity;
+
+    for (const entry of data) {
+      const diff = Math.abs(entry.date - targetDate);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closestEntry = entry;
       }
     }
-    if (lastValue == null) {
-      throw new Error(`Missing historical price for date ${date}`);
-    }
-    return lastValue;
-  };
 
-  const loadSymbolData = (sym: string) => {
-    const data = getSymbolData(sym);
+    return closestEntry;
+  }
 
-    const startValue = data.find(
-      (d) => d.date === OBSERVATION_START_DATE,
-    )?.value;
-    if (startValue == null) {
-      throw new Error(
-        `Baseline date ${OBSERVATION_START_DATE} not found for symbol ${sym}.`,
+  /**
+   * Creates YoYReturn structure.
+   */
+  private createYoyReturn({
+    currentDate,
+    baselineDate,
+    ratio,
+  }: {
+    currentDate: number;
+    baselineDate: number;
+    ratio: number;
+  }): YoyReturn {
+    const daysPassed = getDaysBetween(baselineDate, currentDate);
+
+    return {
+      date: currentDate,
+      baselineDate,
+      daysPassed,
+      yoyReturnPercent:
+        daysPassed > 0 ? round(annualizeRatio(ratio, daysPassed)) : 0,
+    };
+  }
+
+  /**
+   * YoY returns calculation for single symbols.
+   */
+  private calculateSingleSymbolYoyReturns(symbol: string): YoyReturn[] {
+    const symbolData = this.getSymbolData(symbol);
+    const results: YoyReturn[] = [];
+
+    for (let i = 1; i < symbolData.length; i++) {
+      const currentEntry = symbolData[i];
+      const targetDate = currentEntry.date - DAYS_IN_YEAR * MS_IN_DAY;
+      const baselineEntry = this.getClosestEntry(
+        symbolData.slice(0, i),
+        targetDate,
+      );
+      const ratio =
+        currentEntry.value != null && baselineEntry.value != null
+          ? currentEntry.value / baselineEntry.value
+          : 1;
+
+      results.push(
+        this.createYoyReturn({
+          currentDate: currentEntry.date,
+          baselineDate: baselineEntry.date,
+          ratio,
+        }),
       );
     }
 
-    return { data, startValue };
-  };
+    return results;
+  }
 
-  const calculateBaseSymbolReturns = (symData: {
-    data: DailyPrice[];
-    startValue: number;
-  }): CumulativeReturn[] => {
-    const commonDates = symData.data
-      .map((entry) => entry.date)
-      .filter(isAtOrAfterObservationStart)
-      .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+  /**
+   * YoY returns calculation for paired/combined symbols.
+   */
+  private calculatePairedSymbolYoyReturns({
+    firstSymbol,
+    secondSymbol,
+    combineRatios,
+  }: {
+    firstSymbol: string;
+    secondSymbol: string;
+    combineRatios: (firstRatio: number, secondRatio: number) => number;
+  }): YoyReturn[] {
+    const firstData = this.getSymbolData(firstSymbol);
+    const secondData = this.getSymbolData(secondSymbol);
+    const results: YoyReturn[] = [];
 
-    return commonDates
-      .filter((date) => date !== OBSERVATION_START_DATE)
-      .map((date) => {
-        const currentValue = getLastKnownValue(symData.data, date);
-        const grossReturn = currentValue / symData.startValue - 1;
+    for (const currentDate of this.getCommonDates(firstData, secondData)) {
+      const firstValue = this.getValue(firstSymbol, currentDate);
+      const secondValue = this.getValue(secondSymbol, currentDate);
+      const targetDate = currentDate - DAYS_IN_YEAR * MS_IN_DAY;
+      const firstBaseline = this.getClosestEntry(firstData, targetDate);
+      const secondBaseline = this.getClosestEntry(secondData, targetDate);
 
-        // Apply withholding tax for TR-based symbols
-        const withholdingTax =
-          SYMBOL_TAX_CONFIG[normalizedSymbol]?.withholdingTax || 0;
+      if (!firstBaseline.value || !secondBaseline.value) {
+        continue;
+      }
+
+      const ratio = combineRatios(
+        firstValue / firstBaseline.value,
+        secondValue / secondBaseline.value,
+      );
+
+      results.push(
+        this.createYoyReturn({
+          currentDate,
+          baselineDate: firstBaseline.date,
+          ratio,
+        }),
+      );
+    }
+
+    return results;
+  }
+
+  /**
+   * Calculates cumulative returns.
+   */
+  public getCummulativeReturns(): CumulativeReturn[] {
+    const config = this.config;
+
+    if (config.kind === "base") {
+      const symbolData = this.getSymbolData(config.symbol);
+      const { startEntry, returnDates } = this.getObservationStart(
+        symbolData,
+        config.symbol,
+      );
+
+      const withholdingTax =
+        "withholdingTax" in config ? config.withholdingTax : 0;
+
+      return returnDates.map((entry) => {
+        const currentValue = this.getValue(config.symbol, entry.date);
+        const grossReturn = currentValue / startEntry.value - 1;
         const netReturn = grossReturn * (1 - withholdingTax);
 
         return {
-          date,
+          date: entry.date,
           value: netReturn,
         };
       });
-  };
+    }
 
-  // Handle base symbols
-  if (cumulativeSymbolsBase.includes(normalizedSymbol)) {
-    const symData = loadSymbolData(normalizedSymbol);
-    return calculateBaseSymbolReturns(symData);
-  }
+    console.log(`Calculating returns for configured symbol: ${this.symbol}`);
 
-  console.log(`Calculating returns for composite symbol: ${normalizedSymbol}`);
-  // Handle composite symbols
-  if (normalizedSymbol === "mixedcurrency") {
-    const usdData = loadSymbolData("USDTRY");
-    const eurData = loadSymbolData("EURTRY");
+    if (config.kind === "currencyBasket") {
+      const [firstCurrencySymbol, secondCurrencySymbol] = config.symbols;
+      const firstCurrencyData = this.getSymbolData(firstCurrencySymbol);
+      const secondCurrencyData = this.getSymbolData(secondCurrencySymbol);
 
-    const commonDates = [
-      ...new Set([
-        ...usdData.data.map((d) => d.date),
-        ...eurData.data.map((d) => d.date),
-      ]),
-    ]
-      .filter(isAtOrAfterObservationStart)
-      .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+      const { startEntry: firstCurrencyStartEntry } = this.getObservationStart(
+        firstCurrencyData,
+        firstCurrencySymbol,
+      );
+      const { startEntry: secondCurrencyStartEntry } = this.getObservationStart(
+        secondCurrencyData,
+        secondCurrencySymbol,
+      );
 
-    return commonDates
-      .filter((date) => date !== OBSERVATION_START_DATE)
-      .map((date) => {
-        const usdValue = getLastKnownValue(usdData.data, date);
-        const eurValue = getLastKnownValue(eurData.data, date);
+      const commonDates = this.getCommonDates(
+        firstCurrencyData,
+        secondCurrencyData,
+      );
 
-        const usdReturn = usdValue / usdData.startValue - 1;
-        const eurReturn = eurValue / eurData.startValue - 1;
+      return commonDates.map((date) => {
+        const firstCurrencyValue = this.getValue(firstCurrencySymbol, date);
+        const secondCurrencyValue = this.getValue(secondCurrencySymbol, date);
 
-        return {
-          date,
-          value: Math.sqrt((1 + usdReturn) * (1 + eurReturn)) - 1,
-        };
-      });
-  }
-
-  if (normalizedSymbol === "bgpusdtry") {
-    const bgpData = loadSymbolData("BGP");
-    const usdData = loadSymbolData("USDTRY");
-
-    const commonDates = [
-      ...new Set([
-        ...bgpData.data.map((d) => d.date),
-        ...usdData.data.map((d) => d.date),
-      ]),
-    ]
-      .filter(isAtOrAfterObservationStart)
-      .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
-
-    return commonDates
-      .filter((date) => date !== OBSERVATION_START_DATE)
-      .map((date) => {
-        const bgpValue = getLastKnownValue(bgpData.data, date);
-        const usdValue = getLastKnownValue(usdData.data, date);
-
-        const bgpGrossReturn = bgpValue / bgpData.startValue - 1;
-        const bgpNetReturn = bgpGrossReturn * (1 - TAXES.tr.withholdingTax);
-
-        const usdReturn = usdValue / usdData.startValue - 1;
+        const firstCurrencyReturn =
+          firstCurrencyValue / firstCurrencyStartEntry.value - 1;
+        const secondCurrencyReturn =
+          secondCurrencyValue / secondCurrencyStartEntry.value - 1;
 
         return {
           date,
-          value: (1 + bgpNetReturn) / (1 + usdReturn) - 1,
+          value:
+            Math.sqrt((1 + firstCurrencyReturn) * (1 + secondCurrencyReturn)) -
+            1,
         };
       });
-  }
+    }
 
-  if (normalizedSymbol === "tp2usdtry") {
-    const tp2Data = loadSymbolData("TP2");
-    const usdData = loadSymbolData("USDTRY");
+    if (config.kind === "usdAdjusted") {
+      const investmentData = this.getSymbolData(config.symbol);
+      const usdtryData = this.getSymbolData(USDTRY_SYMBOL);
 
-    const commonDates = [
-      ...new Set([
-        ...tp2Data.data.map((d) => d.date),
-        ...usdData.data.map((d) => d.date),
-      ]),
-    ]
-      .filter(isAtOrAfterObservationStart)
-      .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+      const { startEntry: investmentStartEntry } = this.getObservationStart(
+        investmentData,
+        config.symbol,
+      );
+      const { startEntry: usdtryStartEntry } = this.getObservationStart(
+        usdtryData,
+        USDTRY_SYMBOL,
+      );
 
-    return commonDates
-      .filter((date) => date !== OBSERVATION_START_DATE)
-      .map((date) => {
-        const tp2Value = getLastKnownValue(tp2Data.data, date);
-        const usdValue = getLastKnownValue(usdData.data, date);
+      const commonDates = this.getCommonDates(investmentData, usdtryData);
 
-        const tp2GrossReturn = tp2Value / tp2Data.startValue - 1;
-        const tp2NetReturn = tp2GrossReturn * (1 - TAXES.tr.withholdingTax);
+      return commonDates.map((date) => {
+        const investmentValue = this.getValue(config.symbol, date);
+        const usdtryValue = this.getValue(USDTRY_SYMBOL, date);
 
-        const usdReturn = usdValue / usdData.startValue - 1;
+        const investmentGrossReturn =
+          investmentValue / investmentStartEntry.value - 1;
+        const withholdingTax =
+          "withholdingTax" in config ? config.withholdingTax : 0;
+        const investmentNetReturn =
+          investmentGrossReturn * (1 - withholdingTax);
+
+        const usdtryReturn = usdtryValue / usdtryStartEntry.value - 1;
 
         return {
           date,
-          value: (1 + tp2NetReturn) / (1 + usdReturn) - 1,
+          value: (1 + investmentNetReturn) / (1 + usdtryReturn) - 1,
         };
       });
+    }
+
+    throw new Error(`Unhandled symbol kind: ${(config as any).kind}`);
   }
 
-  throw new Error(`Unhandled symbol: ${normalizedSymbol}`);
-};
+  /**
+   * Calculates YoY returns.
+   */
+  public getYoyReturns(): YoyReturn[] {
+    const config = this.config;
+
+    if (config.kind === "base") {
+      return this.calculateSingleSymbolYoyReturns(config.symbol);
+    }
+
+    if (config.kind === "currencyBasket") {
+      const [firstSymbol, secondSymbol] = config.symbols;
+
+      return this.calculatePairedSymbolYoyReturns({
+        firstSymbol,
+        secondSymbol,
+        combineRatios: (firstRatio, secondRatio) =>
+          Math.sqrt(firstRatio * secondRatio),
+      });
+    }
+
+    if (config.kind === "usdAdjusted") {
+      return this.calculatePairedSymbolYoyReturns({
+        firstSymbol: config.symbol,
+        secondSymbol: USDTRY_SYMBOL,
+        combineRatios: (investmentRatio, usdtryRatio) =>
+          investmentRatio / usdtryRatio,
+      });
+    }
+
+    throw new Error(`Unhandled symbol kind: ${(config as any).kind}`);
+  }
+
+  /**
+   * Clears the static cache (useful for testing or if new files are scrape/written dynamically).
+   */
+  public static clearCache(): void {
+    SymbolReturnsCalculator.symbolDataCache.clear();
+    SymbolReturnsCalculator.priceMapCache.clear();
+  }
+}
 
 /**
  * Turkey started appreciating its currency around 2025. Calc nightly yield of Turkish lira.
@@ -284,309 +494,4 @@ export const getNightlyRealRate = ({
   });
 
   return round(ttmNightlyYield);
-};
-
-/**
- * Calculates year-over-year (YoY) annualized returns for a specific symbol.
- * For each date, finds the closest data point 1 year prior (or uses the oldest if 1 year unavailable)
- * and calculates the annualized return based on actual days passed.
- * @param symbol - The symbol to calculate YoY returns for
- */
-export const getYoyReturns = (symbol: string): YoyReturn[] => {
-  const normalizedSymbol = symbol.toLowerCase();
-
-  const MS_IN_DAY = 24 * 60 * 60 * 1000;
-  const DAYS_IN_YEAR = 365;
-
-  /**
-   * Finds the index of the data point closest to 1 year (365 days) prior to the current index.
-   * If 1 year of history is not available, it returns 0 (the oldest available point).
-   */
-  const getYoYBaselineIndex = (
-    dataPoints: DailyPrice[],
-    currentIndex: number,
-  ): number => {
-    const currentPoint = dataPoints[currentIndex];
-    const targetTime =
-      new Date(currentPoint.date).getTime() - DAYS_IN_YEAR * MS_IN_DAY;
-
-    if (new Date(dataPoints[0].date).getTime() >= targetTime) {
-      return 0;
-    }
-
-    let bestIndex = 0;
-    let minDiff = Infinity;
-
-    for (let j = 0; j < currentIndex; j++) {
-      const diff = Math.abs(
-        new Date(dataPoints[j].date).getTime() - targetTime,
-      );
-      if (diff < minDiff) {
-        minDiff = diff;
-        bestIndex = j;
-      }
-    }
-
-    return bestIndex;
-  };
-
-  const loadSymbolData = (sym: string) => {
-    const upperSym = sym.toUpperCase();
-    const { data } = parseCSV<DailyPrice>({
-      filePath: path.join(DAILY_DIR, `${upperSym}.csv`),
-      header: true,
-    });
-
-    const sortedData = [...data].sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-    );
-    return sortedData;
-  };
-
-  const calculateBaseSymbolYoyReturns = (
-    symData: DailyPrice[],
-  ): YoyReturn[] => {
-    const results: YoyReturn[] = [];
-
-    for (let i = 1; i < symData.length; i++) {
-      const curr = symData[i];
-      const baselineIndex = getYoYBaselineIndex(symData, i);
-      const baseline = symData[baselineIndex];
-
-      const currDate = new Date(curr.date).getTime();
-      const baselineDate = new Date(baseline.date).getTime();
-      const yoyDaysPassed = Math.round((currDate - baselineDate) / MS_IN_DAY);
-
-      let yoyReturnPercent = 0;
-      if (yoyDaysPassed > 0 && curr.value != null && baseline.value != null) {
-        const valueRatio = curr.value / baseline.value;
-        // Annualize the return to 365 days
-        yoyReturnPercent =
-          Math.pow(valueRatio, DAYS_IN_YEAR / yoyDaysPassed) - 1;
-      }
-
-      results.push({
-        date: new Date(curr.date).getTime(),
-        baselineDate: new Date(baseline.date).getTime(),
-        daysPassed: yoyDaysPassed,
-        yoyReturnPercent: round(yoyReturnPercent),
-      });
-    }
-
-    return results;
-  };
-
-  // Handle base symbols
-  if (cumulativeSymbolsBase.includes(normalizedSymbol)) {
-    const symData = loadSymbolData(normalizedSymbol);
-    return calculateBaseSymbolYoyReturns(symData);
-  }
-
-  // Handle composite symbols
-  if (normalizedSymbol === "mixedcurrency") {
-    const usdData = loadSymbolData("USDTRY");
-    const eurData = loadSymbolData("EURTRY");
-
-    const allDates = [
-      ...new Set([
-        ...usdData.map((d) => d.date),
-        ...eurData.map((d) => d.date),
-      ]),
-    ].sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
-
-    const results: YoyReturn[] = [];
-
-    for (let i = 1; i < allDates.length; i++) {
-      const currDate = allDates[i];
-      const targetTime =
-        new Date(currDate).getTime() - DAYS_IN_YEAR * MS_IN_DAY;
-
-      // Find closest baseline dates for both symbols
-      const getBaselineDate = (data: DailyPrice[]) => {
-        if (new Date(data[0].date).getTime() >= targetTime) {
-          return data[0];
-        }
-        let best = data[0];
-        let minDiff = Infinity;
-        for (const point of data) {
-          const diff = Math.abs(new Date(point.date).getTime() - targetTime);
-          if (diff < minDiff) {
-            minDiff = diff;
-            best = point;
-          }
-        }
-        return best;
-      };
-
-      const usdBaseline = getBaselineDate(usdData);
-      const eurBaseline = getBaselineDate(eurData);
-
-      const usdCurrent = usdData.find((d) => d.date === currDate);
-      const eurCurrent = eurData.find((d) => d.date === currDate);
-
-      if (usdCurrent && eurCurrent && usdCurrent.value && eurCurrent.value) {
-        const currUsdDate = new Date(currDate).getTime();
-        const baselineUsdDate = new Date(usdBaseline.date).getTime();
-        const yoyDaysPassed = Math.round(
-          (currUsdDate - baselineUsdDate) / MS_IN_DAY,
-        );
-
-        if (yoyDaysPassed > 0 && usdBaseline.value && eurBaseline.value) {
-          const usdRatio = usdCurrent.value / usdBaseline.value;
-          const eurRatio = eurCurrent.value / eurBaseline.value;
-          const compositeRatio = Math.sqrt(usdRatio * eurRatio);
-
-          const yoyReturnPercent =
-            Math.pow(compositeRatio, DAYS_IN_YEAR / yoyDaysPassed) - 1;
-
-          results.push({
-            date: new Date(currDate).getTime(),
-            baselineDate: new Date(usdBaseline.date).getTime(),
-            daysPassed: yoyDaysPassed,
-            yoyReturnPercent: round(yoyReturnPercent),
-          });
-        }
-      }
-    }
-
-    return results;
-  }
-
-  if (normalizedSymbol === "bgpusdtry") {
-    const bgpData = loadSymbolData("BGP");
-    const usdData = loadSymbolData("USDTRY");
-
-    const allDates = [
-      ...new Set([
-        ...bgpData.map((d) => d.date),
-        ...usdData.map((d) => d.date),
-      ]),
-    ].sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
-
-    const results: YoyReturn[] = [];
-
-    for (let i = 1; i < allDates.length; i++) {
-      const currDate = allDates[i];
-      const targetTime =
-        new Date(currDate).getTime() - DAYS_IN_YEAR * MS_IN_DAY;
-
-      const getBaselineDate = (data: DailyPrice[]) => {
-        if (new Date(data[0].date).getTime() >= targetTime) {
-          return data[0];
-        }
-        let best = data[0];
-        let minDiff = Infinity;
-        for (const point of data) {
-          const diff = Math.abs(new Date(point.date).getTime() - targetTime);
-          if (diff < minDiff) {
-            minDiff = diff;
-            best = point;
-          }
-        }
-        return best;
-      };
-
-      const bgpBaseline = getBaselineDate(bgpData);
-      const usdBaseline = getBaselineDate(usdData);
-
-      const bgpCurrent = bgpData.find((d) => d.date === currDate);
-      const usdCurrent = usdData.find((d) => d.date === currDate);
-
-      if (bgpCurrent && usdCurrent && bgpCurrent.value && usdCurrent.value) {
-        const currDate_ms = new Date(currDate).getTime();
-        const baselineDate_ms = new Date(bgpBaseline.date).getTime();
-        const yoyDaysPassed = Math.round(
-          (currDate_ms - baselineDate_ms) / MS_IN_DAY,
-        );
-
-        if (yoyDaysPassed > 0 && bgpBaseline.value && usdBaseline.value) {
-          const bgpRatio = bgpCurrent.value / bgpBaseline.value;
-          const usdRatio = usdCurrent.value / usdBaseline.value;
-          const compositeRatio = bgpRatio / usdRatio;
-
-          const yoyReturnPercent =
-            Math.pow(compositeRatio, DAYS_IN_YEAR / yoyDaysPassed) - 1;
-
-          results.push({
-            date: new Date(currDate).getTime(),
-            baselineDate: new Date(bgpBaseline.date).getTime(),
-            daysPassed: yoyDaysPassed,
-            yoyReturnPercent: round(yoyReturnPercent),
-          });
-        }
-      }
-    }
-
-    return results;
-  }
-
-  if (normalizedSymbol === "tp2usdtry") {
-    const tp2Data = loadSymbolData("TP2");
-    const usdData = loadSymbolData("USDTRY");
-
-    const allDates = [
-      ...new Set([
-        ...tp2Data.map((d) => d.date),
-        ...usdData.map((d) => d.date),
-      ]),
-    ].sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
-
-    const results: YoyReturn[] = [];
-
-    for (let i = 1; i < allDates.length; i++) {
-      const currDate = allDates[i];
-      const targetTime =
-        new Date(currDate).getTime() - DAYS_IN_YEAR * MS_IN_DAY;
-
-      const getBaselineDate = (data: DailyPrice[]) => {
-        if (new Date(data[0].date).getTime() >= targetTime) {
-          return data[0];
-        }
-        let best = data[0];
-        let minDiff = Infinity;
-        for (const point of data) {
-          const diff = Math.abs(new Date(point.date).getTime() - targetTime);
-          if (diff < minDiff) {
-            minDiff = diff;
-            best = point;
-          }
-        }
-        return best;
-      };
-
-      const tp2Baseline = getBaselineDate(tp2Data);
-      const usdBaseline = getBaselineDate(usdData);
-
-      const tp2Current = tp2Data.find((d) => d.date === currDate);
-      const usdCurrent = usdData.find((d) => d.date === currDate);
-
-      if (tp2Current && usdCurrent && tp2Current.value && usdCurrent.value) {
-        const currDate_ms = new Date(currDate).getTime();
-        const baselineDate_ms = new Date(tp2Baseline.date).getTime();
-        const yoyDaysPassed = Math.round(
-          (currDate_ms - baselineDate_ms) / MS_IN_DAY,
-        );
-
-        if (yoyDaysPassed > 0 && tp2Baseline.value && usdBaseline.value) {
-          const tp2Ratio = tp2Current.value / tp2Baseline.value;
-          const usdRatio = usdCurrent.value / usdBaseline.value;
-          const compositeRatio = tp2Ratio / usdRatio;
-
-          const yoyReturnPercent =
-            Math.pow(compositeRatio, DAYS_IN_YEAR / yoyDaysPassed) - 1;
-
-          results.push({
-            date: new Date(currDate).getTime(),
-            baselineDate: new Date(tp2Baseline.date).getTime(),
-            daysPassed: yoyDaysPassed,
-            yoyReturnPercent: round(yoyReturnPercent),
-          });
-        }
-      }
-    }
-
-    return results;
-  }
-
-  throw new Error(`Unhandled symbol: ${normalizedSymbol}`);
 };

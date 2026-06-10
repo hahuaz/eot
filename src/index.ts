@@ -15,8 +15,7 @@ import {
 } from "@/lib";
 import { Region, regions } from "@/types";
 import {
-  getCummulativeReturns,
-  getYoyReturns,
+  SymbolReturnsCalculator,
   isValidSymbol,
 } from "@/lib/symbol-returns.js";
 import { StockResponse } from "./shared/types/index.js";
@@ -58,16 +57,9 @@ app.use((req, res, next) => {
 router.get("/cummulative-returns", (req, res) => {
   const { symbol } = req.query;
 
-  if (!symbol || typeof symbol !== "string") {
-    res.status(400).json({
-      error:
-        "Symbol query parameter is required (e.g., BGP, TP2, USDTRY, EURTRY, GOLD).",
-    });
-    return;
-  }
-
   try {
-    const cummulativeReturns = getCummulativeReturns(symbol);
+    const calculator = new SymbolReturnsCalculator(symbol as string);
+    const cummulativeReturns = calculator.getCummulativeReturns();
     res.status(200).json(cummulativeReturns);
   } catch (error) {
     console.error("Failed to get cummulative returns data:", error);
@@ -85,15 +77,9 @@ router.get("/cummulative-returns", (req, res) => {
 router.get("/yoy-returns", (req, res) => {
   const { symbol } = req.query;
 
-  if (!isValidSymbol(symbol)) {
-    res.status(400).json({
-      error: "Symbol query parameter is not valid.",
-    });
-    return;
-  }
-
   try {
-    const yoyReturns = getYoyReturns(symbol as string);
+    const calculator = new SymbolReturnsCalculator(symbol as string);
+    const yoyReturns = calculator.getYoyReturns();
     res.status(200).json(yoyReturns);
   } catch (error) {
     console.error("Failed to get YoY returns data:", error);
