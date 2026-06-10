@@ -14,10 +14,7 @@ import {
   StockAnalyzer,
 } from "@/lib";
 import { Region, regions } from "@/types";
-import {
-  SymbolReturnsCalculator,
-  isValidSymbol,
-} from "@/lib/symbol-returns.js";
+import { SymbolReturnsCalculator } from "@/lib/symbol-returns.js";
 import { StockResponse } from "./shared/types/index.js";
 
 // --- Express App Setup ---

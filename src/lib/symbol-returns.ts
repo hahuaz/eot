@@ -3,14 +3,18 @@ import {
   parseCSV,
   DAILY_DIR,
   OBSERVATION_START_DATE,
-  TAXES,
   calcRealRate,
+  TAXES,
   LAST_DATE,
   round,
 } from "@/lib";
 import { DailyPrice } from "@/types";
 import { CumulativeReturn, Inflation, YoyReturn } from "@/shared/types";
-import { returnSymbolConfig, cumulativeSymbolsAll } from "@/shared/constants";
+import {
+  returnSymbolConfig,
+  cumulativeSymbolsAll,
+  ReturnSymbolConfigValue,
+} from "@/shared/constants";
 
 const USDTRY_SYMBOL = "USDTRY";
 
@@ -18,39 +22,23 @@ export const MS_IN_DAY = 24 * 60 * 60 * 1000;
 export const DAYS_IN_YEAR = 365;
 
 /**
- * Given two timestamps, calculates the number of days between them.
+ * Calculates the number of days between two timestamps.
  */
 export const getDaysBetween = (startDate: number, endDate: number): number => {
   return Math.round((endDate - startDate) / MS_IN_DAY);
 };
 
 /**
- * Given a price ratio and the number of days it represents, annualizes the return.
+ * Annualizes a return ratio over a given number of days.
  */
 export const annualizeRatio = (ratio: number, days: number): number => {
+  if (days <= 0) return 0;
   return Math.pow(ratio, DAYS_IN_YEAR / days) - 1;
 };
 
-export function isValidSymbol(symbol: any): boolean {
-  if (!symbol || typeof symbol !== "string") {
-    console.error(`Symbol must be a string.`);
-    return false;
-  }
-  const normalizedSymbol = symbol.toLowerCase();
-  if (!cumulativeSymbolsAll.includes(normalizedSymbol)) {
-    console.error(`Invalid symbol.`);
-    return false;
-  }
-  return true;
-}
-
-/**
- * A cohesive calculator class for computing cumulative and YoY returns.
- * Caches CSV parsed data and constructed price maps to optimize performance.
- */
 export class SymbolReturnsCalculator {
   private readonly symbol: string;
-  private readonly config: (typeof returnSymbolConfig)[keyof typeof returnSymbolConfig];
+  private readonly config: ReturnSymbolConfigValue;
 
   private static readonly symbolDataCache = new Map<string, DailyPrice[]>();
   private static readonly priceMapCache = new Map<
@@ -59,24 +47,47 @@ export class SymbolReturnsCalculator {
   >();
 
   constructor(symbol: string) {
-    if (!isValidSymbol(symbol)) {
+    if (!SymbolReturnsCalculator.isValidSymbol(symbol)) {
       throw new Error(`Invalid symbol: ${symbol}`);
     }
+
     this.symbol = symbol.toLowerCase();
     const config =
       returnSymbolConfig[this.symbol as keyof typeof returnSymbolConfig];
     if (!config) {
-      throw new Error(`Unhandled symbol: ${this.symbol}`);
+      throw new Error(`Unhandled symbol config: ${this.symbol}`);
     }
     this.config = config;
   }
 
   /**
-   * Retrieves historical price data for a given symbol, caching the result.
+   * Validates if a symbol is registered and valid.
+   */
+  public static isValidSymbol(symbol: unknown): symbol is string {
+    if (typeof symbol !== "string" || !symbol) {
+      console.error("Symbol must be a non-empty string.");
+      return false;
+    }
+    const normalizedSymbol = symbol.toLowerCase();
+    if (!cumulativeSymbolsAll.includes(normalizedSymbol)) {
+      console.error(`Symbol "${symbol}" is not registered.`);
+      return false;
+    }
+    return true;
+  }
+
+  public static clearCache(): void {
+    SymbolReturnsCalculator.symbolDataCache.clear();
+    SymbolReturnsCalculator.priceMapCache.clear();
+  }
+
+  /**
+   * Retrieves historical price data for a given symbol, checking cache first.
    */
   private getSymbolData(symbol: string): DailyPrice[] {
     const upperSym = symbol.toUpperCase();
     let data = SymbolReturnsCalculator.symbolDataCache.get(upperSym);
+
     if (!data) {
       const { data: parsedData } = parseCSV<DailyPrice>({
         filePath: path.join(DAILY_DIR, `${upperSym}.csv`),
@@ -84,7 +95,7 @@ export class SymbolReturnsCalculator {
       });
 
       if (!parsedData || parsedData.length === 0) {
-        throw new Error(`Data for symbol ${symbol} not found or empty.`);
+        throw new Error(`Data for symbol ${symbol} is missing or empty.`);
       }
 
       const startEntry = parsedData.find(
@@ -99,13 +110,11 @@ export class SymbolReturnsCalculator {
       // Safely reverse descending data to ascending order without mutating original array
       const dataAsc = [...parsedData].reverse();
 
-      // Validate date integrity
+      // Validate chronological integrity
       for (let i = 1; i < dataAsc.length; i++) {
-        const prevDate = new Date(dataAsc[i - 1].date).getTime();
-        const nextDate = new Date(dataAsc[i].date).getTime();
-        if (prevDate >= nextDate) {
+        if (dataAsc[i - 1].date >= dataAsc[i].date) {
           throw new Error(
-            `Data for symbol ${symbol} is corrupted. Date order is incorrect.`,
+            `Data integrity issue for symbol ${symbol}: duplicate or out-of-order dates detected.`,
           );
         }
       }
@@ -117,11 +126,12 @@ export class SymbolReturnsCalculator {
   }
 
   /**
-   * Retrieves the price map for a given symbol, caching the result.
+   * Retrieves the map of timestamps to prices for a given symbol.
    */
   private getPriceMap(symbol: string): Map<number, number> {
     const upperSym = symbol.toUpperCase();
     let priceMap = SymbolReturnsCalculator.priceMapCache.get(upperSym);
+
     if (!priceMap) {
       const data = this.getSymbolData(symbol);
       priceMap = new Map(data.map((entry) => [entry.date, entry.value]));
@@ -131,7 +141,7 @@ export class SymbolReturnsCalculator {
   }
 
   /**
-   * Safely retrieves a value from a symbol's price map.
+   * Safely retrieves a specific price, throwing an error if the date does not exist.
    */
   private getValue(symbol: string, date: number): number {
     const priceMap = this.getPriceMap(symbol);
@@ -145,8 +155,7 @@ export class SymbolReturnsCalculator {
   }
 
   /**
-   * Finds the intersection of dates present in both datasets and
-   * filters by the observation window.
+   * Finds the intersection of timestamps present in both datasets within the observation window.
    */
   private getCommonDates(dataA: DailyPrice[], dataB: DailyPrice[]): number[] {
     const datesA = new Set(dataA.map((d) => d.date));
@@ -162,7 +171,7 @@ export class SymbolReturnsCalculator {
   }
 
   /**
-   * Gets the start entry and returns slice starting after the observation date.
+   * Slices historical data starting immediately after the baseline observation date.
    */
   private getObservationStart(
     data: DailyPrice[],
@@ -185,17 +194,21 @@ export class SymbolReturnsCalculator {
   }
 
   /**
-   * For given historical price data and target date, finds the closest prior-year entry.
+   * Identifies the closest available historical entry relative to a target date.
    */
   private getClosestEntry(data: DailyPrice[], targetDate: number): DailyPrice {
-    let closestEntry = data[0];
-    let minDiff = Infinity;
+    if (data.length === 0) {
+      throw new Error("Cannot find closest entry: data set is empty.");
+    }
 
-    for (const entry of data) {
-      const diff = Math.abs(entry.date - targetDate);
+    let closestEntry = data[0];
+    let minDiff = Math.abs(closestEntry.date - targetDate);
+
+    for (let i = 1; i < data.length; i++) {
+      const diff = Math.abs(data[i].date - targetDate);
       if (diff < minDiff) {
         minDiff = diff;
-        closestEntry = entry;
+        closestEntry = data[i];
       }
     }
 
@@ -203,7 +216,7 @@ export class SymbolReturnsCalculator {
   }
 
   /**
-   * Creates YoYReturn structure.
+   * Builds the YoY return payload, annualizing values where appropriate.
    */
   private createYoyReturn({
     currentDate,
@@ -226,7 +239,7 @@ export class SymbolReturnsCalculator {
   }
 
   /**
-   * YoY returns calculation for single symbols.
+   * YoY calculation strategy for simple symbols.
    */
   private calculateSingleSymbolYoyReturns(symbol: string): YoyReturn[] {
     const symbolData = this.getSymbolData(symbol);
@@ -239,6 +252,7 @@ export class SymbolReturnsCalculator {
         symbolData.slice(0, i),
         targetDate,
       );
+
       const ratio =
         currentEntry.value != null && baselineEntry.value != null
           ? currentEntry.value / baselineEntry.value
@@ -257,7 +271,7 @@ export class SymbolReturnsCalculator {
   }
 
   /**
-   * YoY returns calculation for paired/combined symbols.
+   * YoY calculation strategy for structural pairs (e.g., currency combinations).
    */
   private calculatePairedSymbolYoyReturns({
     firstSymbol,
@@ -276,10 +290,11 @@ export class SymbolReturnsCalculator {
       const firstValue = this.getValue(firstSymbol, currentDate);
       const secondValue = this.getValue(secondSymbol, currentDate);
       const targetDate = currentDate - DAYS_IN_YEAR * MS_IN_DAY;
+
       const firstBaseline = this.getClosestEntry(firstData, targetDate);
       const secondBaseline = this.getClosestEntry(secondData, targetDate);
 
-      if (!firstBaseline.value || !secondBaseline.value) {
+      if (firstBaseline.value == null || secondBaseline.value == null) {
         continue;
       }
 
@@ -437,16 +452,7 @@ export class SymbolReturnsCalculator {
 
     throw new Error(`Unhandled symbol kind: ${(config as any).kind}`);
   }
-
-  /**
-   * Clears the static cache (useful for testing or if new files are scrape/written dynamically).
-   */
-  public static clearCache(): void {
-    SymbolReturnsCalculator.symbolDataCache.clear();
-    SymbolReturnsCalculator.priceMapCache.clear();
-  }
 }
-
 /**
  * Turkey started appreciating its currency around 2025. Calc nightly yield of Turkish lira.
  */

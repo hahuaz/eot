@@ -20,6 +20,9 @@ type ReturnSymbolConfig =
   | CurrencyReturnConfig
   | UsdAdjustedReturnConfig;
 
+export type ReturnSymbolConfigValue =
+  (typeof returnSymbolConfig)[keyof typeof returnSymbolConfig];
+
 export const returnSymbolConfig = {
   bgp: { kind: "base", symbol: "BGP", withholdingTax: 0.175 },
   tp2: { kind: "base", symbol: "TP2", withholdingTax: 0.175 },
