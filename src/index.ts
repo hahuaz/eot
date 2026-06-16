@@ -9,7 +9,6 @@ import cors from "cors";
 import {
   INFLATION_DATA,
   STOCKS_DYNAMIC_DATA,
-  getNightlyRealRate,
   DATA_DIR,
   StockAnalyzer,
 } from "@/lib";
@@ -82,26 +81,6 @@ router.get("/yoy-returns", (req, res) => {
     console.error("Failed to get YoY returns data:", error);
     res.status(500).json({ error: "Failed to calculate YoY returns data." });
   }
-});
-
-/**
- * @route GET /api/ttm-nightly-yield
- * @description Calculates and returns the money fund yield adjusted for inflation for a given region.
- * @queryparam {string} region - The region ('tr' or 'us').
- */
-router.get("/ttm-nightly-yield", validateRegion, (req, res) => {
-  const region = req.query.region as Region;
-
-  const inflation = INFLATION_DATA[region];
-
-  const ttmNightlyYield = getNightlyRealRate({ inflation });
-
-  if (ttmNightlyYield === null || ttmNightlyYield === undefined) {
-    res.status(500).json({ error: "Failed to calculate ttm nightly yield." });
-    return;
-  }
-
-  res.status(200).json({ ttmNightlyYield });
 });
 
 /**

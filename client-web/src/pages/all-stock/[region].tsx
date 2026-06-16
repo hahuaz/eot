@@ -50,9 +50,9 @@ export const getStaticProps: GetStaticProps<{
 }> = async ({ params }) => {
   const { region } = params as { region: string };
 
-  const [allStock, ttmYieldData] = await Promise.all([
+  const [allStock, bgpReturn] = await Promise.all([
     fetch(`${API_URL}api/all-stock?region=${region}`).then((res) => res.json()),
-    fetch(`${API_URL}api/ttm-nightly-yield?region=tr`).then((res) =>
+    fetch(`${API_URL}api/cummulative-returns?symbol=bgp_usdtry`).then((res) =>
       res.json(),
     ),
   ]);
@@ -116,7 +116,7 @@ export const getStaticProps: GetStaticProps<{
   return {
     props: {
       stocks: stockSummary,
-      ttmNightlyYield: ttmYieldData.ttmNightlyYield,
+      ttmNightlyYield: bgpReturn[bgpReturn.length - 1]?.value,
       region,
     },
   };
