@@ -24,21 +24,21 @@ export type ReturnSymbolConfigValue =
   (typeof returnSymbolConfig)[keyof typeof returnSymbolConfig];
 
 export const returnSymbolConfig = {
-  bgp: { kind: "base", symbol: "BGP", withholdingTax: 0.175 },
-  tp2: { kind: "base", symbol: "TP2", withholdingTax: 0.175 },
-  usdtry: { kind: "base", symbol: "USDTRY" },
-  eurtry: { kind: "base", symbol: "EURTRY" },
-  gold: { kind: "base", symbol: "GOLD" },
-  mixedcurrency: {
+  BGP: { kind: "base", symbol: "BGP", withholdingTax: 0.175 },
+  TP2: { kind: "base", symbol: "TP2", withholdingTax: 0.175 },
+  USDTRY: { kind: "base", symbol: "USDTRY" },
+  EURTRY: { kind: "base", symbol: "EURTRY" },
+  GOLD: { kind: "base", symbol: "GOLD" },
+  MIXEDCURRENCY: {
     kind: "currencyBasket",
     symbols: ["USDTRY", "EURTRY"],
   },
-  bgp_usdtry: {
+  BGP_USDTRY: {
     kind: "usdAdjusted",
     symbol: "BGP",
     withholdingTax: 0.175,
   },
-  tp2_usdtry: {
+  TP2_USDTRY: {
     kind: "usdAdjusted",
     symbol: "TP2",
     withholdingTax: 0.175,

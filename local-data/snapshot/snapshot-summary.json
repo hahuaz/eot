@@ -1,13 +1,13 @@
 {
   "totalSymbols": 8,
   "symbols": [
-    "bgp",
-    "tp2",
-    "usdtry",
-    "eurtry",
-    "gold",
-    "mixedcurrency",
-    "bgp_usdtry",
-    "tp2_usdtry"
+    "BGP",
+    "TP2",
+    "USDTRY",
+    "EURTRY",
+    "GOLD",
+    "MIXEDCURRENCY",
+    "BGP_USDTRY",
+    "TP2_USDTRY"
   ]
 }

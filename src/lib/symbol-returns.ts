@@ -52,7 +52,7 @@ export class SymbolReturnsCalculator {
       throw new Error(`Invalid symbol: ${symbol}`);
     }
 
-    this.symbol = symbol.toLowerCase();
+    this.symbol = symbol.toUpperCase();
     const config =
       returnSymbolConfig[this.symbol as keyof typeof returnSymbolConfig];
     if (!config) {
@@ -69,7 +69,7 @@ export class SymbolReturnsCalculator {
       console.error("Symbol must be a non-empty string.");
       return false;
     }
-    const normalizedSymbol = symbol.toLowerCase();
+    const normalizedSymbol = symbol.toUpperCase();
     if (!cumulativeSymbolsAll.includes(normalizedSymbol)) {
       console.error(`Symbol "${symbol}" is not registered.`);
       return false;

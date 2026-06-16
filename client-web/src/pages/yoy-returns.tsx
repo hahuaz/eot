@@ -11,7 +11,7 @@ import {
 } from "recharts";
 import { useState } from "react";
 import type { InferGetStaticPropsType, GetStaticProps } from "next";
-import { API_URL, returnSymbolColors } from "@/lib";
+import { API_URL, DEFAULT_RETURN_SYMBOLS, returnSymbolColors } from "@/lib";
 import { YoyReturn } from "@/shared/types";
 import { cumulativeSymbolsAll } from "@/shared/constants";
 
@@ -111,11 +111,9 @@ const YoyReturnsChart = ({
   // Available symbols
   const allowedSymbols = cumulativeSymbolsAll;
 
-  const [selectedSymbols, setSelectedSymbols] = useState<string[]>([
-    "bgp_usdtry",
-    "tp2_usdtry",
-    "gold",
-  ]);
+  const [selectedSymbols, setSelectedSymbols] = useState<string[]>(
+    DEFAULT_RETURN_SYMBOLS,
+  );
 
   return (
     <div className="w-full">

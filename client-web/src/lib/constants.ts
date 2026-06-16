@@ -2,6 +2,8 @@ import { cumulativeSymbolsAll, returnSymbolConfig } from "@/shared/constants";
 
 export const API_URL = "http://localhost:5555/";
 
+export const DEFAULT_RETURN_SYMBOLS = ["BGP_USDTRY", "TP2_USDTRY", "GOLD"];
+
 export const CHART_COLORS = [
   "#8B4513", // bgp
   "#228B22", // tp2
