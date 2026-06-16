@@ -40,11 +40,12 @@ export class SymbolReturnsCalculator {
   private readonly symbol: string;
   private readonly config: ReturnSymbolConfigValue;
 
-  private static readonly symbolDataCache = new Map<string, DailyPrice[]>();
-  // timestamp to price map
-  private static readonly priceMapCache = new Map<
+  private static readonly symbolToPrices = new Map<
     string,
-    Map<number, number>
+    {
+      prices: DailyPrice[];
+      timeToPrice: Map<number, number>;
+    }
   >();
 
   constructor(symbol: string) {
@@ -78,18 +79,20 @@ export class SymbolReturnsCalculator {
   }
 
   public static clearCache(): void {
-    SymbolReturnsCalculator.symbolDataCache.clear();
-    SymbolReturnsCalculator.priceMapCache.clear();
+    SymbolReturnsCalculator.symbolToPrices.clear();
   }
 
   /**
-   * Retrieves historical price data for a given symbol, checking cache first.
+   * Retrieves or initializes the cache for a given symbol.
    */
-  private getSymbolData(symbol: string): DailyPrice[] {
+  private static getCacheEntry(symbol: string): {
+    prices: DailyPrice[];
+    timeToPrice: Map<number, number>;
+  } {
     const upperSym = symbol.toUpperCase();
-    let data = SymbolReturnsCalculator.symbolDataCache.get(upperSym);
+    let entry = SymbolReturnsCalculator.symbolToPrices.get(upperSym);
 
-    if (!data) {
+    if (!entry) {
       const { data: parsedData } = parseCSV<DailyPrice>({
         filePath: path.join(DAILY_DIR, `${upperSym}.csv`),
         header: true,
@@ -109,44 +112,47 @@ export class SymbolReturnsCalculator {
       }
 
       // Safely reverse descending data to ascending order without mutating original array
-      const dataAsc = [...parsedData].reverse();
+      const prices = [...parsedData].reverse();
 
       // Validate chronological integrity
-      for (let i = 1; i < dataAsc.length; i++) {
-        if (dataAsc[i - 1].date >= dataAsc[i].date) {
+      for (let i = 1; i < prices.length; i++) {
+        if (prices[i - 1].date >= prices[i].date) {
           throw new Error(
             `Data integrity issue for symbol ${symbol}: duplicate or out-of-order dates detected.`,
           );
         }
       }
 
-      data = dataAsc;
-      SymbolReturnsCalculator.symbolDataCache.set(upperSym, data);
+      const timeToPrice = new Map(
+        prices.map((entry) => [entry.date, entry.value]),
+      );
+
+      entry = { prices, timeToPrice };
+      SymbolReturnsCalculator.symbolToPrices.set(upperSym, entry);
     }
-    return data;
+    return entry;
+  }
+
+  /**
+   * Retrieves historical price data for a given symbol, checking cache first.
+   */
+  private getSymbolData(symbol: string): DailyPrice[] {
+    return SymbolReturnsCalculator.getCacheEntry(symbol).prices;
   }
 
   /**
    * Retrieves the map of timestamps to prices for a given symbol.
    */
-  private getPriceMap(symbol: string): Map<number, number> {
-    const upperSym = symbol.toUpperCase();
-    let priceMap = SymbolReturnsCalculator.priceMapCache.get(upperSym);
-
-    if (!priceMap) {
-      const data = this.getSymbolData(symbol);
-      priceMap = new Map(data.map((entry) => [entry.date, entry.value]));
-      SymbolReturnsCalculator.priceMapCache.set(upperSym, priceMap);
-    }
-    return priceMap;
+  private getTimeToPriceMap(symbol: string): Map<number, number> {
+    return SymbolReturnsCalculator.getCacheEntry(symbol).timeToPrice;
   }
 
   /**
    * Safely retrieves a specific price, throwing an error if the date does not exist.
    */
   private getValue(symbol: string, date: number): number {
-    const priceMap = this.getPriceMap(symbol);
-    const value = priceMap.get(date);
+    const timeToPrice = this.getTimeToPriceMap(symbol);
+    const value = timeToPrice.get(date);
     if (value === undefined) {
       throw new Error(
         `Missing historical price for date ${date} in symbol ${symbol}`,
