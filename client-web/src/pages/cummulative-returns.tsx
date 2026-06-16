@@ -11,11 +11,13 @@ import {
 } from "recharts";
 import { useState } from "react";
 import type { InferGetStaticPropsType, GetStaticProps } from "next";
-import { API_URL } from "@/lib";
+import { API_URL, returnSymbolColors } from "@/lib";
 import { CumulativeReturns, CumulativeReturn } from "@/shared/types";
 import { cumulativeSymbolsAll } from "@/shared/constants";
 
-interface CummulativeReturnsProps extends CumulativeReturns {}
+interface CummulativeReturnsProps {
+  [key: string]: CumulativeReturn[];
+}
 
 export const getStaticProps: GetStaticProps<{
   cummulativeReturns: CummulativeReturnsProps;
@@ -30,20 +32,9 @@ export const getStaticProps: GetStaticProps<{
     symbolData[symbol] = data;
   }
 
-  const cummulativeReturns: CummulativeReturnsProps = {
-    bgp: symbolData.bgp,
-    tp2: symbolData.tp2,
-    usdtry: symbolData.usdtry,
-    eurtry: symbolData.eurtry,
-    gold: symbolData.gold,
-    mixedcurrency: symbolData.mixedcurrency,
-    bgp_usdtry: symbolData.bgp_usdtry,
-    tp2_usdtry: symbolData.tp2_usdtry,
-  };
-
   return {
     props: {
-      cummulativeReturns,
+      cummulativeReturns: symbolData,
     },
   };
 };
@@ -52,53 +43,35 @@ export const getStaticProps: GetStaticProps<{
  * Merges independent time-series arrays into a single array aligned by date.
  * This unified format ensures all metrics can be plotted on a shared X-axis (date) and handles missing data points automatically.
  */
-const alignTimeSeriesData = ({
-  usdtry,
-  eurtry,
-  mixedcurrency,
-  bgp,
-  tp2,
-  gold,
-  bgp_usdtry,
-  tp2_usdtry,
-}: CumulativeReturns): {
+const alignTimeSeriesData = (
+  cummulativeReturns: CummulativeReturnsProps,
+): {
   date: number;
-  usdtry?: number;
-  eurtry?: number;
-  mixedcurrency?: number;
-  bgp?: number;
-  tp2?: number;
-  gold?: number;
-  bgp_usdtry?: number;
-  tp2_usdtry?: number;
+  [key: string]: number | undefined;
 }[] => {
-  const dateSet = new Set<number>([
-    ...usdtry.map((d) => d.date),
-    ...eurtry.map((d) => d.date),
-    ...mixedcurrency.map((d) => d.date),
-    ...bgp.map((d) => d.date),
-    ...tp2.map((d) => d.date),
-    ...gold.map((d) => d.date),
-    ...bgp_usdtry.map((d) => d.date),
-    ...tp2_usdtry.map((d) => d.date),
-  ]);
+  const dateSet = new Set<number>();
+  for (const symbol of Object.keys(cummulativeReturns)) {
+    cummulativeReturns[symbol].forEach((d) => dateSet.add(d.date));
+  }
 
   const sortedDates = [...dateSet].sort(
     (a, b) => new Date(a).getTime() - new Date(b).getTime(),
   );
 
-  return sortedDates.map((date) => ({
-    date,
-    usdtry: usdtry.find((d) => d.date === date)?.value ?? undefined,
-    eurtry: eurtry.find((d) => d.date === date)?.value ?? undefined,
-    mixedcurrency:
-      mixedcurrency.find((d) => d.date === date)?.value ?? undefined,
-    bgp: bgp.find((d) => d.date === date)?.value ?? undefined,
-    tp2: tp2.find((d) => d.date === date)?.value ?? undefined,
-    gold: gold.find((d) => d.date === date)?.value ?? undefined,
-    bgp_usdtry: bgp_usdtry.find((d) => d.date === date)?.value ?? undefined,
-    tp2_usdtry: tp2_usdtry.find((d) => d.date === date)?.value ?? undefined,
-  }));
+  return sortedDates.map((date) => {
+    const entry: {
+      date: number;
+      [key: string]: number | undefined;
+    } = { date };
+
+    for (const symbol of Object.keys(cummulativeReturns)) {
+      entry[symbol] =
+        cummulativeReturns[symbol].find((d) => d.date === date)?.value ??
+        undefined;
+    }
+
+    return entry;
+  });
 };
 
 const CummulativeReturnsChart = ({
@@ -120,16 +93,7 @@ const CummulativeReturnsChart = ({
   console.log("Filtered data for chart:", filteredData);
 
   // pre-determined symbols (keys from CumulativeReturns)
-  const allowedSymbols = [
-    "bgp",
-    "tp2",
-    "bgp_usdtry",
-    "tp2_usdtry",
-    "gold",
-    "mixedcurrency",
-    "usdtry",
-    "eurtry",
-  ];
+  const allowedSymbols = cumulativeSymbolsAll;
 
   const [selectedSymbols, setSelectedSymbols] = useState<string[]>([
     "bgp_usdtry",
@@ -212,23 +176,8 @@ const CummulativeReturnsChart = ({
                 type="monotone"
                 dataKey={key}
                 stroke={
-                  key === "bgp"
-                    ? "#0008ff"
-                    : key === "tp2"
-                      ? "#00ff00"
-                      : key === "bgp_usdtry"
-                        ? "#8A2BE2"
-                        : key === "tp2_usdtry"
-                          ? "#FF4500"
-                          : key === "gold"
-                            ? "#FFD700"
-                            : key === "mixedcurrency"
-                              ? "#cc0000"
-                              : key === "usdtry"
-                                ? "gray"
-                                : key === "eurtry"
-                                  ? "#8884d8"
-                                  : "#333333"
+                  returnSymbolColors[key as keyof typeof returnSymbolColors] ||
+                  "#333333"
                 }
                 name={key}
                 dot={false}

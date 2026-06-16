@@ -41,6 +41,7 @@ export class SymbolReturnsCalculator {
   private readonly config: ReturnSymbolConfigValue;
 
   private static readonly symbolDataCache = new Map<string, DailyPrice[]>();
+  // timestamp to price map
   private static readonly priceMapCache = new Map<
     string,
     Map<number, number>
@@ -61,7 +62,7 @@ export class SymbolReturnsCalculator {
   }
 
   /**
-   * Validates if a symbol is registered and valid.
+   * Validates the provided symbol.
    */
   public static isValidSymbol(symbol: unknown): symbol is string {
     if (typeof symbol !== "string" || !symbol) {

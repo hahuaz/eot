@@ -11,7 +11,7 @@ import {
 } from "recharts";
 import { useState } from "react";
 import type { InferGetStaticPropsType, GetStaticProps } from "next";
-import { API_URL } from "@/lib";
+import { API_URL, returnSymbolColors } from "@/lib";
 import { YoyReturn } from "@/shared/types";
 import { cumulativeSymbolsAll } from "@/shared/constants";
 
@@ -37,20 +37,9 @@ export const getStaticProps: GetStaticProps<{
     }
   }
 
-  const yoyReturnsData: YoyReturnsData = {
-    bgp: symbolData.bgp,
-    tp2: symbolData.tp2,
-    usdtry: symbolData.usdtry,
-    eurtry: symbolData.eurtry,
-    gold: symbolData.gold,
-    mixedcurrency: symbolData.mixedcurrency,
-    bgp_usdtry: symbolData.bgp_usdtry,
-    tp2_usdtry: symbolData.tp2_usdtry,
-  };
-
   return {
     props: {
-      yoyReturnsData,
+      yoyReturnsData: symbolData,
     },
   };
 };
@@ -120,33 +109,13 @@ const YoyReturnsChart = ({
   });
 
   // Available symbols
-  const allowedSymbols = [
-    "bgp",
-    "tp2",
-    "bgp_usdtry",
-    "tp2_usdtry",
-    "gold",
-    "mixedcurrency",
-    "usdtry",
-    "eurtry",
-  ];
+  const allowedSymbols = cumulativeSymbolsAll;
 
   const [selectedSymbols, setSelectedSymbols] = useState<string[]>([
     "bgp_usdtry",
     "tp2_usdtry",
     "gold",
   ]);
-
-  const colors: Record<string, string> = {
-    bgp: "#8B4513",
-    tp2: "#228B22",
-    usdtry: "#1E90FF",
-    eurtry: "#FFD700",
-    gold: "#FFD700",
-    mixedcurrency: "#FF8C00",
-    bgp_usdtry: "#9932CC",
-    tp2_usdtry: "#FF1493",
-  };
 
   return (
     <div className="w-full">
@@ -246,7 +215,11 @@ const YoyReturnsChart = ({
                 key={symbol}
                 type="monotone"
                 dataKey={symbol}
-                stroke={colors[symbol] || "#000"}
+                stroke={
+                  returnSymbolColors[
+                    symbol as keyof typeof returnSymbolColors
+                  ] || "#000"
+                }
                 connectNulls
                 isAnimationActive={false}
                 dot={false}
