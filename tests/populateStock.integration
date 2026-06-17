@@ -64,7 +64,7 @@ describe("populateStock (pure calc)", () => {
     console.log("result", result);
 
     // helpers
-    const yieldMetric = getMetric(result.derivedMetrics, "Yield");
+    const yieldMetric = getMetric(result.derivedMetrics, "USD Yield");
     const netDebtOIMetric = getMetric(
       result.derivedMetrics,
       "Net debt / operating income",

@@ -38,7 +38,7 @@ export const DERIVED_METRIC_NAMES = [
   "EV / operating income",
   "EV / net income",
   "Market value / book value",
-  "Yield",
+  "USD Price",
   "USD Yield",
   "Observation Start Return",
   "Selected growth median",

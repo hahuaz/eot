@@ -67,7 +67,6 @@ export const getStaticProps: GetStaticProps<{
     const findMetric = (name: MetricNames) =>
       allMetrics.find((m: any) => m.metricName === name);
 
-    const yieldMetric = findMetric("Yield");
     const usdYieldMetric = findMetric("USD Yield");
     const observationStartReturnMetric = findMetric("Observation Start Return");
     const selectedGrowthMetric = findMetric("Selected growth median");
@@ -95,8 +94,8 @@ export const getStaticProps: GetStaticProps<{
       "Observation start return":
         observationStartReturnMetric?.["Total growth"],
       "USD yield ttm growth": usdYieldMetric?.["TTM growth"],
-      "Total yield": yieldMetric?.["Total growth"],
-      "TTM yield": yieldMetric?.["TTM growth"],
+      "Total yield": usdYieldMetric?.["Total growth"],
+      "TTM yield": usdYieldMetric?.["TTM growth"],
       "EV / operating income": evToOperatingIncome,
       "EV / net income": evNiMetric?.current,
       "Net debt / operating income": netDebtMetric?.current,

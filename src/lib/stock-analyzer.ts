@@ -181,7 +181,7 @@ export class StockAnalyzer {
 
   public getMetrics() {
     // 1: create derived metrics
-    this.yieldMetric();
+    this.usdPriceMetric();
     this.usdYieldMetric();
     this.observationStartReturnMetric();
     this.debtMetric();
@@ -203,85 +203,28 @@ export class StockAnalyzer {
     };
   }
 
-  private yieldMetric() {
-    const dividendIndex = this.baseMetrics.findIndex(
-      (item) => item.metricName === "Dividend",
-    );
-    const priceIndex = this.baseMetrics.findIndex(
+  private usdPriceMetric() {
+    const priceMetric = this.baseMetrics.find(
       (item) => item.metricName === "Price",
     );
-
-    if (dividendIndex === -1 || priceIndex === -1) {
-      throw new Error("Dividend or Price metric not found");
+    if (!priceMetric) {
+      throw new Error("Price metric not found");
     }
 
-    const dividendMetric = this.baseMetrics[dividendIndex];
-    const priceMetric = this.baseMetrics[priceIndex];
-
-    const yieldMetric = {
-      metricName: "Yield",
+    const usdPriceMetric = {
+      metricName: "USD Price",
     } as Partial<DerivedMetric>;
 
-    const { dividendTax } = TAXES[this.region];
-
-    for (let dateIndex = 0; dateIndex < this.priceDates.length; dateIndex++) {
-      // previous price is needed to calculate yield, so we skip the last date
-      if (dateIndex === this.priceDates.length - 1) {
-        break;
+    for (const date of this.priceDates) {
+      const priceValue = priceMetric[date];
+      if (priceValue == null) {
+        continue;
       }
 
-      const date = this.priceDates[dateIndex];
-
-      // get inflation adjusted dividend yield
-      const dividendValue = dividendMetric[date] ?? 0;
-      const netDividendYield = dividendValue * (1 - dividendTax);
-
-      // get inflation adjusted price yield
-      const priceValue = priceMetric[date] ?? 0;
-      const previousPriceValue =
-        priceMetric[this.priceDates[dateIndex + 1]] ?? 0;
-      const priceYield = (priceValue - previousPriceValue) / previousPriceValue;
-
-      const inflationData = this.inflation.find((item) => item.date === date);
-      if (!inflationData && date !== CURRENT_DATE) {
-        throw new Error(`Inflation data not found for date ${date}`);
-      }
-
-      let inflationForDate: Dates | number = 0;
-
-      if (date === CURRENT_DATE) {
-        inflationForDate = 0;
-      } else if (
-        // for the dates earlier than 2025, only yoy data is calculated
-        new Date(date).getMonth() === 11 &&
-        new Date(date).getFullYear() < 2025
-      ) {
-        if (inflationData?.yoy == null) {
-          throw new Error(`yoy data not found for date ${date}`);
-        }
-        inflationForDate = inflationData.yoy;
-      } else {
-        if (inflationData?.qoq == null) {
-          throw new Error(`qoq data not found for date ${date}`);
-        }
-        inflationForDate = inflationData.qoq;
-      }
-
-      if (inflationForDate === undefined) {
-        throw new Error(`Inflation data not found for date ${date}`);
-      }
-
-      const netPriceYield = calcRealRate({
-        nominalRate: priceYield,
-        inflationRate: inflationForDate,
-      });
-
-      yieldMetric[date] = round(netPriceYield + netDividendYield);
+      usdPriceMetric[date] = round(priceValue / getUsdTryRate(date));
     }
 
-    this.addYieldGrowths(yieldMetric);
-
-    this.derivedMetrics.push(yieldMetric as DerivedMetric);
+    this.derivedMetrics.push(usdPriceMetric as DerivedMetric);
   }
 
   private usdYieldMetric() {
