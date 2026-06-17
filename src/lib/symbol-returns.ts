@@ -36,6 +36,12 @@ export const annualizeRatio = (ratio: number, days: number): number => {
   return Math.pow(ratio, DAYS_IN_YEAR / days) - 1;
 };
 
+/**
+ * Calculates returns for a specific financial symbol.
+ *
+ * Uses a static (class-level) cache to store and share parsed historical price data across all instances,
+ * while storing symbol-specific configurations within each instance.
+ */
 export class SymbolReturnsCalculator {
   private readonly symbol: string;
   private readonly config: ReturnSymbolConfigValue;
@@ -43,7 +49,7 @@ export class SymbolReturnsCalculator {
   private static readonly symbolToPrices = new Map<
     string,
     {
-      prices: DailyPrice[];
+      priceHistory: DailyPrice[];
       timeToPrice: Map<number, number>;
     }
   >();
@@ -62,6 +68,10 @@ export class SymbolReturnsCalculator {
     this.config = config;
   }
 
+  public static clearCache(): void {
+    SymbolReturnsCalculator.symbolToPrices.clear();
+  }
+
   /**
    * Validates the provided symbol.
    */
@@ -78,15 +88,11 @@ export class SymbolReturnsCalculator {
     return true;
   }
 
-  public static clearCache(): void {
-    SymbolReturnsCalculator.symbolToPrices.clear();
-  }
-
   /**
-   * Retrieves or initializes the cache for a given symbol.
+   * Retrieves the whole dataset for a symbol.
    */
-  private static getCacheEntry(symbol: string): {
-    prices: DailyPrice[];
+  private static getSymbolData(symbol: string): {
+    priceHistory: DailyPrice[];
     timeToPrice: Map<number, number>;
   } {
     const upperSym = symbol.toUpperCase();
@@ -112,11 +118,11 @@ export class SymbolReturnsCalculator {
       }
 
       // Safely reverse descending data to ascending order without mutating original array
-      const prices = [...parsedData].reverse();
+      const priceHistory = [...parsedData].reverse();
 
       // Validate chronological integrity
-      for (let i = 1; i < prices.length; i++) {
-        if (prices[i - 1].date >= prices[i].date) {
+      for (let i = 1; i < priceHistory.length; i++) {
+        if (priceHistory[i - 1].date >= priceHistory[i].date) {
           throw new Error(
             `Data integrity issue for symbol ${symbol}: duplicate or out-of-order dates detected.`,
           );
@@ -124,33 +130,33 @@ export class SymbolReturnsCalculator {
       }
 
       const timeToPrice = new Map(
-        prices.map((entry) => [entry.date, entry.value]),
+        priceHistory.map((entry) => [entry.date, entry.value]),
       );
 
-      entry = { prices, timeToPrice };
+      entry = { priceHistory, timeToPrice };
       SymbolReturnsCalculator.symbolToPrices.set(upperSym, entry);
     }
     return entry;
   }
 
   /**
-   * Retrieves historical price data for a given symbol, checking cache first.
+   * Retrieves price history for a symbol.
    */
-  private getSymbolData(symbol: string): DailyPrice[] {
-    return SymbolReturnsCalculator.getCacheEntry(symbol).prices;
+  private getPriceHistory(symbol: string): DailyPrice[] {
+    return SymbolReturnsCalculator.getSymbolData(symbol).priceHistory;
   }
 
   /**
-   * Retrieves the map of timestamps to prices for a given symbol.
+   * Retrieves the time-to-price map for a symbol.
    */
   private getTimeToPriceMap(symbol: string): Map<number, number> {
-    return SymbolReturnsCalculator.getCacheEntry(symbol).timeToPrice;
+    return SymbolReturnsCalculator.getSymbolData(symbol).timeToPrice;
   }
 
   /**
-   * Safely retrieves a specific price, throwing an error if the date does not exist.
+   * Retrieves the price for a symbol at a specific date.
    */
-  private getValue(symbol: string, date: number): number {
+  private getSymbolValue(symbol: string, date: number): number {
     const timeToPrice = this.getTimeToPriceMap(symbol);
     const value = timeToPrice.get(date);
     if (value === undefined) {
@@ -180,7 +186,7 @@ export class SymbolReturnsCalculator {
   /**
    * Slices historical data starting immediately after the baseline observation date.
    */
-  private getObservationStart(
+  private startObservation(
     data: DailyPrice[],
     symbol: string,
   ): { startEntry: DailyPrice; returnDates: DailyPrice[] } {
@@ -249,7 +255,7 @@ export class SymbolReturnsCalculator {
    * YoY calculation strategy for simple symbols.
    */
   private calculateSingleSymbolYoyReturns(symbol: string): YoyReturn[] {
-    const symbolData = this.getSymbolData(symbol);
+    const symbolData = this.getPriceHistory(symbol);
     const results: YoyReturn[] = [];
 
     for (let i = 1; i < symbolData.length; i++) {
@@ -289,13 +295,13 @@ export class SymbolReturnsCalculator {
     secondSymbol: string;
     combineRatios: (firstRatio: number, secondRatio: number) => number;
   }): YoyReturn[] {
-    const firstData = this.getSymbolData(firstSymbol);
-    const secondData = this.getSymbolData(secondSymbol);
+    const firstData = this.getPriceHistory(firstSymbol);
+    const secondData = this.getPriceHistory(secondSymbol);
     const results: YoyReturn[] = [];
 
     for (const currentDate of this.getCommonDates(firstData, secondData)) {
-      const firstValue = this.getValue(firstSymbol, currentDate);
-      const secondValue = this.getValue(secondSymbol, currentDate);
+      const firstValue = this.getSymbolValue(firstSymbol, currentDate);
+      const secondValue = this.getSymbolValue(secondSymbol, currentDate);
       const targetDate = currentDate - DAYS_IN_YEAR * MS_IN_DAY;
 
       const firstBaseline = this.getClosestEntry(firstData, targetDate);
@@ -329,8 +335,8 @@ export class SymbolReturnsCalculator {
     const config = this.config;
 
     if (config.kind === "base") {
-      const symbolData = this.getSymbolData(config.symbol);
-      const { startEntry, returnDates } = this.getObservationStart(
+      const symbolData = this.getPriceHistory(config.symbol);
+      const { startEntry, returnDates } = this.startObservation(
         symbolData,
         config.symbol,
       );
@@ -339,7 +345,7 @@ export class SymbolReturnsCalculator {
         "withholdingTax" in config ? config.withholdingTax : 0;
 
       return returnDates.map((entry) => {
-        const currentValue = this.getValue(config.symbol, entry.date);
+        const currentValue = this.getSymbolValue(config.symbol, entry.date);
         const grossReturn = currentValue / startEntry.value - 1;
         const netReturn = grossReturn * (1 - withholdingTax);
 
@@ -350,18 +356,16 @@ export class SymbolReturnsCalculator {
       });
     }
 
-    console.log(`Calculating returns for configured symbol: ${this.symbol}`);
-
     if (config.kind === "currencyBasket") {
       const [firstCurrencySymbol, secondCurrencySymbol] = config.symbols;
-      const firstCurrencyData = this.getSymbolData(firstCurrencySymbol);
-      const secondCurrencyData = this.getSymbolData(secondCurrencySymbol);
+      const firstCurrencyData = this.getPriceHistory(firstCurrencySymbol);
+      const secondCurrencyData = this.getPriceHistory(secondCurrencySymbol);
 
-      const { startEntry: firstCurrencyStartEntry } = this.getObservationStart(
+      const { startEntry: firstCurrencyStartEntry } = this.startObservation(
         firstCurrencyData,
         firstCurrencySymbol,
       );
-      const { startEntry: secondCurrencyStartEntry } = this.getObservationStart(
+      const { startEntry: secondCurrencyStartEntry } = this.startObservation(
         secondCurrencyData,
         secondCurrencySymbol,
       );
@@ -372,14 +376,21 @@ export class SymbolReturnsCalculator {
       );
 
       return commonDates.map((date) => {
-        const firstCurrencyValue = this.getValue(firstCurrencySymbol, date);
-        const secondCurrencyValue = this.getValue(secondCurrencySymbol, date);
+        const firstCurrencyValue = this.getSymbolValue(
+          firstCurrencySymbol,
+          date,
+        );
+        const secondCurrencyValue = this.getSymbolValue(
+          secondCurrencySymbol,
+          date,
+        );
 
         const firstCurrencyReturn =
           firstCurrencyValue / firstCurrencyStartEntry.value - 1;
         const secondCurrencyReturn =
           secondCurrencyValue / secondCurrencyStartEntry.value - 1;
 
+        // for currency baskets, we take the geometric average of the returns to reflect the combined effect of both currencies.
         return {
           date,
           value:
@@ -390,36 +401,34 @@ export class SymbolReturnsCalculator {
     }
 
     if (config.kind === "usdAdjusted") {
-      const investmentData = this.getSymbolData(config.symbol);
-      const usdtryData = this.getSymbolData(USDTRY_SYMBOL);
+      const symbolData = this.getPriceHistory(config.symbol);
+      const usdtryData = this.getPriceHistory(USDTRY_SYMBOL);
 
-      const { startEntry: investmentStartEntry } = this.getObservationStart(
-        investmentData,
+      const { startEntry: symbolStartEntry } = this.startObservation(
+        symbolData,
         config.symbol,
       );
-      const { startEntry: usdtryStartEntry } = this.getObservationStart(
+      const { startEntry: usdtryStartEntry } = this.startObservation(
         usdtryData,
         USDTRY_SYMBOL,
       );
 
-      const commonDates = this.getCommonDates(investmentData, usdtryData);
+      const commonDates = this.getCommonDates(symbolData, usdtryData);
 
       return commonDates.map((date) => {
-        const investmentValue = this.getValue(config.symbol, date);
-        const usdtryValue = this.getValue(USDTRY_SYMBOL, date);
+        const investmentValue = this.getSymbolValue(config.symbol, date);
+        const usdtryValue = this.getSymbolValue(USDTRY_SYMBOL, date);
 
-        const investmentGrossReturn =
-          investmentValue / investmentStartEntry.value - 1;
+        const symbolGrossReturn = investmentValue / symbolStartEntry.value - 1;
         const withholdingTax =
           "withholdingTax" in config ? config.withholdingTax : 0;
-        const investmentNetReturn =
-          investmentGrossReturn * (1 - withholdingTax);
+        const symbolNetReturn = symbolGrossReturn * (1 - withholdingTax);
 
         const usdtryReturn = usdtryValue / usdtryStartEntry.value - 1;
 
         return {
           date,
-          value: (1 + investmentNetReturn) / (1 + usdtryReturn) - 1,
+          value: (1 + symbolNetReturn) / (1 + usdtryReturn) - 1,
         };
       });
     }

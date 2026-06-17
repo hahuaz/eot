@@ -12,7 +12,7 @@ import {
 import { Region, regions } from "@/types";
 import path from "path";
 import { parseCSV, readJsonFile } from "@/lib/file";
-import { DATA_DIR } from "@/lib/constants";
+import { DATA_DIR, OBSERVATION_START_DATE_STR } from "@/lib/constants";
 import {
   getAvailableDates,
   LAST_DATE,
@@ -32,6 +32,29 @@ export const TAXES = {
     withholdingTax: 0.24,
     dividendTax: 0.2,
   },
+};
+
+export const DATE_TO_USDTRY = {
+  current: 46.31,
+  "2026/3/30": 44.5,
+  "2025/12/30": 43,
+  "2025/9/30": 41.66,
+  "2025/6/30": 39.81,
+  "2025/3/30": 37.93,
+  "2024/12/30": 35.32,
+  "2023/12/30": 29.78,
+  "2022/12/30": 18.61,
+  "2021/12/30": 13.21,
+  "2020/12/30": 7.4,
+  "2019/12/30": 5.97,
+};
+
+const getUsdTryRate = (date: Dates): number => {
+  const usdTryRate = DATE_TO_USDTRY[date];
+  if (usdTryRate == null) {
+    throw new Error(`USDTRY rate not found for date ${date}`);
+  }
+  return usdTryRate;
 };
 
 export const INFLATION_DATA = regions.reduce(
@@ -159,6 +182,8 @@ export class StockAnalyzer {
   public getMetrics() {
     // 1: create derived metrics
     this.yieldMetric();
+    this.usdYieldMetric();
+    this.observationStartReturnMetric();
     this.debtMetric();
     this.evMetric();
     this.evToOiMetric();
@@ -254,35 +279,154 @@ export class StockAnalyzer {
       yieldMetric[date] = round(netPriceYield + netDividendYield);
     }
 
+    this.addYieldGrowths(yieldMetric);
+
+    this.derivedMetrics.push(yieldMetric as DerivedMetric);
+  }
+
+  private usdYieldMetric() {
+    const dividendIndex = this.baseMetrics.findIndex(
+      (item) => item.metricName === "Dividend",
+    );
+    const priceIndex = this.baseMetrics.findIndex(
+      (item) => item.metricName === "Price",
+    );
+
+    if (dividendIndex === -1 || priceIndex === -1) {
+      throw new Error("Dividend or Price metric not found");
+    }
+
+    const dividendMetric = this.baseMetrics[dividendIndex];
+    const priceMetric = this.baseMetrics[priceIndex];
+
+    const usdYieldMetric = {
+      metricName: "USD Yield",
+    } as Partial<DerivedMetric>;
+
+    const { dividendTax } = TAXES[this.region];
+
+    for (let dateIndex = 0; dateIndex < this.priceDates.length; dateIndex++) {
+      // previous price is needed to calculate yield, so we skip the last date
+      if (dateIndex === this.priceDates.length - 1) {
+        break;
+      }
+
+      const date = this.priceDates[dateIndex];
+      const previousDate = this.priceDates[dateIndex + 1];
+
+      const dividendValue = dividendMetric[date] ?? 0;
+      const netDividendYield = dividendValue * (1 - dividendTax);
+
+      const priceValue = priceMetric[date] ?? 0;
+      const previousPriceValue = priceMetric[previousDate] ?? 0;
+      const usdPriceValue = priceValue / getUsdTryRate(date);
+      const previousUsdPriceValue =
+        previousPriceValue / getUsdTryRate(previousDate);
+      const usdPriceYield =
+        (usdPriceValue - previousUsdPriceValue) / previousUsdPriceValue;
+
+      usdYieldMetric[date] = round(usdPriceYield + netDividendYield);
+    }
+
+    this.addYieldGrowths(usdYieldMetric);
+
+    this.derivedMetrics.push(usdYieldMetric as DerivedMetric);
+  }
+
+  private addYieldGrowths(metric: Partial<DerivedMetric>) {
     // calculate total growth by multiplying growth rates for each date
     let totalGrowth = 1;
-    Object.entries(yieldMetric).forEach(([key, value]) => {
+    Object.entries(metric).forEach(([key, value]) => {
       if (key !== "metricName") {
         totalGrowth = totalGrowth * (1 + (value as number));
       }
     });
     totalGrowth = totalGrowth - 1;
-    yieldMetric["Total growth"] = round(totalGrowth);
+    metric["Total growth"] = round(totalGrowth);
 
     // calculate yearly growth
     const yearlyGrowth = calcYearlyGrowth({
       totalGrowth,
       startDate: this.priceDates[this.priceDates.length - 1],
     });
-    yieldMetric["Yearly growth"] = round(yearlyGrowth);
+    metric["Yearly growth"] = round(yearlyGrowth);
 
     // calculate ttm growth: current date price change is included
     let ttmGrowth = 1;
     const ttmQuarters = DATES.slice(0, DATES.indexOf(TTM_START_DATE));
     ttmQuarters.forEach((date) => {
-      const dateYield = yieldMetric[date] as number;
+      const dateYield = metric[date] as number;
       ttmGrowth = ttmGrowth * (1 + dateYield);
     });
     ttmGrowth = ttmGrowth - 1;
 
-    yieldMetric["TTM growth"] = round(ttmGrowth);
+    metric["TTM growth"] = round(ttmGrowth);
+  }
 
-    this.derivedMetrics.push(yieldMetric as DerivedMetric);
+  private observationStartReturnMetric() {
+    const priceMetric = this.baseMetrics.find(
+      (item) => item.metricName === "Price",
+    );
+    if (!priceMetric) {
+      throw new Error("Price metric not found");
+    }
+
+    const observationStartPrice =
+      priceMetric[OBSERVATION_START_DATE_STR as Dates];
+    const observationStartUsdTryRate = getUsdTryRate(
+      OBSERVATION_START_DATE_STR as Dates,
+    );
+
+    const metric = {
+      metricName: "Observation Start Return",
+      "Total growth": "N/A",
+      "Yearly growth": "N/A",
+      "TTM growth": "N/A",
+    } as Partial<DerivedMetric>;
+
+    for (const date of DATES) {
+      metric[date] = "N/A";
+    }
+
+    if (observationStartPrice == null || observationStartPrice <= 0) {
+      this.derivedMetrics.push(metric as DerivedMetric);
+      return;
+    }
+
+    const observationStartUsdPrice =
+      observationStartPrice / observationStartUsdTryRate;
+
+    for (const date of this.priceDates) {
+      const priceValue = priceMetric[date];
+      if (priceValue == null) {
+        continue;
+      }
+      if (new Date(date) < new Date(OBSERVATION_START_DATE_STR)) {
+        continue;
+      }
+
+      const usdPriceValue = priceValue / getUsdTryRate(date);
+      metric[date] = round(
+        (usdPriceValue - observationStartUsdPrice) / observationStartUsdPrice,
+      );
+    }
+
+    const currentPrice = priceMetric[CURRENT_DATE];
+    if (currentPrice != null) {
+      const currentUsdPrice = currentPrice / getUsdTryRate(CURRENT_DATE);
+      metric[CURRENT_DATE] = round(
+        (currentUsdPrice - observationStartUsdPrice) / observationStartUsdPrice,
+      );
+      metric["Total growth"] = metric[CURRENT_DATE];
+      metric["Yearly growth"] = round(
+        calcYearlyGrowth({
+          totalGrowth: metric[CURRENT_DATE] as number,
+          startDate: OBSERVATION_START_DATE_STR,
+        }),
+      );
+    }
+
+    this.derivedMetrics.push(metric as DerivedMetric);
   }
 
   private debtMetric() {

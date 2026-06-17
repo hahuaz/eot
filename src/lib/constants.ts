@@ -13,6 +13,7 @@ if (!fs.existsSync(TR_DYNAMIC_PATH)) {
 }
 
 export const OBSERVATION_START_DATE = 1735516800000;
+export const OBSERVATION_START_DATE_STR = "2024/12/30";
 
 export const DAILY_SAVED_SYMBOLS = [
   "BGP",
