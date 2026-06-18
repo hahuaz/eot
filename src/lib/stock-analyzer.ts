@@ -18,10 +18,8 @@ import {
   LAST_DATE,
   CURRENT_DATE,
   TTM_START_DATE,
-  whichQuarter,
-  lastDateObj,
 } from "@/lib/dates";
-import { round, calcRealRate, calcYearlyGrowth } from "@/lib/utils";
+import { round, calcYearlyGrowth } from "@/lib/utils";
 
 export const TAXES = {
   tr: {
@@ -57,19 +55,6 @@ const getUsdTryRate = (date: Dates): number => {
   return usdTryRate;
 };
 
-export const INFLATION_DATA = regions.reduce(
-  (acc, region) => {
-    const inflationPath = path.join(DATA_DIR, "inflation", `${region}.csv`);
-    const { data: inflationData } = parseCSV<Inflation>({
-      filePath: inflationPath,
-      header: true,
-    });
-    acc[region] = inflationData;
-    return acc;
-  },
-  {} as Record<Region, Inflation[]>,
-);
-
 export const STOCKS_DYNAMIC_DATA = regions.reduce(
   (acc, region) => {
     const stocksDynamicPath = path.join(
@@ -100,7 +85,6 @@ export class StockAnalyzer {
   /** For recently IPO'd stocks, not all historical dates will have values thus available dates is calculated with the earliest defined date */
   private equityDates!: Dates[];
   private priceDates!: Dates[];
-  private inflation!: Inflation[];
   private dynamicInfo!: StockDynamicInfo;
 
   constructor(
@@ -148,7 +132,6 @@ export class StockAnalyzer {
     this.baseMetrics = baseMetrics;
 
     this.config = stockConfig;
-    this.inflation = INFLATION_DATA[this.region];
 
     const stocksDynamic = STOCKS_DYNAMIC_DATA[this.region];
     const stockDynamic = stocksDynamic[this.stockSymbol];
@@ -193,8 +176,8 @@ export class StockAnalyzer {
     // 2: calculate growth rates
     this.calcGrowths();
 
-    // 3: adjust growths for inflation
-    this.calcRealGrowth();
+    // 3: adjust growths to USD for TRY-denominated statements
+    this.calcUsdGrowth();
 
     return {
       baseMetrics: this.baseMetrics,
@@ -581,7 +564,21 @@ export class StockAnalyzer {
     }
   }
 
-  private calcRealGrowth() {
+  private getComparableGrowthValue({
+    value,
+    date,
+  }: {
+    value: number;
+    date: Dates;
+  }): number {
+    if (this.region !== "tr") {
+      return value;
+    }
+
+    return value / getUsdTryRate(date);
+  }
+
+  private calcUsdGrowth() {
     for (const metricName of this.GROWTH_APPLIED_METRICS) {
       const metric = this.baseMetrics.find(
         (item) => item.metricName === metricName,
@@ -591,62 +588,41 @@ export class StockAnalyzer {
         throw new Error(`${metricName} not found in metrics`);
       }
 
-      const inflationData = this.inflation.find(
-        (item) => item.date === LAST_DATE,
-      );
-      if (!inflationData) {
-        throw new Error(`Inflation data not found for date ${LAST_DATE}`);
-      }
-
       if (metric?.["Total growth"] == null) {
         throw new Error(`Total growth not found for metric ${metricName}`);
       }
 
-      if (metric["Total growth"] === "N/A") {
+      const firstDate = this.equityDates[this.equityDates.length - 1];
+      const firstDateValue = metric[firstDate];
+      const lastDateValue = metric[LAST_DATE];
+
+      if (firstDateValue == null || lastDateValue == null) {
+        throw new Error(
+          `${metricName} firstDateValue: ${firstDateValue}, lastDateValue: ${lastDateValue} not found`,
+        );
+      }
+
+      if (firstDateValue <= 0 || lastDateValue <= 0) {
         metric["Total growth"] = "N/A";
         metric["Yearly growth"] = "N/A";
       } else {
-        // for the given symbol, calculate accumulated inflation for its lifetime.
-        let accumulatedInflation = 0;
-        for (let i = 0; i < this.equityDates.length; i++) {
-          const date = this.equityDates[i];
-          if (date === CURRENT_DATE || i === this.equityDates.length - 1) {
-            continue;
-          }
-          const inflationData = this.inflation.find(
-            (item) => item.date === date,
-          );
-          if (!inflationData) {
-            throw new Error(`Inflation data not found for date ${date}`);
-          }
-
-          // for the before of 2024/12/30, use yoy inflation, for the others use qoq inflation to calculate accumulated inflation.
-          if (new Date(date) <= new Date("2024-12-30")) {
-            if (inflationData.yoy == null) {
-              throw new Error(`yoy data not found for date ${date}`);
-            }
-            accumulatedInflation =
-              (1 + accumulatedInflation) * (1 + inflationData.yoy) - 1;
-          } else {
-            if (inflationData.qoq == null) {
-              throw new Error(`qoq data not found for date ${date}`);
-            }
-            accumulatedInflation =
-              (1 + accumulatedInflation) * (1 + inflationData.qoq) - 1;
-          }
-        }
+        const comparableFirstDateValue = this.getComparableGrowthValue({
+          value: firstDateValue,
+          date: firstDate,
+        });
+        const comparableLastDateValue = this.getComparableGrowthValue({
+          value: lastDateValue,
+          date: LAST_DATE,
+        });
 
         metric["Total growth"] = round(
-          calcRealRate({
-            nominalRate: metric["Total growth"]!,
-            inflationRate: accumulatedInflation,
-          }),
+          (comparableLastDateValue - comparableFirstDateValue) /
+            comparableFirstDateValue,
         );
 
-        // yearly growth is calculated after inflation adjusted total growth calculation
         const yearlyGrowth = calcYearlyGrowth({
           totalGrowth: metric["Total growth"]!,
-          startDate: this.equityDates[this.equityDates.length - 1],
+          startDate: firstDate,
         });
         metric["Yearly growth"] = round(yearlyGrowth);
       }
@@ -655,12 +631,28 @@ export class StockAnalyzer {
         throw new Error(`TTM growth not found for metric ${metricName}`);
       }
 
-      if (metric["TTM growth"] !== "N/A" && metric["TTM growth"] != null) {
+      const ttmStartValue = metric[TTM_START_DATE];
+      if (ttmStartValue == null || lastDateValue == null) {
+        throw new Error(
+          `${metricName} ttmStartValue: ${ttmStartValue}, lastDateValue: ${lastDateValue} not found`,
+        );
+      }
+
+      if (ttmStartValue <= 0 || lastDateValue <= 0) {
+        metric["TTM growth"] = "N/A";
+      } else {
+        const comparableTtmStartValue = this.getComparableGrowthValue({
+          value: ttmStartValue,
+          date: TTM_START_DATE,
+        });
+        const comparableLastDateValue = this.getComparableGrowthValue({
+          value: lastDateValue,
+          date: LAST_DATE,
+        });
+
         metric["TTM growth"] = round(
-          calcRealRate({
-            nominalRate: metric["TTM growth"]!,
-            inflationRate: inflationData.yoy,
-          }),
+          (comparableLastDateValue - comparableTtmStartValue) /
+            comparableTtmStartValue,
         );
       }
     }

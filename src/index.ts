@@ -6,12 +6,7 @@ import fs from "fs";
 import express, { Response, Request, NextFunction, Router } from "express";
 import cors from "cors";
 
-import {
-  INFLATION_DATA,
-  STOCKS_DYNAMIC_DATA,
-  DATA_DIR,
-  StockAnalyzer,
-} from "@/lib";
+import { STOCKS_DYNAMIC_DATA, DATA_DIR, StockAnalyzer } from "@/lib";
 import { Region, regions } from "@/types";
 import { SymbolReturnsCalculator } from "@/lib/symbol-returns.js";
 import { StockResponse } from "./shared/types/index.js";
