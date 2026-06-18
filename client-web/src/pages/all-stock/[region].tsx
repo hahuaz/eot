@@ -19,7 +19,6 @@ import { MetricNames } from "@/shared/types";
 interface StockSummary {
   stockName: string;
   "Observation Start Yield"?: number;
-  "USD yield ttm growth"?: number;
   "Total yield"?: number;
   "TTM yield"?: number;
   "EV / operating income"?: number;
@@ -91,8 +90,7 @@ export const getStaticProps: GetStaticProps<{
       stockName: stockConfig.stockSymbol,
       Notes: notes?.length ? notes.join("|") : null,
       color: color || null,
-      "Observation Start Yield": observationStartReturnMetric?.["Total growth"],
-      "USD yield ttm growth": usdYieldMetric?.["TTM growth"],
+      "Observation Start Yield": observationStartReturnMetric?.current,
       "Total yield": usdYieldMetric?.["Total growth"],
       "TTM yield": usdYieldMetric?.["TTM growth"],
       "EV / operating income": evToOperatingIncome,
@@ -175,19 +173,15 @@ const RegionalStocksPage = ({
       cell: ({ getValue }) => formatCell(getValue()),
       sortingFn: numericSort,
     }),
-    columnHelper.accessor("USD yield ttm growth", {
-      header: "USD Yield TTM",
+    columnHelper.accessor("TTM yield", {
+      header: "TTM Yield",
       cell: ({ getValue }) => formatCell(getValue()),
-      sortingFn: numericSort,
     }),
     columnHelper.accessor("Total yield", {
       header: "Total Yield",
       cell: ({ getValue }) => formatCell(getValue()),
     }),
-    columnHelper.accessor("TTM yield", {
-      header: "TTM Yield",
-      cell: ({ getValue }) => formatCell(getValue()),
-    }),
+
     columnHelper.accessor("EV / operating income", {
       header: "EV / OI",
       cell: ({ getValue }) => formatCell(getValue()),
