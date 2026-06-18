@@ -55,6 +55,7 @@ export class SymbolReturnsCalculator {
   >();
 
   constructor(symbol: string) {
+    // run validations, even if previously validated.
     if (!SymbolReturnsCalculator.isValidSymbol(symbol)) {
       throw new Error(`Invalid symbol: ${symbol}`);
     }

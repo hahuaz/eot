@@ -166,7 +166,7 @@ export class StockAnalyzer {
     // 1: create derived metrics
     this.usdPriceMetric();
     this.usdYieldMetric();
-    this.observationStartReturnMetric();
+    this.observationStartYieldMetric();
     this.debtMetric();
     this.evMetric();
     this.evToOiMetric();
@@ -289,7 +289,8 @@ export class StockAnalyzer {
     metric["TTM growth"] = round(ttmGrowth);
   }
 
-  private observationStartReturnMetric() {
+  // Calculates single point-to-point return from the observation start date to today and stores it as the current value.
+  private observationStartYieldMetric() {
     const priceMetric = this.baseMetrics.find(
       (item) => item.metricName === "Price",
     );
@@ -304,16 +305,10 @@ export class StockAnalyzer {
     );
 
     const metric = {
-      metricName: "Observation Start Return",
-      "Total growth": "N/A",
-      "Yearly growth": "N/A",
-      "TTM growth": "N/A",
+      metricName: "Observation Start Yield",
     } as Partial<DerivedMetric>;
 
-    for (const date of DATES) {
-      metric[date] = "N/A";
-    }
-
+    // if stock made IPO after observation start date, return cannot be calculated
     if (observationStartPrice == null || observationStartPrice <= 0) {
       this.derivedMetrics.push(metric as DerivedMetric);
       return;
@@ -322,35 +317,18 @@ export class StockAnalyzer {
     const observationStartUsdPrice =
       observationStartPrice / observationStartUsdTryRate;
 
-    for (const date of this.priceDates) {
-      const priceValue = priceMetric[date];
-      if (priceValue == null) {
-        continue;
-      }
-      if (new Date(date) < new Date(OBSERVATION_START_DATE_STR)) {
-        continue;
-      }
-
-      const usdPriceValue = priceValue / getUsdTryRate(date);
-      metric[date] = round(
-        (usdPriceValue - observationStartUsdPrice) / observationStartUsdPrice,
-      );
-    }
-
     const currentPrice = priceMetric[CURRENT_DATE];
-    if (currentPrice != null) {
-      const currentUsdPrice = currentPrice / getUsdTryRate(CURRENT_DATE);
-      metric[CURRENT_DATE] = round(
-        (currentUsdPrice - observationStartUsdPrice) / observationStartUsdPrice,
-      );
-      metric["Total growth"] = metric[CURRENT_DATE];
-      metric["Yearly growth"] = round(
-        calcYearlyGrowth({
-          totalGrowth: metric[CURRENT_DATE] as number,
-          startDate: OBSERVATION_START_DATE_STR,
-        }),
+
+    if (!currentPrice) {
+      throw new Error(
+        `Current price not found while calculating Observation Start Yield for ${this.config.stockSymbol}`,
       );
     }
+
+    const currentUsdPrice = currentPrice / getUsdTryRate(CURRENT_DATE);
+    metric[CURRENT_DATE] = round(
+      (currentUsdPrice - observationStartUsdPrice) / observationStartUsdPrice,
+    );
 
     this.derivedMetrics.push(metric as DerivedMetric);
   }

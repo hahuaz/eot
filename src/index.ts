@@ -30,6 +30,15 @@ function validateRegion(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
+function validateSymbol(req: Request, res: Response, next: NextFunction) {
+  const symbol = req.query.symbol;
+  if (!SymbolReturnsCalculator.isValidSymbol(symbol)) {
+    res.status(400).json({ error: "Invalid symbol parameter." });
+    return;
+  }
+  next();
+}
+
 /**
  * Request logging middleware
  */
@@ -45,10 +54,11 @@ app.use((req, res, next) => {
  * @description Returns cumulative returns for a specific symbol.
  * @queryparam {string} symbol - The symbol to get returns for (e.g., 'BGP', 'TP2', 'USDTRY', 'EURTRY', 'GOLD').
  */
-router.get("/cummulative-returns", (req, res) => {
+router.get("/cummulative-returns", validateSymbol, (req, res) => {
   const { symbol } = req.query;
 
   try {
+    // TODO: I shouldn't declare it's type as string, check result should provide the correct type
     const calculator = new SymbolReturnsCalculator(symbol as string);
     const cummulativeReturns = calculator.getCummulativeReturns();
     res.status(200).json(cummulativeReturns);
@@ -67,7 +77,6 @@ router.get("/cummulative-returns", (req, res) => {
  */
 router.get("/yoy-returns", (req, res) => {
   const { symbol } = req.query;
-
   try {
     const calculator = new SymbolReturnsCalculator(symbol as string);
     const yoyReturns = calculator.getYoyReturns();

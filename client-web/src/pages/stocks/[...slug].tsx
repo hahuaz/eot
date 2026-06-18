@@ -43,7 +43,7 @@ const SECTIONS: Record<string, MetricNames[]> = {
     "USD Price",
     "Dividend",
     "USD Yield",
-    "Observation Start Return",
+    "Observation Start Yield",
     "Selected growth median",
   ],
 };
