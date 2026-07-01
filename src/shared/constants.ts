@@ -43,6 +43,11 @@ export const returnSymbolConfig = {
     symbol: "TP2",
     withholdingTax: 0.175,
   },
+  BASAKSEHIR_USDTRY: {
+    kind: "usdAdjusted",
+    symbol: "BASAKSEHIR",
+    withholdingTax: 0,
+  }
 } as const satisfies Record<string, ReturnSymbolConfig>;
 
 export const baseSymbols = Object.entries(returnSymbolConfig)

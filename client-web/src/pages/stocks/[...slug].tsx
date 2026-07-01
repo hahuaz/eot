@@ -116,7 +116,7 @@ const getDisplayMetrics = (metrics: (BaseMetric | DerivedMetric)[]) => {
     else if (evValue > 99_999_999) normalizationDivisor = 1_000;
   }
 
-  return metrics.map((metric) => {
+  const newMetrics = metrics.map((metric) => {
     const newMetric: any = { ...metric };
 
     // Format Growth Columns
@@ -145,6 +145,11 @@ const getDisplayMetrics = (metrics: (BaseMetric | DerivedMetric)[]) => {
 
     return newMetric;
   });
+
+  return {
+    newMetrics,
+    normalizationDivisor,
+  };
 };
 
 const StockDetailPage = ({
@@ -156,7 +161,8 @@ const StockDetailPage = ({
 
   console.log("allMetrics", allMetrics);
 
-  const displayMetrics = getDisplayMetrics(allMetrics);
+  const { newMetrics: displayMetrics, normalizationDivisor } =
+    getDisplayMetrics(allMetrics);
 
   return (
     <>
@@ -214,6 +220,9 @@ const StockDetailPage = ({
           </TableBody>
         </Table>
       </div>
+      <p>
+        Normalization divisor: {formatNumber({ num: normalizationDivisor })}
+      </p>
       <pre>{JSON.stringify(stockConfig, null, 2)}</pre>
     </>
   );

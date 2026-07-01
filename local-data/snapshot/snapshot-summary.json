@@ -1,5 +1,5 @@
 {
-  "totalSymbols": 8,
+  "totalSymbols": 9,
   "symbols": [
     "BGP",
     "TP2",
@@ -8,6 +8,7 @@
     "GOLD",
     "MIXEDCURRENCY",
     "BGP_USDTRY",
-    "TP2_USDTRY"
+    "TP2_USDTRY",
+    "BASAKSEHIR_USDTRY"
   ]
 }

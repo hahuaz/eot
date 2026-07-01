@@ -2,7 +2,7 @@
   "symbol": "TP2",
   "cumulativeReturns": [
     {
-      "date": 1738184400000,
+      "date": 1738195200000,
       "value": 0.028409019837925348
     },
     {
@@ -10,31 +10,31 @@
       "value": 0.05789340056169243
     },
     {
-      "date": 1743282000000,
+      "date": 1743292800000,
       "value": 0.08737778128545952
     },
     {
-      "date": 1745960400000,
+      "date": 1745971200000,
       "value": 0.1250522677658286
     },
     {
-      "date": 1748552400000,
+      "date": 1748563200000,
       "value": 0.17009784942713946
     },
     {
-      "date": 1751230800000,
+      "date": 1751241600000,
       "value": 0.20695332533184832
     },
     {
-      "date": 1753822800000,
+      "date": 1753833600000,
       "value": 0.24790385411485827
     },
     {
-      "date": 1756501200000,
+      "date": 1756512000000,
       "value": 0.288854382897868
     },
     {
-      "date": 1759179600000,
+      "date": 1759190400000,
       "value": 0.3379950174374798
     },
     {
@@ -50,7 +50,7 @@
       "value": 0.4854169210563154
     },
     {
-      "date": 1769720400000,
+      "date": 1769731200000,
       "value": 0.5427476613525289
     },
     {
@@ -58,7 +58,7 @@
       "value": 0.5918882958921409
     },
     {
-      "date": 1774818000000,
+      "date": 1774828800000,
       "value": 0.6492190361883546
     },
     {
@@ -72,7 +72,7 @@
   ],
   "yoyReturns": [
     {
-      "date": 1738184400000,
+      "date": 1738195200000,
       "baselineDate": 1735516800000,
       "daysPassed": 31,
       "yoyReturnPercent": 0.48977
@@ -84,43 +84,43 @@
       "yoyReturnPercent": 0.51071
     },
     {
-      "date": 1743282000000,
+      "date": 1743292800000,
       "baselineDate": 1735516800000,
       "daysPassed": 90,
       "yoyReturnPercent": 0.50422
     },
     {
-      "date": 1745960400000,
+      "date": 1745971200000,
       "baselineDate": 1735516800000,
       "daysPassed": 121,
       "yoyReturnPercent": 0.53071
     },
     {
-      "date": 1748552400000,
+      "date": 1748563200000,
       "baselineDate": 1735516800000,
       "daysPassed": 151,
       "yoyReturnPercent": 0.57322
     },
     {
-      "date": 1751230800000,
+      "date": 1751241600000,
       "baselineDate": 1735516800000,
       "daysPassed": 182,
       "yoyReturnPercent": 0.56656
     },
     {
-      "date": 1753822800000,
+      "date": 1753833600000,
       "baselineDate": 1735516800000,
       "daysPassed": 212,
       "yoyReturnPercent": 0.57202
     },
     {
-      "date": 1756501200000,
+      "date": 1756512000000,
       "baselineDate": 1735516800000,
       "daysPassed": 243,
       "yoyReturnPercent": 0.56975
     },
     {
-      "date": 1759179600000,
+      "date": 1759190400000,
       "baselineDate": 1735516800000,
       "daysPassed": 274,
       "yoyReturnPercent": 0.57998
@@ -144,8 +144,8 @@
       "yoyReturnPercent": 0.58838
     },
     {
-      "date": 1769720400000,
-      "baselineDate": 1738184400000,
+      "date": 1769731200000,
+      "baselineDate": 1738195200000,
       "daysPassed": 365,
       "yoyReturnPercent": 0.60269
     },
@@ -156,20 +156,20 @@
       "yoyReturnPercent": 0.60482
     },
     {
-      "date": 1774818000000,
-      "baselineDate": 1743282000000,
+      "date": 1774828800000,
+      "baselineDate": 1743292800000,
       "daysPassed": 365,
       "yoyReturnPercent": 0.6158
     },
     {
       "date": 1777507200000,
-      "baselineDate": 1745960400000,
+      "baselineDate": 1745971200000,
       "daysPassed": 365,
       "yoyReturnPercent": 0.61207
     },
     {
       "date": 1780099200000,
-      "baselineDate": 1748552400000,
+      "baselineDate": 1748563200000,
       "daysPassed": 365,
       "yoyReturnPercent": 0.59695
     }
