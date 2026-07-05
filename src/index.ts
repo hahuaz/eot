@@ -10,6 +10,7 @@ import { DATA_DIR, StockAnalyzer } from "@/lib";
 import { BadRequestError } from "@/lib/errors";
 import { SymbolReturnsCalculator } from "@/lib/symbol-returns.js";
 import { StockResponse } from "./shared/types/index.js";
+import { Region } from "./types";
 
 // --- Express App Setup ---
 const app = express();
@@ -35,11 +36,10 @@ app.use((req, res, next) => {
 /**
  * @route GET /api/cummulative-returns
  * @description Returns cumulative returns for a specific symbol.
- * @queryparam {string} symbol - The symbol to get returns for (e.g., 'BGP', 'TP2', 'USDTRY', 'EURTRY', 'GOLD').
+ * @queryparam {string} symbol - The symbol to get returns for.
  */
 router.get("/cummulative-returns", (req, res, next) => {
   const { symbol } = req.query;
-
   try {
     // TODO: I shouldn't declare it's type as string, check result should provide the correct type
     const calculator = new SymbolReturnsCalculator(symbol as string);
@@ -53,7 +53,6 @@ router.get("/cummulative-returns", (req, res, next) => {
 /**
  * @route GET /api/yoy-returns
  * @description Returns year-over-year annualized returns for a specific symbol.
- * @queryparam {string} symbol - The symbol to get returns for (e.g., 'USDTRY', 'EURTRY', 'GOLD').
  */
 router.get("/yoy-returns", (req, res, next) => {
   const { symbol } = req.query;
@@ -69,7 +68,6 @@ router.get("/yoy-returns", (req, res, next) => {
 /**
  * @route GET /api/stock-names
  * @description Returns a list of all stock symbols for a given region.
- * @queryparam {string} region
  */
 router.get("/stock-names", (req, res) => {
   const region = StockAnalyzer.requireRegion(req.query.region);
@@ -79,7 +77,6 @@ router.get("/stock-names", (req, res) => {
 /**
  * @route GET /api/all-stock
  * @description Returns detailed data for all stocks in a given region.
- * @queryparam {string} region
  */
 router.get("/all-stock", (req, res) => {
   const region = StockAnalyzer.requireRegion(req.query.region);
@@ -89,13 +86,12 @@ router.get("/all-stock", (req, res) => {
 /**
  * @route GET /api/stock
  * @description Returns detailed data for a single stock in a given region.
- * @queryparam {string} region
- * @queryparam {string} stock - The stock symbol.
  */
 router.get("/stock", async (req, res) => {
-  const stockSymbol = StockAnalyzer.requireStockSymbol(req.query.stock);
-  const region = StockAnalyzer.requireRegion(req.query.region);
-  const stockService = new StockAnalyzer(stockSymbol, region);
+  const { stock, region } = req.query;
+  const stockSymbol = StockAnalyzer.requireStockSymbol(stock);
+  const stockRegion = StockAnalyzer.requireRegion(region);
+  const stockService = new StockAnalyzer(stockSymbol, stockRegion);
   const metrics = stockService.getMetrics();
 
   if (["ktlev", "froto", "alfas"].includes(stockSymbol)) {

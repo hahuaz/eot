@@ -48,11 +48,7 @@ export class SymbolReturnsCalculator {
   >();
 
   constructor(symbol: string) {
-    if (!SymbolReturnsCalculator.isValidSymbol(symbol)) {
-      throw new BadRequestError(`Invalid symbol: ${symbol}`);
-    }
-
-    this.symbol = symbol.toUpperCase();
+    this.symbol = SymbolReturnsCalculator.requireSymbol(symbol);
     const config =
       returnSymbolConfig[this.symbol as keyof typeof returnSymbolConfig];
     if (!config) {
@@ -65,18 +61,156 @@ export class SymbolReturnsCalculator {
     SymbolReturnsCalculator.symbolToPrices.clear();
   }
 
-  /**
-   * Validates the provided symbol.
-   */
-  public static isValidSymbol(symbol: unknown): symbol is string {
+  public static requireSymbol(symbol: unknown): string {
     if (typeof symbol !== "string" || !symbol) {
-      return false;
+      throw new BadRequestError(`Invalid symbol: ${symbol}`);
     }
     const normalizedSymbol = symbol.toUpperCase();
     if (!cumulativeSymbolsAll.includes(normalizedSymbol)) {
-      return false;
+      throw new BadRequestError(`Symbol not supported: ${symbol}`);
     }
-    return true;
+    return normalizedSymbol;
+  }
+
+  /**
+   * Calculates cumulative returns.
+   */
+  public getCummulativeReturns(): CumulativeReturn[] {
+    const config = this.config;
+
+    if (config.kind === "base") {
+      const symbolData = this.getPriceHistory(config.symbol);
+      const { startEntry, returnDates } = this.startObservation(
+        symbolData,
+        config.symbol,
+      );
+
+      const withholdingTax =
+        "withholdingTax" in config ? config.withholdingTax : 0;
+
+      return returnDates.map((entry) => {
+        const currentValue = this.getSymbolValue(config.symbol, entry.date);
+        const grossReturn = currentValue / startEntry.value - 1;
+        const netReturn = grossReturn * (1 - withholdingTax);
+
+        return {
+          date: entry.date,
+          value: netReturn,
+        };
+      });
+    }
+
+    if (config.kind === "currencyBasket") {
+      const [firstCurrencySymbol, secondCurrencySymbol] = config.symbols;
+      const firstCurrencyData = this.getPriceHistory(firstCurrencySymbol);
+      const secondCurrencyData = this.getPriceHistory(secondCurrencySymbol);
+
+      const { startEntry: firstCurrencyStartEntry } = this.startObservation(
+        firstCurrencyData,
+        firstCurrencySymbol,
+      );
+      const { startEntry: secondCurrencyStartEntry } = this.startObservation(
+        secondCurrencyData,
+        secondCurrencySymbol,
+      );
+
+      const commonDates = this.getCommonDates(
+        firstCurrencyData,
+        secondCurrencyData,
+      );
+
+      return commonDates.map((date) => {
+        const firstCurrencyValue = this.getSymbolValue(
+          firstCurrencySymbol,
+          date,
+        );
+        const secondCurrencyValue = this.getSymbolValue(
+          secondCurrencySymbol,
+          date,
+        );
+
+        const firstCurrencyReturn =
+          firstCurrencyValue / firstCurrencyStartEntry.value - 1;
+        const secondCurrencyReturn =
+          secondCurrencyValue / secondCurrencyStartEntry.value - 1;
+
+        // for currency baskets, we take the geometric average of the returns to reflect the combined effect of both currencies.
+        return {
+          date,
+          value:
+            Math.sqrt((1 + firstCurrencyReturn) * (1 + secondCurrencyReturn)) -
+            1,
+        };
+      });
+    }
+
+    if (config.kind === "usdAdjusted") {
+      const symbolData = this.getPriceHistory(config.symbol);
+      const usdtryData = this.getPriceHistory(USDTRY_SYMBOL);
+
+      const { startEntry: symbolStartEntry } = this.startObservation(
+        symbolData,
+        config.symbol,
+      );
+      const { startEntry: usdtryStartEntry } = this.startObservation(
+        usdtryData,
+        USDTRY_SYMBOL,
+      );
+
+      const commonDates = this.getCommonDates(symbolData, usdtryData);
+
+      return commonDates.map((date) => {
+        const investmentValue = this.getSymbolValue(config.symbol, date);
+        const usdtryValue = this.getSymbolValue(USDTRY_SYMBOL, date);
+
+        const symbolGrossReturn = investmentValue / symbolStartEntry.value - 1;
+        const withholdingTax =
+          "withholdingTax" in config ? config.withholdingTax : 0;
+        const symbolNetReturn = symbolGrossReturn * (1 - withholdingTax);
+
+        const usdtryReturn = usdtryValue / usdtryStartEntry.value - 1;
+
+        return {
+          date,
+          value: (1 + symbolNetReturn) / (1 + usdtryReturn) - 1,
+        };
+      });
+    }
+
+    throw new Error(`Unhandled symbol kind: ${(config as any).kind}`);
+  }
+
+  /**
+   * Calculates YoY returns.
+   */
+  public getYoyReturns(): YoyReturn[] {
+    const config = this.config;
+
+    if (config.kind === "base") {
+      return this.calculateSingleSymbolYoyReturns(config.symbol);
+    }
+
+    if (config.kind === "currencyBasket") {
+      const [firstSymbol, secondSymbol] = config.symbols;
+
+      return this.calculatePairedSymbolYoyReturns({
+        firstSymbol,
+        secondSymbol,
+        combineRatios: (firstRatio, secondRatio) =>
+          Math.sqrt(firstRatio * secondRatio),
+      });
+    }
+
+    if (config.kind === "usdAdjusted") {
+      return this.calculatePairedSymbolYoyReturns({
+        firstSymbol: config.symbol,
+        secondSymbol: USDTRY_SYMBOL,
+        combineRatios: (investmentRatio, usdtryRatio) =>
+          investmentRatio / usdtryRatio,
+      });
+    }
+
+    throw new Error(`Unhandled symbol kind: ${(config as any).kind}`);
   }
 
   /**
@@ -317,146 +451,5 @@ export class SymbolReturnsCalculator {
     }
 
     return results;
-  }
-
-  /**
-   * Calculates cumulative returns.
-   */
-  public getCummulativeReturns(): CumulativeReturn[] {
-    const config = this.config;
-
-    if (config.kind === "base") {
-      const symbolData = this.getPriceHistory(config.symbol);
-      const { startEntry, returnDates } = this.startObservation(
-        symbolData,
-        config.symbol,
-      );
-
-      const withholdingTax =
-        "withholdingTax" in config ? config.withholdingTax : 0;
-
-      return returnDates.map((entry) => {
-        const currentValue = this.getSymbolValue(config.symbol, entry.date);
-        const grossReturn = currentValue / startEntry.value - 1;
-        const netReturn = grossReturn * (1 - withholdingTax);
-
-        return {
-          date: entry.date,
-          value: netReturn,
-        };
-      });
-    }
-
-    if (config.kind === "currencyBasket") {
-      const [firstCurrencySymbol, secondCurrencySymbol] = config.symbols;
-      const firstCurrencyData = this.getPriceHistory(firstCurrencySymbol);
-      const secondCurrencyData = this.getPriceHistory(secondCurrencySymbol);
-
-      const { startEntry: firstCurrencyStartEntry } = this.startObservation(
-        firstCurrencyData,
-        firstCurrencySymbol,
-      );
-      const { startEntry: secondCurrencyStartEntry } = this.startObservation(
-        secondCurrencyData,
-        secondCurrencySymbol,
-      );
-
-      const commonDates = this.getCommonDates(
-        firstCurrencyData,
-        secondCurrencyData,
-      );
-
-      return commonDates.map((date) => {
-        const firstCurrencyValue = this.getSymbolValue(
-          firstCurrencySymbol,
-          date,
-        );
-        const secondCurrencyValue = this.getSymbolValue(
-          secondCurrencySymbol,
-          date,
-        );
-
-        const firstCurrencyReturn =
-          firstCurrencyValue / firstCurrencyStartEntry.value - 1;
-        const secondCurrencyReturn =
-          secondCurrencyValue / secondCurrencyStartEntry.value - 1;
-
-        // for currency baskets, we take the geometric average of the returns to reflect the combined effect of both currencies.
-        return {
-          date,
-          value:
-            Math.sqrt((1 + firstCurrencyReturn) * (1 + secondCurrencyReturn)) -
-            1,
-        };
-      });
-    }
-
-    if (config.kind === "usdAdjusted") {
-      const symbolData = this.getPriceHistory(config.symbol);
-      const usdtryData = this.getPriceHistory(USDTRY_SYMBOL);
-
-      const { startEntry: symbolStartEntry } = this.startObservation(
-        symbolData,
-        config.symbol,
-      );
-      const { startEntry: usdtryStartEntry } = this.startObservation(
-        usdtryData,
-        USDTRY_SYMBOL,
-      );
-
-      const commonDates = this.getCommonDates(symbolData, usdtryData);
-
-      return commonDates.map((date) => {
-        const investmentValue = this.getSymbolValue(config.symbol, date);
-        const usdtryValue = this.getSymbolValue(USDTRY_SYMBOL, date);
-
-        const symbolGrossReturn = investmentValue / symbolStartEntry.value - 1;
-        const withholdingTax =
-          "withholdingTax" in config ? config.withholdingTax : 0;
-        const symbolNetReturn = symbolGrossReturn * (1 - withholdingTax);
-
-        const usdtryReturn = usdtryValue / usdtryStartEntry.value - 1;
-
-        return {
-          date,
-          value: (1 + symbolNetReturn) / (1 + usdtryReturn) - 1,
-        };
-      });
-    }
-
-    throw new Error(`Unhandled symbol kind: ${(config as any).kind}`);
-  }
-
-  /**
-   * Calculates YoY returns.
-   */
-  public getYoyReturns(): YoyReturn[] {
-    const config = this.config;
-
-    if (config.kind === "base") {
-      return this.calculateSingleSymbolYoyReturns(config.symbol);
-    }
-
-    if (config.kind === "currencyBasket") {
-      const [firstSymbol, secondSymbol] = config.symbols;
-
-      return this.calculatePairedSymbolYoyReturns({
-        firstSymbol,
-        secondSymbol,
-        combineRatios: (firstRatio, secondRatio) =>
-          Math.sqrt(firstRatio * secondRatio),
-      });
-    }
-
-    if (config.kind === "usdAdjusted") {
-      return this.calculatePairedSymbolYoyReturns({
-        firstSymbol: config.symbol,
-        secondSymbol: USDTRY_SYMBOL,
-        combineRatios: (investmentRatio, usdtryRatio) =>
-          investmentRatio / usdtryRatio,
-      });
-    }
-
-    throw new Error(`Unhandled symbol kind: ${(config as any).kind}`);
   }
 }
