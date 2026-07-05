@@ -1,6 +1,6 @@
 import fs from "fs";
 
-import { getYearsPassed, MS_IN_DAY, DAYS_IN_YEAR } from "@/lib";
+import { getYearsPassed } from "@/lib";
 
 export const wait = (seconds: number): Promise<void> => {
   return new Promise((resolve) => setTimeout(resolve, seconds * 1000));

@@ -2,7 +2,6 @@ import {
   DATES,
   Dates,
   StockConfig,
-  Inflation,
   DerivedMetric,
   BaseMetric,
   StockSymbol,

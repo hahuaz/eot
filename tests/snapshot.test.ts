@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it } from "vitest";
 import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
@@ -95,28 +95,24 @@ function generateSnapshots() {
 
 describe("Snapshot Integrity", () => {
   it("should regenerate snapshots and verify they are up-to-date", () => {
-    try {
-      // Generate fresh snapshots
-      generateSnapshots();
+    // Generate fresh snapshots
+    generateSnapshots();
 
-      // Check if any snapshots have changed using git diff
-      try {
-        execSync("git diff --exit-code local-data/snapshot/", {
-          stdio: "pipe",
-        });
-        // If no error, snapshots are up-to-date
-      } catch (error: unknown) {
-        // Exit code non-zero means there are changes
-        if (error instanceof Error && "status" in error && error.status !== 0) {
-          // Show the diff
-          execSync("git diff local-data/snapshot/", { stdio: "inherit" });
-          throw new Error(
-            "Snapshots are out of date! Generated snapshots differ from committed ones. Please regenerate and commit them.",
-          );
-        }
-        throw error;
+    // Check if any snapshots have changed using git diff
+    try {
+      execSync("git diff --exit-code local-data/snapshot/", {
+        stdio: "pipe",
+      });
+      // If no error, snapshots are up-to-date
+    } catch (error: unknown) {
+      // Exit code non-zero means there are changes
+      if (error instanceof Error && "status" in error && error.status !== 0) {
+        // Show the diff
+        execSync("git diff local-data/snapshot/", { stdio: "inherit" });
+        throw new Error(
+          "Snapshots are out of date! Generated snapshots differ from committed ones. Please regenerate and commit them.",
+        );
       }
-    } catch (error) {
       throw error;
     }
   });
@@ -129,7 +125,7 @@ describe("Snapshot Integrity", () => {
       execSync("git diff --exit-code HEAD local-data/snapshot", {
         stdio: "ignore",
       });
-    } catch (error) {
+    } catch (_error) {
       throw new Error(
         "Changes detected in local-data/snapshot! These files are protected and should not be modified.",
       );

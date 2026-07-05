@@ -26,17 +26,7 @@ export const DAILY_SAVED_SYMBOLS = [
 export const TR_FUND_SYMBOLS: Site = {
   domain: "https://fintables.com/",
   endpoints: [
-    "fonlar/ZBJ",
-    "fonlar/PPN",
     "fonlar/BGP",
-    "fonlar/DBB",
-    "fonlar/GA1",
-    "fonlar/GUB",
-    "fonlar/MUT",
-    "fonlar/HMG",
-    "fonlar/APT",
-    "fonlar/NRG",
-    "fonlar/FIT",
     "fonlar/TP2",
     "fonlar/PRY",
     "fonlar/GTZ",

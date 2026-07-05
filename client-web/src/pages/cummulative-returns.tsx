@@ -12,7 +12,7 @@ import {
 import { useState } from "react";
 import type { InferGetStaticPropsType, GetStaticProps } from "next";
 import { API_URL, DEFAULT_RETURN_SYMBOLS, returnSymbolColors } from "@/lib";
-import { CumulativeReturns, CumulativeReturn } from "@/shared/types";
+import { CumulativeReturn } from "@/shared/types";
 import { cumulativeSymbolsAll } from "@/shared/constants";
 
 interface CummulativeReturnsProps {

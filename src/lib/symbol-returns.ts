@@ -1,20 +1,13 @@
 import path from "path";
-import {
-  parseCSV,
-  DAILY_DIR,
-  OBSERVATION_START_DATE,
-  calcRealRate,
-  TAXES,
-  LAST_DATE,
-  round,
-} from "@/lib";
+import { parseCSV, DAILY_DIR, OBSERVATION_START_DATE, round } from "@/lib";
 import { DailyPrice } from "@/types";
-import { CumulativeReturn, Inflation, YoyReturn } from "@/shared/types";
+import { CumulativeReturn, YoyReturn } from "@/shared/types";
 import {
   returnSymbolConfig,
   cumulativeSymbolsAll,
   ReturnSymbolConfigValue,
 } from "@/shared/constants";
+import { BadRequestError } from "@/lib/errors";
 
 const USDTRY_SYMBOL = "USDTRY";
 
@@ -55,9 +48,8 @@ export class SymbolReturnsCalculator {
   >();
 
   constructor(symbol: string) {
-    // run validations, even if previously validated.
     if (!SymbolReturnsCalculator.isValidSymbol(symbol)) {
-      throw new Error(`Invalid symbol: ${symbol}`);
+      throw new BadRequestError(`Invalid symbol: ${symbol}`);
     }
 
     this.symbol = symbol.toUpperCase();
@@ -78,12 +70,10 @@ export class SymbolReturnsCalculator {
    */
   public static isValidSymbol(symbol: unknown): symbol is string {
     if (typeof symbol !== "string" || !symbol) {
-      console.error("Symbol must be a non-empty string.");
       return false;
     }
     const normalizedSymbol = symbol.toUpperCase();
     if (!cumulativeSymbolsAll.includes(normalizedSymbol)) {
-      console.error(`Symbol "${symbol}" is not registered.`);
       return false;
     }
     return true;

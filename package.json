@@ -15,14 +15,13 @@
     "prepare": "husky",
     "check:ts": "pnpm -w exec tsc --noEmit && pnpm -w exec tsc --noEmit --project client-web/tsconfig.json",
     "check:lint": "oxlint",
-    "check:prettier": "prettier --write .",
-    "check:all": "concurrently \"pnpm check:ts\" \"pnpm check:lint\" \"pnpm check:prettier\"",
-    "check": "git add . && sh .husky/pre-commit"
+    "check:format": "prettier --check .",
+    "check:all": "pnpm check:ts && pnpm check:lint && pnpm check:format"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@11.5.2",
+  "packageManager": "pnpm@11.10.0",
   "dependencies": {
     "cors": "^2.8.6",
     "csv": "^6.5.1",
@@ -37,17 +36,17 @@
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
-    "@types/node": "^22.19.19",
+    "@types/node": "^26.1.0",
     "@types/papaparse": "^5.5.2",
     "add": "^2.0.6",
-    "concurrently": "^9.2.1",
+    "concurrently": "^10.0.3",
     "cross-env": "^10.1.0",
     "husky": "^9.1.7",
-    "lint-staged": "^16.4.0",
+    "lint-staged": "^17.0.8",
     "oxlint": "^1.67.0",
-    "pnpm": "^10.34.1",
-    "prettier": "^3.8.3",
-    "typescript": "^5.2.2",
+    "pnpm": "^11.10.0",
+    "prettier": "^3.9.4",
+    "typescript": "^6.0.3",
     "vitest": "^4.1.8"
   },
   "lint-staged": {
@@ -55,5 +54,8 @@
     "**/*.{js,ts,tsx}": "oxlint",
     "client-web/**/*.{ts,tsx}": "bash -c 'pnpm -w exec tsc --noEmit --project client-web/tsconfig.json'",
     "src/**/*.{ts,tsx}": "bash -c 'pnpm -w exec tsc --noEmit'"
+  },
+  "engines": {
+    "node": ">=20 <27"
   }
 }

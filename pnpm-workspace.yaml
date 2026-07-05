@@ -1,3 +1,5 @@
 allowBuilds:
   esbuild: true
   puppeteer: true
+minimumReleaseAgeExclude:
+  - pnpm@11.10.0

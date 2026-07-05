@@ -7,6 +7,7 @@ import express, { Response, Request, NextFunction, Router } from "express";
 import cors from "cors";
 
 import { STOCKS_DYNAMIC_DATA, DATA_DIR, StockAnalyzer } from "@/lib";
+import { BadRequestError } from "@/lib/errors";
 import { Region, regions } from "@/types";
 import { SymbolReturnsCalculator } from "@/lib/symbol-returns.js";
 import { StockResponse } from "./shared/types/index.js";
@@ -30,15 +31,6 @@ function validateRegion(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
-function validateSymbol(req: Request, res: Response, next: NextFunction) {
-  const symbol = req.query.symbol;
-  if (!SymbolReturnsCalculator.isValidSymbol(symbol)) {
-    res.status(400).json({ error: "Invalid symbol parameter." });
-    return;
-  }
-  next();
-}
-
 /**
  * Request logging middleware
  */
@@ -54,7 +46,7 @@ app.use((req, res, next) => {
  * @description Returns cumulative returns for a specific symbol.
  * @queryparam {string} symbol - The symbol to get returns for (e.g., 'BGP', 'TP2', 'USDTRY', 'EURTRY', 'GOLD').
  */
-router.get("/cummulative-returns", validateSymbol, (req, res) => {
+router.get("/cummulative-returns", (req, res, next) => {
   const { symbol } = req.query;
 
   try {
@@ -63,10 +55,7 @@ router.get("/cummulative-returns", validateSymbol, (req, res) => {
     const cummulativeReturns = calculator.getCummulativeReturns();
     res.status(200).json(cummulativeReturns);
   } catch (error) {
-    console.error("Failed to get cummulative returns data:", error);
-    res
-      .status(500)
-      .json({ error: "Failed to calculate cummulative returns data." });
+    next(error);
   }
 });
 
@@ -75,15 +64,14 @@ router.get("/cummulative-returns", validateSymbol, (req, res) => {
  * @description Returns year-over-year annualized returns for a specific symbol.
  * @queryparam {string} symbol - The symbol to get returns for (e.g., 'USDTRY', 'EURTRY', 'GOLD').
  */
-router.get("/yoy-returns", (req, res) => {
+router.get("/yoy-returns", (req, res, next) => {
   const { symbol } = req.query;
   try {
     const calculator = new SymbolReturnsCalculator(symbol as string);
     const yoyReturns = calculator.getYoyReturns();
     res.status(200).json(yoyReturns);
   } catch (error) {
-    console.error("Failed to get YoY returns data:", error);
-    res.status(500).json({ error: "Failed to calculate YoY returns data." });
+    next(error);
   }
 });
 
@@ -157,6 +145,16 @@ router.get("/stock", validateRegion, async (req, res) => {
 
 // Mount the router under the /api prefix
 app.use("/api", router);
+
+app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
+  if (err instanceof BadRequestError) {
+    res.status(err.statusCode).json({ error: err.message });
+    return;
+  }
+
+  console.error("Unhandled request error:", err);
+  res.status(500).json({ error: "Internal server error." });
+});
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
