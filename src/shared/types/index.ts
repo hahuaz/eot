@@ -124,10 +124,10 @@ export type YoyReturn = {
   yoyReturnPercent: number;
 };
 
+// TODO: yield symbols shouldn't be hardcoded here
 export type CumulativeYields = {
   usdtry: CumulativeReturn[];
   eurtry: CumulativeReturn[];
-  mixedcurrency: CumulativeReturn[];
   bgp: CumulativeReturn[];
   gold: CumulativeReturn[];
   tp2: CumulativeReturn[];

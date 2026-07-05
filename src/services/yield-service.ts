@@ -90,50 +90,6 @@ export class YieldService {
       });
     }
 
-    if (config.kind === "currencyBasket") {
-      const [firstCurrencySymbol, secondCurrencySymbol] = config.symbols;
-      const firstCurrencyData = this.getPriceHistory(firstCurrencySymbol);
-      const secondCurrencyData = this.getPriceHistory(secondCurrencySymbol);
-
-      const { startEntry: firstCurrencyStartEntry } = this.startObservation(
-        firstCurrencyData,
-        firstCurrencySymbol,
-      );
-      const { startEntry: secondCurrencyStartEntry } = this.startObservation(
-        secondCurrencyData,
-        secondCurrencySymbol,
-      );
-
-      const commonDates = this.getCommonDates(
-        firstCurrencyData,
-        secondCurrencyData,
-      );
-
-      return commonDates.map((date) => {
-        const firstCurrencyValue = this.getSymbolValue(
-          firstCurrencySymbol,
-          date,
-        );
-        const secondCurrencyValue = this.getSymbolValue(
-          secondCurrencySymbol,
-          date,
-        );
-
-        const firstCurrencyReturn =
-          firstCurrencyValue / firstCurrencyStartEntry.value - 1;
-        const secondCurrencyReturn =
-          secondCurrencyValue / secondCurrencyStartEntry.value - 1;
-
-        // for currency baskets, we take the geometric average of the returns to reflect the combined effect of both currencies.
-        return {
-          date,
-          value:
-            Math.sqrt((1 + firstCurrencyReturn) * (1 + secondCurrencyReturn)) -
-            1,
-        };
-      });
-    }
-
     if (config.kind === "usdAdjusted") {
       const symbolData = this.getPriceHistory(config.symbol);
       const usdtryData = this.getPriceHistory(USDTRY_SYMBOL);
@@ -178,17 +134,6 @@ export class YieldService {
 
     if (config.kind === "base") {
       return this.calculateSingleSymbolYoyReturns(config.symbol);
-    }
-
-    if (config.kind === "currencyBasket") {
-      const [firstSymbol, secondSymbol] = config.symbols;
-
-      return this.calculatePairedSymbolYoyReturns({
-        firstSymbol,
-        secondSymbol,
-        combineRatios: (firstRatio, secondRatio) =>
-          Math.sqrt(firstRatio * secondRatio),
-      });
     }
 
     if (config.kind === "usdAdjusted") {

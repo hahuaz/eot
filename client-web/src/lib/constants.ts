@@ -10,7 +10,6 @@ export const CHART_COLORS = [
   "#1E90FF", // usdtry
   "#FFD700", // eurtry
   "#D4AF37", // gold
-  "#FF8C00", // mixedcurrency
   "#9932CC", // bgp_usdtry
   "#FF1493", // tp2_usdtry
 ];

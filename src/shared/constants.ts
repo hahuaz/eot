@@ -4,19 +4,13 @@ type BaseReturnConfig = {
   withholdingTax?: number;
 };
 
-type CurrencyReturnConfig = {
-  kind: "currencyBasket";
-  symbols: readonly [string, string];
-};
-
 type UsdAdjustedReturnConfig = {
   kind: "usdAdjusted";
   symbol: string;
   withholdingTax?: number;
 };
 
-type ReturnSymbolConfig =
-  BaseReturnConfig | CurrencyReturnConfig | UsdAdjustedReturnConfig;
+type ReturnSymbolConfig = BaseReturnConfig | UsdAdjustedReturnConfig;
 
 export type ReturnSymbolConfigValue =
   (typeof returnSymbolConfig)[keyof typeof returnSymbolConfig];
@@ -27,10 +21,6 @@ export const returnSymbolConfig = {
   USDTRY: { kind: "base", symbol: "USDTRY" },
   EURTRY: { kind: "base", symbol: "EURTRY" },
   GOLD: { kind: "base", symbol: "GOLD" },
-  MIXEDCURRENCY: {
-    kind: "currencyBasket",
-    symbols: ["USDTRY", "EURTRY"],
-  },
   BGP_USDTRY: {
     kind: "usdAdjusted",
     symbol: "BGP",
@@ -52,16 +42,8 @@ export const baseSymbols = Object.entries(returnSymbolConfig)
   .filter(([, config]) => config.kind === "base")
   .map(([symbol]) => symbol);
 
-export const currencyBasketSymbols = Object.entries(returnSymbolConfig)
-  .filter(([, config]) => config.kind === "currencyBasket")
-  .map(([symbol]) => symbol);
-
 export const usdAdjustedSymbols = Object.entries(returnSymbolConfig)
   .filter(([, config]) => config.kind === "usdAdjusted")
   .map(([symbol]) => symbol);
 
-export const cumulativeSymbolsAll = [
-  ...baseSymbols,
-  ...currencyBasketSymbols,
-  ...usdAdjustedSymbols,
-];
+export const cumulativeSymbolsAll = [...baseSymbols, ...usdAdjustedSymbols];
