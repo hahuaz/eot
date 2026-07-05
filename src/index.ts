@@ -33,16 +33,27 @@ app.use((req, res, next) => {
 // --- API Routes ---
 
 /**
- * @route GET /api/cummulative-returns
- * @description Returns cumulative returns for a specific symbol.
- * @queryparam {string} symbol - The symbol to get returns for.
+ * @route GET /api/cumulative-returns
+ * @description Returns cumulative yields for a specific symbol.
+ * @queryparam {string} symbol - The symbol to get yields for.
  */
+router.get("/cumulative-returns", (req, res, next) => {
+  const { symbol } = req.query;
+  try {
+    const yieldService = new YieldService(YieldService.requireSymbol(symbol));
+    const cumulativeYields = yieldService.getCumulativeYields();
+    res.status(200).json(cumulativeYields);
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get("/cummulative-returns", (req, res, next) => {
   const { symbol } = req.query;
   try {
-    const calculator = new YieldService(YieldService.requireSymbol(symbol));
-    const cummulativeReturns = calculator.getCummulativeReturns();
-    res.status(200).json(cummulativeReturns);
+    const yieldService = new YieldService(YieldService.requireSymbol(symbol));
+    const cumulativeYields = yieldService.getCumulativeYields();
+    res.status(200).json(cumulativeYields);
   } catch (error) {
     next(error);
   }
@@ -55,8 +66,8 @@ router.get("/cummulative-returns", (req, res, next) => {
 router.get("/yoy-returns", (req, res, next) => {
   const { symbol } = req.query;
   try {
-    const calculator = new YieldService(YieldService.requireSymbol(symbol));
-    const yoyReturns = calculator.getYoyReturns();
+    const yieldService = new YieldService(YieldService.requireSymbol(symbol));
+    const yoyReturns = yieldService.getYoyReturns();
     res.status(200).json(yoyReturns);
   } catch (error) {
     next(error);

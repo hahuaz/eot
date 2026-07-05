@@ -124,7 +124,7 @@ export type YoyReturn = {
   yoyReturnPercent: number;
 };
 
-export type CumulativeReturns = {
+export type CumulativeYields = {
   usdtry: CumulativeReturn[];
   eurtry: CumulativeReturn[];
   mixedcurrency: CumulativeReturn[];
@@ -134,6 +134,8 @@ export type CumulativeReturns = {
   bgp_usdtry: CumulativeReturn[];
   tp2_usdtry: CumulativeReturn[];
 };
+
+export type CumulativeReturns = CumulativeYields;
 
 // API responses
 

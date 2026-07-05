@@ -10,7 +10,7 @@ const DATE_THRESHOLD = 1780261200000;
 
 interface SymbolSnapshot {
   symbol: string;
-  cumulativeReturns: ReturnType<YieldService["getCummulativeReturns"]>;
+  cumulativeYields: ReturnType<YieldService["getCumulativeYields"]>;
   yoyReturns: ReturnType<YieldService["getYoyReturns"]>;
 }
 
@@ -44,12 +44,12 @@ function generateSnapshots() {
 
       // Get cumulative and YoY returns
       const calculator = new YieldService(symbol);
-      let cumulativeReturns = calculator.getCummulativeReturns();
+      let cumulativeYields = calculator.getCumulativeYields();
       let yoyReturns = calculator.getYoyReturns();
 
       // Filter to only include dates less than threshold
-      cumulativeReturns = filterByDateThreshold(
-        cumulativeReturns,
+      cumulativeYields = filterByDateThreshold(
+        cumulativeYields,
         DATE_THRESHOLD,
       );
       yoyReturns = filterByDateThreshold(yoyReturns, DATE_THRESHOLD);
@@ -57,7 +57,7 @@ function generateSnapshots() {
       // Create snapshot object
       const snapshot: SymbolSnapshot = {
         symbol,
-        cumulativeReturns,
+        cumulativeYields,
         yoyReturns,
       };
 
@@ -67,7 +67,7 @@ function generateSnapshots() {
       fs.writeFileSync(filePath, JSON.stringify(snapshot, null, 2));
 
       console.log(
-        `   ✅ Saved ${cumulativeReturns.length} cumulative returns and ${yoyReturns.length} YoY returns`,
+        `   ✅ Saved ${cumulativeYields.length} cumulative yields and ${yoyReturns.length} YoY returns`,
       );
     } catch (error) {
       console.error(

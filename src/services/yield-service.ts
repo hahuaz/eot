@@ -20,10 +20,9 @@ import { BadRequestError } from "@/lib/errors";
 const USDTRY_SYMBOL = "USDTRY";
 
 /**
- * Calculates returns for a specific financial symbol.
+ * Calculates return series for a financial symbol.
  *
  * Uses a static (class-level) cache to store and share parsed historical price data across all instances, while storing symbol-specific configurations within each instance.
- *
  */
 export class YieldService {
   private readonly symbol: string;
@@ -60,16 +59,13 @@ export class YieldService {
     this.symbol = YieldService.requireSymbol(symbol);
     const config =
       returnSymbolConfig[this.symbol as keyof typeof returnSymbolConfig];
-    if (!config) {
-      throw new Error(`Unhandled symbol config: ${this.symbol}`);
-    }
     this.config = config;
   }
 
   /**
-   * Calculates cumulative returns.
+   * Calculates cumulative yields.
    */
-  public getCummulativeReturns(): CumulativeReturn[] {
+  public getCumulativeYields(): CumulativeReturn[] {
     const config = this.config;
 
     if (config.kind === "base") {
@@ -215,9 +211,9 @@ export class YieldService {
     timeToPrice: Map<number, number>;
   } {
     const upperSym = symbol.toUpperCase();
-    let entry = YieldService.symbolToPrices.get(upperSym);
+    let symbolData = YieldService.symbolToPrices.get(upperSym);
 
-    if (!entry) {
+    if (!symbolData) {
       const { data: parsedData } = parseCSV<DailyPrice>({
         filePath: path.join(DAILY_DIR, `${upperSym}.csv`),
         header: true,
@@ -252,10 +248,10 @@ export class YieldService {
         priceHistory.map((entry) => [entry.date, entry.value]),
       );
 
-      entry = { priceHistory, timeToPrice };
-      YieldService.symbolToPrices.set(upperSym, entry);
+      symbolData = { priceHistory, timeToPrice };
+      YieldService.symbolToPrices.set(upperSym, symbolData);
     }
-    return entry;
+    return symbolData;
   }
 
   /**

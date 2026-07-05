@@ -15,26 +15,26 @@ import { API_URL, DEFAULT_RETURN_SYMBOLS, returnSymbolColors } from "@/lib";
 import { CumulativeReturn } from "@/shared/types";
 import { cumulativeSymbolsAll } from "@/shared/constants";
 
-interface CummulativeReturnsProps {
+interface CumulativeYieldsProps {
   [key: string]: CumulativeReturn[];
 }
 
 export const getStaticProps: GetStaticProps<{
-  cummulativeReturns: CummulativeReturnsProps;
+  cumulativeYields: CumulativeYieldsProps;
 }> = async () => {
   // Fetch data for all base and composite symbols
   const symbolData: Record<string, CumulativeReturn[]> = {};
 
   for (const symbol of cumulativeSymbolsAll) {
     const data = await fetch(
-      `${API_URL}api/cummulative-returns?symbol=${symbol}`,
+      `${API_URL}api/cumulative-returns?symbol=${symbol}`,
     ).then((res) => res.json());
     symbolData[symbol] = data;
   }
 
   return {
     props: {
-      cummulativeReturns: symbolData,
+      cumulativeYields: symbolData,
     },
   };
 };
@@ -44,14 +44,14 @@ export const getStaticProps: GetStaticProps<{
  * This unified format ensures all metrics can be plotted on a shared X-axis (date) and handles missing data points automatically.
  */
 const alignTimeSeriesData = (
-  cummulativeReturns: CummulativeReturnsProps,
+  cumulativeYields: CumulativeYieldsProps,
 ): {
   date: number;
   [key: string]: number | undefined;
 }[] => {
   const dateSet = new Set<number>();
-  for (const symbol of Object.keys(cummulativeReturns)) {
-    cummulativeReturns[symbol].forEach((d) => dateSet.add(d.date));
+  for (const symbol of Object.keys(cumulativeYields)) {
+    cumulativeYields[symbol].forEach((d) => dateSet.add(d.date));
   }
 
   const sortedDates = [...dateSet].sort(
@@ -64,9 +64,9 @@ const alignTimeSeriesData = (
       [key: string]: number | undefined;
     } = { date };
 
-    for (const symbol of Object.keys(cummulativeReturns)) {
+    for (const symbol of Object.keys(cumulativeYields)) {
       entry[symbol] =
-        cummulativeReturns[symbol].find((d) => d.date === date)?.value ??
+        cumulativeYields[symbol].find((d) => d.date === date)?.value ??
         undefined;
     }
 
@@ -74,10 +74,10 @@ const alignTimeSeriesData = (
   });
 };
 
-const CummulativeReturnsChart = ({
-  cummulativeReturns,
+const CumulativeYieldsChart = ({
+  cumulativeYields,
 }: InferGetStaticPropsType<typeof getStaticProps>) => {
-  const allData = alignTimeSeriesData(cummulativeReturns);
+  const allData = alignTimeSeriesData(cumulativeYields);
   const allDates = [...new Set(allData.map((d) => d.date))].sort(
     (a, b) => new Date(a).getTime() - new Date(b).getTime(),
   );
@@ -92,7 +92,7 @@ const CummulativeReturnsChart = ({
   });
   console.log("Filtered data for chart:", filteredData);
 
-  // pre-determined symbols (keys from CumulativeReturns)
+  // pre-determined symbols (keys from CumulativeYields)
   const allowedSymbols = cumulativeSymbolsAll;
 
   const [selectedSymbols, setSelectedSymbols] = useState<string[]>(
@@ -187,4 +187,4 @@ const CummulativeReturnsChart = ({
   );
 };
 
-export default CummulativeReturnsChart;
+export default CumulativeYieldsChart;

@@ -53,7 +53,7 @@ export const getStaticProps: GetStaticProps<{
 
   const [allStock, bgpReturn] = await Promise.all([
     fetch(`${API_URL}api/all-stock?region=${region}`).then((res) => res.json()),
-    fetch(`${API_URL}api/cummulative-returns?symbol=bgp_usdtry`).then((res) =>
+    fetch(`${API_URL}api/cumulative-returns?symbol=bgp_usdtry`).then((res) =>
       res.json(),
     ),
   ]);
