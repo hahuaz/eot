@@ -69,7 +69,7 @@ const STOCKS_DYNAMIC_DATA = regions.reduce(
   {} as Record<Region, StockDynamicInfoMap>,
 );
 
-export class StockAnalyzer {
+export class StockService {
   // Separate array for derived metrics to maintain type safety and make it easier to distinguish between base and calculated values
   private derivedMetrics: DerivedMetric[] = [];
   // for every stock, growth calculation is done for below metrics. there is also selected growth metric, which is obtainable from config and it declares which growths are used for performance calculation
@@ -89,7 +89,7 @@ export class StockAnalyzer {
   private region!: Region;
 
   public static getStockNames(region: Region): string[] {
-    return Object.keys(StockAnalyzer.getStocksDynamicData(region));
+    return Object.keys(StockService.getStocksDynamicData(region));
   }
 
   public static getAllStockData(region: Region): Array<{
@@ -98,11 +98,11 @@ export class StockAnalyzer {
     derivedMetrics: DerivedMetric[];
     stockConfig: StockConfig;
   }> {
-    const stocksDynamic = StockAnalyzer.getStocksDynamicData(region);
+    const stocksDynamic = StockService.getStocksDynamicData(region);
     const stockNames = Object.keys(stocksDynamic);
 
     return stockNames.map((stockSymbol) => {
-      const analyzer = new StockAnalyzer(stockSymbol as StockSymbol, region);
+      const analyzer = new StockService(stockSymbol as StockSymbol, region);
       const metrics = analyzer.getMetrics();
       const stockDynamic = stocksDynamic[stockSymbol];
 

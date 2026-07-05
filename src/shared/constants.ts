@@ -16,9 +16,7 @@ type UsdAdjustedReturnConfig = {
 };
 
 type ReturnSymbolConfig =
-  | BaseReturnConfig
-  | CurrencyReturnConfig
-  | UsdAdjustedReturnConfig;
+  BaseReturnConfig | CurrencyReturnConfig | UsdAdjustedReturnConfig;
 
 export type ReturnSymbolConfigValue =
   (typeof returnSymbolConfig)[keyof typeof returnSymbolConfig];
@@ -47,7 +45,7 @@ export const returnSymbolConfig = {
     kind: "usdAdjusted",
     symbol: "BASAKSEHIR",
     withholdingTax: 0,
-  }
+  },
 } as const satisfies Record<string, ReturnSymbolConfig>;
 
 export const baseSymbols = Object.entries(returnSymbolConfig)

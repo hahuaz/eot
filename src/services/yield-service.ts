@@ -1,5 +1,13 @@
 import path from "path";
-import { parseCSV, DAILY_DIR, OBSERVATION_START_DATE, round } from "@/lib";
+import {
+  parseCSV,
+  DAILY_DIR,
+  OBSERVATION_START_DATE,
+  round,
+  getDaysBetween,
+  MS_IN_DAY,
+  DAYS_IN_YEAR,
+} from "@/lib";
 import { DailyPrice } from "@/types";
 import { CumulativeReturn, YoyReturn } from "@/shared/types";
 import {
@@ -11,31 +19,13 @@ import { BadRequestError } from "@/lib/errors";
 
 const USDTRY_SYMBOL = "USDTRY";
 
-export const MS_IN_DAY = 24 * 60 * 60 * 1000;
-export const DAYS_IN_YEAR = 365;
-
-/**
- * Calculates the number of days between two timestamps.
- */
-export const getDaysBetween = (startDate: number, endDate: number): number => {
-  return Math.round((endDate - startDate) / MS_IN_DAY);
-};
-
-/**
- * Annualizes a return ratio over a given number of days.
- */
-export const annualizeRatio = (ratio: number, days: number): number => {
-  if (days <= 0) return 0;
-  return Math.pow(ratio, DAYS_IN_YEAR / days) - 1;
-};
-
 /**
  * Calculates returns for a specific financial symbol.
  *
- * Uses a static (class-level) cache to store and share parsed historical price data across all instances,
- * while storing symbol-specific configurations within each instance.
+ * Uses a static (class-level) cache to store and share parsed historical price data across all instances, while storing symbol-specific configurations within each instance.
+ *
  */
-export class SymbolReturnsCalculator {
+export class YieldService {
   private readonly symbol: string;
   private readonly config: ReturnSymbolConfigValue;
 
@@ -47,20 +37,6 @@ export class SymbolReturnsCalculator {
     }
   >();
 
-  constructor(symbol: string) {
-    this.symbol = SymbolReturnsCalculator.requireSymbol(symbol);
-    const config =
-      returnSymbolConfig[this.symbol as keyof typeof returnSymbolConfig];
-    if (!config) {
-      throw new Error(`Unhandled symbol config: ${this.symbol}`);
-    }
-    this.config = config;
-  }
-
-  public static clearCache(): void {
-    SymbolReturnsCalculator.symbolToPrices.clear();
-  }
-
   public static requireSymbol(symbol: unknown): string {
     if (typeof symbol !== "string" || !symbol) {
       throw new BadRequestError(`Invalid symbol: ${symbol}`);
@@ -70,6 +46,24 @@ export class SymbolReturnsCalculator {
       throw new BadRequestError(`Symbol not supported: ${symbol}`);
     }
     return normalizedSymbol;
+  }
+
+  /**
+   * Annualizes a return ratio over a given number of days.
+   */
+  public static annualizeRatio(ratio: number, days: number): number {
+    if (days <= 0) return 0;
+    return Math.pow(ratio, DAYS_IN_YEAR / days) - 1;
+  }
+
+  constructor(symbol: string) {
+    this.symbol = YieldService.requireSymbol(symbol);
+    const config =
+      returnSymbolConfig[this.symbol as keyof typeof returnSymbolConfig];
+    if (!config) {
+      throw new Error(`Unhandled symbol config: ${this.symbol}`);
+    }
+    this.config = config;
   }
 
   /**
@@ -221,7 +215,7 @@ export class SymbolReturnsCalculator {
     timeToPrice: Map<number, number>;
   } {
     const upperSym = symbol.toUpperCase();
-    let entry = SymbolReturnsCalculator.symbolToPrices.get(upperSym);
+    let entry = YieldService.symbolToPrices.get(upperSym);
 
     if (!entry) {
       const { data: parsedData } = parseCSV<DailyPrice>({
@@ -259,7 +253,7 @@ export class SymbolReturnsCalculator {
       );
 
       entry = { priceHistory, timeToPrice };
-      SymbolReturnsCalculator.symbolToPrices.set(upperSym, entry);
+      YieldService.symbolToPrices.set(upperSym, entry);
     }
     return entry;
   }
@@ -268,14 +262,14 @@ export class SymbolReturnsCalculator {
    * Retrieves price history for a symbol.
    */
   private getPriceHistory(symbol: string): DailyPrice[] {
-    return SymbolReturnsCalculator.getSymbolData(symbol).priceHistory;
+    return YieldService.getSymbolData(symbol).priceHistory;
   }
 
   /**
    * Retrieves the time-to-price map for a symbol.
    */
   private getTimeToPriceMap(symbol: string): Map<number, number> {
-    return SymbolReturnsCalculator.getSymbolData(symbol).timeToPrice;
+    return YieldService.getSymbolData(symbol).timeToPrice;
   }
 
   /**
@@ -372,7 +366,9 @@ export class SymbolReturnsCalculator {
       baselineDate,
       daysPassed,
       yoyReturnPercent:
-        daysPassed > 0 ? round(annualizeRatio(ratio, daysPassed)) : 0,
+        daysPassed > 0
+          ? round(YieldService.annualizeRatio(ratio, daysPassed))
+          : 0,
     };
   }
 

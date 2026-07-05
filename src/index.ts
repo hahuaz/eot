@@ -6,11 +6,10 @@ import fs from "fs";
 import express, { Response, Request, NextFunction, Router } from "express";
 import cors from "cors";
 
-import { DATA_DIR, StockAnalyzer } from "@/lib";
+import { DATA_DIR } from "@/lib";
 import { BadRequestError } from "@/lib/errors";
-import { SymbolReturnsCalculator } from "@/lib/symbol-returns.js";
+import { StockService, YieldService } from "@/services";
 import { StockResponse } from "./shared/types/index.js";
-import { Region } from "./types";
 
 // --- Express App Setup ---
 const app = express();
@@ -41,8 +40,7 @@ app.use((req, res, next) => {
 router.get("/cummulative-returns", (req, res, next) => {
   const { symbol } = req.query;
   try {
-    // TODO: I shouldn't declare it's type as string, check result should provide the correct type
-    const calculator = new SymbolReturnsCalculator(symbol as string);
+    const calculator = new YieldService(YieldService.requireSymbol(symbol));
     const cummulativeReturns = calculator.getCummulativeReturns();
     res.status(200).json(cummulativeReturns);
   } catch (error) {
@@ -57,7 +55,7 @@ router.get("/cummulative-returns", (req, res, next) => {
 router.get("/yoy-returns", (req, res, next) => {
   const { symbol } = req.query;
   try {
-    const calculator = new SymbolReturnsCalculator(symbol as string);
+    const calculator = new YieldService(YieldService.requireSymbol(symbol));
     const yoyReturns = calculator.getYoyReturns();
     res.status(200).json(yoyReturns);
   } catch (error) {
@@ -70,8 +68,10 @@ router.get("/yoy-returns", (req, res, next) => {
  * @description Returns a list of all stock symbols for a given region.
  */
 router.get("/stock-names", (req, res) => {
-  const region = StockAnalyzer.requireRegion(req.query.region);
-  res.status(200).json(StockAnalyzer.getStockNames(region));
+  const { region } = req.query;
+  res
+    .status(200)
+    .json(StockService.getStockNames(StockService.requireRegion(region)));
 });
 
 /**
@@ -79,8 +79,10 @@ router.get("/stock-names", (req, res) => {
  * @description Returns detailed data for all stocks in a given region.
  */
 router.get("/all-stock", (req, res) => {
-  const region = StockAnalyzer.requireRegion(req.query.region);
-  res.status(200).json(StockAnalyzer.getAllStockData(region));
+  const { region } = req.query;
+  res
+    .status(200)
+    .json(StockService.getAllStockData(StockService.requireRegion(region)));
 });
 
 /**
@@ -89,9 +91,9 @@ router.get("/all-stock", (req, res) => {
  */
 router.get("/stock", async (req, res) => {
   const { stock, region } = req.query;
-  const stockSymbol = StockAnalyzer.requireStockSymbol(stock);
-  const stockRegion = StockAnalyzer.requireRegion(region);
-  const stockService = new StockAnalyzer(stockSymbol, stockRegion);
+  const stockSymbol = StockService.requireStockSymbol(stock);
+  const stockRegion = StockService.requireRegion(region);
+  const stockService = new StockService(stockSymbol, stockRegion);
   const metrics = stockService.getMetrics();
 
   if (["ktlev", "froto", "alfas"].includes(stockSymbol)) {

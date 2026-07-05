@@ -2,7 +2,7 @@ import { describe, it } from "vitest";
 import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
-import { SymbolReturnsCalculator } from "@/lib/symbol-returns";
+import { YieldService } from "@/services";
 import { cumulativeSymbolsAll } from "@/shared/constants";
 
 const SNAPSHOT_DIR = path.join(process.cwd(), "local-data", "snapshot");
@@ -10,10 +10,8 @@ const DATE_THRESHOLD = 1780261200000;
 
 interface SymbolSnapshot {
   symbol: string;
-  cumulativeReturns: ReturnType<
-    SymbolReturnsCalculator["getCummulativeReturns"]
-  >;
-  yoyReturns: ReturnType<SymbolReturnsCalculator["getYoyReturns"]>;
+  cumulativeReturns: ReturnType<YieldService["getCummulativeReturns"]>;
+  yoyReturns: ReturnType<YieldService["getYoyReturns"]>;
 }
 
 /**
@@ -45,7 +43,7 @@ function generateSnapshots() {
       console.log(`\n📊 Processing ${symbol}...`);
 
       // Get cumulative and YoY returns
-      const calculator = new SymbolReturnsCalculator(symbol);
+      const calculator = new YieldService(symbol);
       let cumulativeReturns = calculator.getCummulativeReturns();
       let yoyReturns = calculator.getYoyReturns();
 

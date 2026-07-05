@@ -1,5 +1,8 @@
 import { DATES, BaseMetricNames, BaseMetric } from "@shared/types";
 
+export const MS_IN_DAY = 24 * 60 * 60 * 1000;
+export const DAYS_IN_YEAR = 365;
+
 export const CURRENT_DATE = DATES[0];
 export const LAST_DATE = DATES[1];
 export const TTM_START_DATE = DATES[5];
@@ -51,4 +54,11 @@ export const getAvailableDates = ({
   }
 
   return availableDates;
+};
+
+/**
+ * Calculates the number of days between two timestamps.
+ */
+export const getDaysBetween = (startDate: number, endDate: number): number => {
+  return Math.round((endDate - startDate) / MS_IN_DAY);
 };
