@@ -6,9 +6,8 @@ import fs from "fs";
 import express, { Response, Request, NextFunction, Router } from "express";
 import cors from "cors";
 
-import { STOCKS_DYNAMIC_DATA, DATA_DIR, StockAnalyzer } from "@/lib";
+import { DATA_DIR, StockAnalyzer } from "@/lib";
 import { BadRequestError } from "@/lib/errors";
-import { Region, regions } from "@/types";
 import { SymbolReturnsCalculator } from "@/lib/symbol-returns.js";
 import { StockResponse } from "./shared/types/index.js";
 
@@ -21,15 +20,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// --- Middleware ---
-function validateRegion(req: Request, res: Response, next: NextFunction) {
-  const region = req.query.region;
-  if (typeof region !== "string" || !regions.includes(region as Region)) {
-    res.status(400).json({ error: "Invalid or missing region parameter." });
-    return;
-  }
-  next();
-}
+// --- Middlewares ---
 
 /**
  * Request logging middleware
@@ -78,59 +69,32 @@ router.get("/yoy-returns", (req, res, next) => {
 /**
  * @route GET /api/stock-names
  * @description Returns a list of all stock symbols for a given region.
- * @queryparam {string} region - The region ('tr' or 'us').
+ * @queryparam {string} region
  */
-router.get("/stock-names", validateRegion, (req, res) => {
-  const region = req.query.region as Region;
-
-  const stocksDynamic = STOCKS_DYNAMIC_DATA[region];
-  res.status(200).json(Object.keys(stocksDynamic));
+router.get("/stock-names", (req, res) => {
+  const region = StockAnalyzer.requireRegion(req.query.region);
+  res.status(200).json(StockAnalyzer.getStockNames(region));
 });
 
 /**
  * @route GET /api/all-stock
  * @description Returns detailed data for all stocks in a given region.
- * @queryparam {string} region - The region ('tr' or 'us').
+ * @queryparam {string} region
  */
-router.get("/all-stock", validateRegion, (req, res) => {
-  const region = req.query.region as Region;
-  const stocksDynamic = STOCKS_DYNAMIC_DATA[region];
-  const stockNames = Object.keys(stocksDynamic);
-
-  const stocksData: any[] = stockNames.map((stockSymbol) => {
-    const stockDynamic = stocksDynamic[stockSymbol];
-    if (!stockDynamic) {
-      res.status(404).json({ error: "Stock not found." });
-      return;
-    }
-
-    const stock = new StockAnalyzer(stockSymbol, region);
-    const metrics = stock.getMetrics();
-
-    return {
-      stockDynamic,
-      ...metrics,
-    };
-  });
-
-  res.status(200).json(stocksData);
+router.get("/all-stock", (req, res) => {
+  const region = StockAnalyzer.requireRegion(req.query.region);
+  res.status(200).json(StockAnalyzer.getAllStockData(region));
 });
 
 /**
  * @route GET /api/stock
  * @description Returns detailed data for a single stock in a given region.
- * @queryparam {string} region - The region ('tr' or 'us').
+ * @queryparam {string} region
  * @queryparam {string} stock - The stock symbol.
  */
-router.get("/stock", validateRegion, async (req, res) => {
-  const region = req.query.region as Region;
-
-  const { stock: stockSymbol } = req.query;
-  if (!stockSymbol || typeof stockSymbol !== "string") {
-    res.status(400).json({ error: "Stock symbol is required." });
-    return;
-  }
-
+router.get("/stock", async (req, res) => {
+  const stockSymbol = StockAnalyzer.requireStockSymbol(req.query.stock);
+  const region = StockAnalyzer.requireRegion(req.query.region);
   const stockService = new StockAnalyzer(stockSymbol, region);
   const metrics = stockService.getMetrics();
 
@@ -146,6 +110,7 @@ router.get("/stock", validateRegion, async (req, res) => {
 // Mount the router under the /api prefix
 app.use("/api", router);
 
+// Handle errors and send appropriate responses
 app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
   if (err instanceof BadRequestError) {
     res.status(err.statusCode).json({ error: err.message });

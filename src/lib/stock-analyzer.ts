@@ -12,6 +12,7 @@ import { Region, regions } from "@/types";
 import path from "path";
 import { parseCSV, readJsonFile } from "@/lib/file";
 import { DATA_DIR, OBSERVATION_START_DATE_STR } from "@/lib/constants";
+import { BadRequestError } from "@/lib/errors";
 import {
   getAvailableDates,
   LAST_DATE,
@@ -54,7 +55,7 @@ const getUsdTryRate = (date: Dates): number => {
   return usdTryRate;
 };
 
-export const STOCKS_DYNAMIC_DATA = regions.reduce(
+const STOCKS_DYNAMIC_DATA = regions.reduce(
   (acc, region) => {
     const stocksDynamicPath = path.join(
       DATA_DIR,
@@ -85,11 +86,71 @@ export class StockAnalyzer {
   private equityDates!: Dates[];
   private priceDates!: Dates[];
   private dynamicInfo!: StockDynamicInfo;
+  private region!: Region;
+
+  public static getStockNames(region: Region): string[] {
+    return Object.keys(StockAnalyzer.getStocksDynamicData(region));
+  }
+
+  public static getAllStockData(region: Region): Array<{
+    stockDynamic: StockDynamicInfo;
+    baseMetrics: BaseMetric[];
+    derivedMetrics: DerivedMetric[];
+    stockConfig: StockConfig;
+  }> {
+    const stocksDynamic = StockAnalyzer.getStocksDynamicData(region);
+    const stockNames = Object.keys(stocksDynamic);
+
+    return stockNames.map((stockSymbol) => {
+      const analyzer = new StockAnalyzer(stockSymbol as StockSymbol, region);
+      const metrics = analyzer.getMetrics();
+      const stockDynamic = stocksDynamic[stockSymbol];
+
+      return {
+        stockDynamic,
+        ...metrics,
+      };
+    });
+  }
+
+  public static requireRegion(region: unknown): Region {
+    if (typeof region !== "string" || !regions.includes(region as Region)) {
+      throw new BadRequestError(
+        `Invalid or missing region parameter: ${region}`,
+      );
+    }
+
+    return region as Region;
+  }
+
+  public static requireStockSymbol(stock: unknown): StockSymbol {
+    if (typeof stock !== "string" || !stock) {
+      throw new BadRequestError(`Stock symbol is required.`);
+    }
+
+    return stock as StockSymbol;
+  }
+
+  private static getStocksDynamicData(
+    region: Region,
+  ): Record<string, StockDynamicInfo> {
+    return STOCKS_DYNAMIC_DATA[region];
+  }
 
   constructor(
     private stockSymbol: StockSymbol,
-    private region: Region,
+    region: Region,
   ) {
+    this.region = region;
+
+    const stocksDynamic = STOCKS_DYNAMIC_DATA[this.region];
+    const stockDynamic = stocksDynamic[this.stockSymbol];
+    if (!stockDynamic) {
+      throw new BadRequestError(
+        `Stock not found in dynamic data: ${this.stockSymbol}`,
+      );
+    }
+
     // 1. set base metrics
     const stockPath = path.join(
       DATA_DIR,
@@ -132,11 +193,6 @@ export class StockAnalyzer {
 
     this.config = stockConfig;
 
-    const stocksDynamic = STOCKS_DYNAMIC_DATA[this.region];
-    const stockDynamic = stocksDynamic[this.stockSymbol];
-    if (!stockDynamic) {
-      throw new Error("Stock not found in dynamic data");
-    }
     this.dynamicInfo = stockDynamic;
 
     // 2. populate current column
