@@ -100,8 +100,8 @@ export class YieldService {
     const benchmarkData = benchmarkSymbol
       ? this.getPriceHistory(benchmarkSymbol)
       : null;
-    const benchmarkValueByDate = benchmarkData
-      ? new Map(benchmarkData.map((entry) => [entry.date, entry.value]))
+    const benchmarkValueByDate = benchmarkSymbol
+      ? new Map(benchmarkData!.map((entry) => [entry.date, entry.value]))
       : null;
 
     return symbolData.slice(startIndex + 1).flatMap((currentEntry) => {
@@ -112,13 +112,18 @@ export class YieldService {
       let yieldValue =
         (currentEntry.value / startEntry.value - 1) * (1 - withholdingTax);
 
-      if (benchmarkData && benchmarkValueByDate) {
-        const benchmarkCurrentValue = benchmarkValueByDate.get(currentEntry.date);
-        const benchmarkStartEntry = benchmarkData.find(
+      if (benchmarkSymbol) {
+        const benchmarkCurrentValue = benchmarkValueByDate!.get(
+          currentEntry.date,
+        );
+        const benchmarkStartEntry = benchmarkData!.find(
           (entry) => entry.date === OBSERVATION_START_DATE,
         );
 
-        if (benchmarkCurrentValue == null || benchmarkStartEntry?.value == null) {
+        if (
+          benchmarkCurrentValue == null ||
+          benchmarkStartEntry?.value == null
+        ) {
           return [];
         }
 
@@ -128,10 +133,12 @@ export class YieldService {
         yieldValue = (1 + yieldValue) / (1 + benchmarkYield) - 1;
       }
 
-      return [{
-        date: currentEntry.date,
-        value: yieldValue,
-      }];
+      return [
+        {
+          date: currentEntry.date,
+          value: yieldValue,
+        },
+      ];
     });
   }
 
@@ -139,12 +146,16 @@ export class YieldService {
     const config = this.config;
 
     if (config.kind === "base") {
-      return this.calcYoyYields({ symbol: config.symbol });
+      return this.calcYoyYields({
+        symbol: config.symbol,
+        withholdingTax: "withholdingTax" in config ? config.withholdingTax : 0,
+      });
     }
 
     if (config.kind === "usdAdjusted") {
       return this.calcYoyYields({
         symbol: config.symbol,
+        withholdingTax: "withholdingTax" in config ? config.withholdingTax : 0,
         benchmarkSymbol: USDTRY_SYMBOL,
       });
     }
@@ -255,17 +266,19 @@ export class YieldService {
 
   private calcYoyYields({
     symbol,
+    withholdingTax = 0,
     benchmarkSymbol,
   }: {
     symbol: string;
+    withholdingTax?: number;
     benchmarkSymbol?: string;
   }): YoyYield[] {
     const symbolData = this.getPriceHistory(symbol);
     const benchmarkData = benchmarkSymbol
       ? this.getPriceHistory(benchmarkSymbol)
       : null;
-    const benchmarkValueByDate = benchmarkData
-      ? new Map(benchmarkData.map((entry) => [entry.date, entry.value]))
+    const benchmarkValueByDate = benchmarkSymbol
+      ? new Map(benchmarkData!.map((entry) => [entry.date, entry.value]))
       : null;
 
     return symbolData.slice(1).flatMap((currentEntry, index) => {
@@ -278,32 +291,47 @@ export class YieldService {
         return [];
       }
 
-      let ratio = currentEntry.value / baselineEntry.value;
+      const grossYield =
+        (currentEntry.value - baselineEntry.value) / baselineEntry.value;
+      let netYield = grossYield * (1 - withholdingTax);
 
-      if (benchmarkData && benchmarkValueByDate) {
-        const benchmarkCurrentValue = benchmarkValueByDate.get(currentEntry.date);
+      if (benchmarkSymbol) {
+        const benchmarkCurrentValue = benchmarkValueByDate!.get(
+          currentEntry.date,
+        );
         if (benchmarkCurrentValue == null) {
           return [];
         }
 
-        const benchmarkBaseline = this.getClosestEntry(benchmarkData, targetDate);
+        const benchmarkBaseline = this.getClosestEntry(
+          benchmarkData!,
+          targetDate,
+        );
         if (benchmarkBaseline.value == null) {
           return [];
         }
 
-        ratio = ratio / (benchmarkCurrentValue / benchmarkBaseline.value);
+        const benchmarkYield =
+          (benchmarkCurrentValue - benchmarkBaseline.value) /
+          benchmarkBaseline.value;
+
+        netYield = (1 + netYield) / (1 + benchmarkYield) - 1;
       }
 
       const daysPassed = getDaysBetween(baselineEntry.date, currentEntry.date);
       const yoyYieldPercent =
-        daysPassed > 0 ? YieldService.annualizeRatio(ratio, daysPassed) : 0;
+        daysPassed > 0
+          ? YieldService.annualizeRatio(1 + netYield, daysPassed)
+          : 0;
 
-      return [{
-        date: currentEntry.date,
-        baselineDate: baselineEntry.date,
-        daysPassed,
-        yoyReturnPercent: round(yoyYieldPercent),
-      }];
+      return [
+        {
+          date: currentEntry.date,
+          baselineDate: baselineEntry.date,
+          daysPassed,
+          yoyReturnPercent: round(yoyYieldPercent),
+        },
+      ];
     });
   }
 }
