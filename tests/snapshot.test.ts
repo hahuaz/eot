@@ -1,9 +1,10 @@
-import { describe, it } from "vitest";
 import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
-import { YieldService } from "@/services";
+import { describe, it } from "vitest";
+
 import { cumulativeSymbolsAll } from "@/shared/constants";
+import { YieldService } from "@/services";
 
 const SNAPSHOT_DIR = path.join(process.cwd(), "local-data", "snapshot");
 const DATE_THRESHOLD = 1780261200000;
@@ -11,12 +12,9 @@ const DATE_THRESHOLD = 1780261200000;
 interface SymbolSnapshot {
   symbol: string;
   cumulativeYields: ReturnType<YieldService["getCumulativeYields"]>;
-  yoyReturns: ReturnType<YieldService["getYoyReturns"]>;
+  yoyYields: ReturnType<YieldService["getYoyYields"]>;
 }
 
-/**
- * Filter returns to only include dates less than threshold
- */
 function filterByDateThreshold<T extends { date: number }>(
   data: T[],
   threshold: number,
@@ -24,60 +22,48 @@ function filterByDateThreshold<T extends { date: number }>(
   return data.filter((item) => item.date < threshold);
 }
 
-/**
- * Generate snapshots for all symbols and save to JSON files
- */
 function generateSnapshots() {
-  // Ensure snapshot directory exists
   if (!fs.existsSync(SNAPSHOT_DIR)) {
     fs.mkdirSync(SNAPSHOT_DIR, { recursive: true });
   }
 
   console.log(
-    `📸 Starting snapshot generation for ${cumulativeSymbolsAll.length} symbols...`,
+    `Starting snapshot generation for ${cumulativeSymbolsAll.length} symbols...`,
   );
-  console.log(`💾 Snapshots will be saved to: ${SNAPSHOT_DIR}`);
+  console.log(`Snapshots will be saved to: ${SNAPSHOT_DIR}`);
 
   for (const symbol of cumulativeSymbolsAll) {
     try {
-      console.log(`\n📊 Processing ${symbol}...`);
+      console.log(`Processing ${symbol}...`);
 
-      // Get cumulative and YoY returns
-      const calculator = new YieldService(symbol);
-      let cumulativeYields = calculator.getCumulativeYields();
-      let yoyReturns = calculator.getYoyReturns();
+      const yieldService = new YieldService(symbol);
+      let cumulativeYields = yieldService.getCumulativeYields();
+      let yoyYields = yieldService.getYoyYields();
 
-      // Filter to only include dates less than threshold
-      cumulativeYields = filterByDateThreshold(
-        cumulativeYields,
-        DATE_THRESHOLD,
-      );
-      yoyReturns = filterByDateThreshold(yoyReturns, DATE_THRESHOLD);
+      cumulativeYields = filterByDateThreshold(cumulativeYields, DATE_THRESHOLD);
+      yoyYields = filterByDateThreshold(yoyYields, DATE_THRESHOLD);
 
-      // Create snapshot object
       const snapshot: SymbolSnapshot = {
         symbol,
         cumulativeYields,
-        yoyReturns,
+        yoyYields,
       };
 
-      // Save to JSON file
       const fileName = `${symbol}.json`;
       const filePath = path.join(SNAPSHOT_DIR, fileName);
       fs.writeFileSync(filePath, JSON.stringify(snapshot, null, 2));
 
       console.log(
-        `   ✅ Saved ${cumulativeYields.length} cumulative yields and ${yoyReturns.length} YoY returns`,
+        `Saved ${cumulativeYields.length} cumulative yields and ${yoyYields.length} YoY yields`,
       );
     } catch (error) {
       console.error(
-        `   ❌ Error processing ${symbol}:`,
+        `Error processing ${symbol}:`,
         error instanceof Error ? error.message : error,
       );
     }
   }
 
-  // Create summary file
   const summary = {
     totalSymbols: cumulativeSymbolsAll.length,
     symbols: cumulativeSymbolsAll,
@@ -86,26 +72,19 @@ function generateSnapshots() {
   const summaryPath = path.join(SNAPSHOT_DIR, "snapshot-summary.json");
   fs.writeFileSync(summaryPath, JSON.stringify(summary, null, 2));
 
-  console.log(
-    `\n✨ Snapshot generation complete! Summary saved to snapshot-summary.json`,
-  );
+  console.log("Snapshot generation complete! Summary saved to snapshot-summary.json");
 }
 
 describe("Snapshot Integrity", () => {
   it("should regenerate snapshots and verify they are up-to-date", () => {
-    // Generate fresh snapshots
     generateSnapshots();
 
-    // Check if any snapshots have changed using git diff
     try {
       execSync("git diff --exit-code local-data/snapshot/", {
         stdio: "pipe",
       });
-      // If no error, snapshots are up-to-date
     } catch (error: unknown) {
-      // Exit code non-zero means there are changes
       if (error instanceof Error && "status" in error && error.status !== 0) {
-        // Show the diff
         execSync("git diff local-data/snapshot/", { stdio: "inherit" });
         throw new Error(
           "Snapshots are out of date! Generated snapshots differ from committed ones. Please regenerate and commit them.",
@@ -117,9 +96,6 @@ describe("Snapshot Integrity", () => {
 
   it("should not have any changes in local-data/snapshot", () => {
     try {
-      // Check if there are any changes (staged or unstaged) in the snapshot directory
-      // relative to the last commit (HEAD).
-      // --exit-code makes it return 1 if there are changes, 0 if not.
       execSync("git diff --exit-code HEAD local-data/snapshot", {
         stdio: "ignore",
       });

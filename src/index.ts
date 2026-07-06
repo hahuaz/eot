@@ -67,7 +67,7 @@ router.get("/yoy-returns", (req, res, next) => {
   const { symbol } = req.query;
   try {
     const yieldService = new YieldService(YieldService.requireSymbol(symbol));
-    const yoyReturns = yieldService.getYoyReturns();
+    const yoyReturns = yieldService.getYoyYields();
     res.status(200).json(yoyReturns);
   } catch (error) {
     next(error);

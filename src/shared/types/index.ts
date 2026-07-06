@@ -108,13 +108,13 @@ export type Stock = {
   notes?: string[];
 };
 
-export type CumulativeReturn = {
+export type CumulativeYield = {
   date: number;
   // e.g. 0.05 means a 5% increase
   value: number;
 };
 
-export type YoyReturn = {
+export type YoyYield = {
   date: number;
   // Date 1 year ago used as baseline, or oldest available if 1 year not available
   baselineDate: number;
@@ -126,13 +126,13 @@ export type YoyReturn = {
 
 // TODO: yield symbols shouldn't be hardcoded here
 export type CumulativeYields = {
-  usdtry: CumulativeReturn[];
-  eurtry: CumulativeReturn[];
-  bgp: CumulativeReturn[];
-  gold: CumulativeReturn[];
-  tp2: CumulativeReturn[];
-  bgp_usdtry: CumulativeReturn[];
-  tp2_usdtry: CumulativeReturn[];
+  usdtry: CumulativeYield[];
+  eurtry: CumulativeYield[];
+  bgp: CumulativeYield[];
+  gold: CumulativeYield[];
+  tp2: CumulativeYield[];
+  bgp_usdtry: CumulativeYield[];
+  tp2_usdtry: CumulativeYield[];
 };
 
 export type CumulativeReturns = CumulativeYields;
