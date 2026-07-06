@@ -64,99 +64,120 @@ export class YieldService {
 
   public getCumulativeYields(): CumulativeYield[] {
     const config = this.config;
+    const withholdingTax =
+      "withholdingTax" in config ? config.withholdingTax : 0;
+    const symbolData = YieldService.getPriceHistory(config.symbol);
+    const startIndex = symbolData.findIndex(
+      (entry) => entry.date === OBSERVATION_START_DATE,
+    );
+    const startEntry = symbolData[startIndex];
 
-    if (config.kind === "base") {
-      return this.calcCumulativeYields({
-        symbol: config.symbol,
-        withholdingTax: "withholdingTax" in config ? config.withholdingTax : 0,
-      });
-    }
+    if (config.kind === "base" || config.kind === "usdAdjusted") {
+      return symbolData.slice(startIndex + 1).flatMap((currentEntry) => {
+        if (currentEntry.value == null || startEntry?.value == null) {
+          return [];
+        }
 
-    if (config.kind === "usdAdjusted") {
-      return this.calcCumulativeYields({
-        symbol: config.symbol,
-        withholdingTax: "withholdingTax" in config ? config.withholdingTax : 0,
-        benchmarkSymbol: USDTRY_SYMBOL,
+        let yieldValue =
+          (currentEntry.value / startEntry.value - 1) * (1 - withholdingTax);
+
+        if (config.kind === "usdAdjusted") {
+          const usdtryData = YieldService.getPriceHistory(USDTRY_SYMBOL);
+          const usdtryStartEntry = usdtryData!.find(
+            (entry) => entry.date === OBSERVATION_START_DATE,
+          );
+
+          const usdtryCurrentValue = YieldService.getSymbolValue(
+            USDTRY_SYMBOL,
+            currentEntry.date,
+          );
+
+          if (usdtryCurrentValue == null || usdtryStartEntry?.value == null) {
+            return [];
+          }
+
+          const usdtryYield =
+            (usdtryCurrentValue - usdtryStartEntry.value) /
+            usdtryStartEntry.value;
+
+          yieldValue = (1 + yieldValue) / (1 + usdtryYield) - 1;
+        }
+
+        return [
+          {
+            date: currentEntry.date,
+            value: yieldValue,
+          },
+        ];
       });
     }
 
     throw new Error(`Unhandled symbol kind: ${(config as any).kind}`);
   }
 
-  private calcCumulativeYields({
-    symbol,
-    withholdingTax = 0,
-    benchmarkSymbol,
-  }: {
-    symbol: string;
-    withholdingTax?: number;
-    benchmarkSymbol?: string;
-  }): CumulativeYield[] {
-    const symbolData = this.getPriceHistory(symbol);
-    const startIndex = symbolData.findIndex(
-      (entry) => entry.date === OBSERVATION_START_DATE,
-    );
-    const startEntry = symbolData[startIndex];
-    const benchmarkData = benchmarkSymbol
-      ? this.getPriceHistory(benchmarkSymbol)
-      : null;
-    const benchmarkValueByDate = benchmarkSymbol
-      ? new Map(benchmarkData!.map((entry) => [entry.date, entry.value]))
-      : null;
+  public getYoyYields(): YoyYield[] {
+    const config = this.config;
+    const withholdingTax =
+      "withholdingTax" in config ? config.withholdingTax : 0;
+    const symbolData = YieldService.getPriceHistory(config.symbol);
 
-    return symbolData.slice(startIndex + 1).flatMap((currentEntry) => {
-      if (currentEntry.value == null || startEntry?.value == null) {
-        return [];
-      }
-
-      let yieldValue =
-        (currentEntry.value / startEntry.value - 1) * (1 - withholdingTax);
-
-      if (benchmarkSymbol) {
-        const benchmarkCurrentValue = benchmarkValueByDate!.get(
-          currentEntry.date,
+    if (config.kind === "base" || config.kind === "usdAdjusted") {
+      return symbolData.slice(1).flatMap((currentEntry, index) => {
+        const targetDate = currentEntry.date - DAYS_IN_YEAR * MS_IN_DAY;
+        const baselineEntry = YieldService.getClosestEntry(
+          symbolData.slice(0, index + 1),
+          targetDate,
         );
-        const benchmarkStartEntry = benchmarkData!.find(
-          (entry) => entry.date === OBSERVATION_START_DATE,
-        );
-
-        if (
-          benchmarkCurrentValue == null ||
-          benchmarkStartEntry?.value == null
-        ) {
+        if (currentEntry.value == null || baselineEntry.value == null) {
           return [];
         }
 
-        const benchmarkYield =
-          benchmarkCurrentValue / benchmarkStartEntry.value - 1;
+        const grossYield =
+          (currentEntry.value - baselineEntry.value) / baselineEntry.value;
+        let netYield = grossYield * (1 - withholdingTax);
 
-        yieldValue = (1 + yieldValue) / (1 + benchmarkYield) - 1;
-      }
+        if (config.kind === "usdAdjusted") {
+          const usdtryData = YieldService.getPriceHistory(USDTRY_SYMBOL);
+          const usdtryCurrentValue = YieldService.getSymbolValue(
+            USDTRY_SYMBOL,
+            currentEntry.date,
+          );
+          if (usdtryCurrentValue == null) {
+            return [];
+          }
 
-      return [
-        {
-          date: currentEntry.date,
-          value: yieldValue,
-        },
-      ];
-    });
-  }
+          const usdtryBaselineEntry = YieldService.getClosestEntry(
+            usdtryData!,
+            targetDate,
+          );
+          if (usdtryBaselineEntry.value == null) {
+            return [];
+          }
 
-  public getYoyYields(): YoyYield[] {
-    const config = this.config;
+          const usdtryYield =
+            (usdtryCurrentValue - usdtryBaselineEntry.value) /
+            usdtryBaselineEntry.value;
 
-    if (config.kind === "base") {
-      return this.calcYoyYields({
-        symbol: config.symbol,
-        withholdingTax: "withholdingTax" in config ? config.withholdingTax : 0,
-      });
-    }
+          netYield = (1 + netYield) / (1 + usdtryYield) - 1;
+        }
 
-    if (config.kind === "usdAdjusted") {
-      return this.calcYoyYields({
-        symbol: config.symbol,
-        withholdingTax: "withholdingTax" in config ? config.withholdingTax : 0,
-        benchmarkSymbol: USDTRY_SYMBOL,
+        const daysPassed = getDaysBetween(
+          baselineEntry.date,
+          currentEntry.date,
+        );
+        const yoyYieldPercent =
+          daysPassed > 0
+            ? YieldService.annualizeRatio(1 + netYield, daysPassed)
+            : 0;
+
+        return [
+          {
+            date: currentEntry.date,
+            baselineDate: baselineEntry.date,
+            daysPassed,
+            yoyReturnPercent: round(yoyYieldPercent),
+          },
+        ];
       });
     }
 
@@ -217,22 +238,22 @@ export class YieldService {
   /**
    * Retrieves price history for a symbol.
    */
-  private getPriceHistory(symbol: string): DailyPrice[] {
+  private static getPriceHistory(symbol: string): DailyPrice[] {
     return YieldService.getSymbolData(symbol).priceHistory;
   }
 
   /**
    * Retrieves the time-to-price map for a symbol.
    */
-  private getTimeToPriceMap(symbol: string): Map<number, number> {
+  private static getTimeToPriceMap(symbol: string): Map<number, number> {
     return YieldService.getSymbolData(symbol).timeToPrice;
   }
 
   /**
    * Retrieves the price for a symbol at a specific date.
    */
-  private getSymbolValue(symbol: string, date: number): number {
-    const timeToPrice = this.getTimeToPriceMap(symbol);
+  private static getSymbolValue(symbol: string, date: number): number {
+    const timeToPrice = YieldService.getTimeToPriceMap(symbol);
     const value = timeToPrice.get(date);
     if (value === undefined) {
       throw new Error(
@@ -245,7 +266,10 @@ export class YieldService {
   /**
    * Identifies the closest available historical entry relative to a target date.
    */
-  private getClosestEntry(data: DailyPrice[], targetDate: number): DailyPrice {
+  private static getClosestEntry(
+    data: DailyPrice[],
+    targetDate: number,
+  ): DailyPrice {
     if (data.length === 0) {
       throw new Error("Cannot find closest entry: data set is empty.");
     }
@@ -262,76 +286,5 @@ export class YieldService {
     }
 
     return closestEntry;
-  }
-
-  private calcYoyYields({
-    symbol,
-    withholdingTax = 0,
-    benchmarkSymbol,
-  }: {
-    symbol: string;
-    withholdingTax?: number;
-    benchmarkSymbol?: string;
-  }): YoyYield[] {
-    const symbolData = this.getPriceHistory(symbol);
-    const benchmarkData = benchmarkSymbol
-      ? this.getPriceHistory(benchmarkSymbol)
-      : null;
-    const benchmarkValueByDate = benchmarkSymbol
-      ? new Map(benchmarkData!.map((entry) => [entry.date, entry.value]))
-      : null;
-
-    return symbolData.slice(1).flatMap((currentEntry, index) => {
-      const targetDate = currentEntry.date - DAYS_IN_YEAR * MS_IN_DAY;
-      const baselineEntry = this.getClosestEntry(
-        symbolData.slice(0, index + 1),
-        targetDate,
-      );
-      if (currentEntry.value == null || baselineEntry.value == null) {
-        return [];
-      }
-
-      const grossYield =
-        (currentEntry.value - baselineEntry.value) / baselineEntry.value;
-      let netYield = grossYield * (1 - withholdingTax);
-
-      if (benchmarkSymbol) {
-        const benchmarkCurrentValue = benchmarkValueByDate!.get(
-          currentEntry.date,
-        );
-        if (benchmarkCurrentValue == null) {
-          return [];
-        }
-
-        const benchmarkBaseline = this.getClosestEntry(
-          benchmarkData!,
-          targetDate,
-        );
-        if (benchmarkBaseline.value == null) {
-          return [];
-        }
-
-        const benchmarkYield =
-          (benchmarkCurrentValue - benchmarkBaseline.value) /
-          benchmarkBaseline.value;
-
-        netYield = (1 + netYield) / (1 + benchmarkYield) - 1;
-      }
-
-      const daysPassed = getDaysBetween(baselineEntry.date, currentEntry.date);
-      const yoyYieldPercent =
-        daysPassed > 0
-          ? YieldService.annualizeRatio(1 + netYield, daysPassed)
-          : 0;
-
-      return [
-        {
-          date: currentEntry.date,
-          baselineDate: baselineEntry.date,
-          daysPassed,
-          yoyReturnPercent: round(yoyYieldPercent),
-        },
-      ];
-    });
   }
 }
