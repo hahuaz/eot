@@ -10,8 +10,9 @@ import {
 } from "@shared/types";
 import { Region, regions } from "@/types";
 import path from "path";
-import { parseCSV, readJsonFile } from "@/lib/file";
+import { parseCSV } from "@/lib/file";
 import { DATA_DIR, OBSERVATION_START_DATE_STR } from "@/lib/constants";
+import { getStockPricesMap } from "@/lib/db";
 import { BadRequestError } from "@/lib/errors";
 import {
   getAvailableDates,
@@ -55,20 +56,6 @@ const getUsdTryRate = (date: Dates): number => {
   return usdTryRate;
 };
 
-const STOCKS_DYNAMIC_DATA = regions.reduce(
-  (acc, region) => {
-    const stocksDynamicPath = path.join(
-      DATA_DIR,
-      "stocks-dynamic",
-      `${region}.json`,
-    );
-    const stocksDynamic = readJsonFile<StockDynamicInfoMap>(stocksDynamicPath);
-    acc[region] = stocksDynamic;
-    return acc;
-  },
-  {} as Record<Region, StockDynamicInfoMap>,
-);
-
 export class StockService {
   // Separate array for derived metrics to maintain type safety and make it easier to distinguish between base and calculated values
   private derivedMetrics: DerivedMetric[] = [];
@@ -88,29 +75,36 @@ export class StockService {
   private dynamicInfo!: StockDynamicInfo;
   private region!: Region;
 
-  public static getStockNames(region: Region): string[] {
-    return Object.keys(StockService.getStocksDynamicData(region));
+  public static async getStockNames(region: Region): Promise<string[]> {
+    return Object.keys(await StockService.getStocksDynamicData(region));
   }
 
-  public static getAllStockData(region: Region): Array<{
-    stockDynamic: StockDynamicInfo;
-    baseMetrics: BaseMetric[];
-    derivedMetrics: DerivedMetric[];
-    stockConfig: StockConfig;
-  }> {
-    const stocksDynamic = StockService.getStocksDynamicData(region);
+  public static async getAllStockData(region: Region): Promise<
+    Array<{
+      stockDynamic: StockDynamicInfo;
+      baseMetrics: BaseMetric[];
+      derivedMetrics: DerivedMetric[];
+      stockConfig: StockConfig;
+    }>
+  > {
+    const stocksDynamic = await StockService.getStocksDynamicData(region);
     const stockNames = Object.keys(stocksDynamic);
 
-    return stockNames.map((stockSymbol) => {
-      const analyzer = new StockService(stockSymbol as StockSymbol, region);
-      const metrics = analyzer.getMetrics();
-      const stockDynamic = stocksDynamic[stockSymbol];
+    return Promise.all(
+      stockNames.map(async (stockSymbol) => {
+        const analyzer = await StockService.create(
+          stockSymbol as StockSymbol,
+          region,
+        );
+        const metrics = analyzer.getMetrics();
+        const stockDynamic = stocksDynamic[stockSymbol];
 
-      return {
-        stockDynamic,
-        ...metrics,
-      };
-    });
+        return {
+          stockDynamic,
+          ...metrics,
+        };
+      }),
+    );
   }
 
   public static requireRegion(region: unknown): Region {
@@ -131,19 +125,37 @@ export class StockService {
     return stock as StockSymbol;
   }
 
+  private static readonly stocksDynamicCache = new Map<
+    Region,
+    Promise<StockDynamicInfoMap>
+  >();
+
   private static getStocksDynamicData(
     region: Region,
-  ): Record<string, StockDynamicInfo> {
-    return STOCKS_DYNAMIC_DATA[region];
+  ): Promise<StockDynamicInfoMap> {
+    let cached = StockService.stocksDynamicCache.get(region);
+    if (!cached) {
+      cached = getStockPricesMap(region);
+      StockService.stocksDynamicCache.set(region, cached);
+    }
+    return cached;
   }
 
-  constructor(
+  public static async create(
+    stockSymbol: StockSymbol,
+    region: Region,
+  ): Promise<StockService> {
+    const stocksDynamic = await StockService.getStocksDynamicData(region);
+    return new StockService(stockSymbol, region, stocksDynamic);
+  }
+
+  private constructor(
     private stockSymbol: StockSymbol,
     region: Region,
+    stocksDynamic: StockDynamicInfoMap,
   ) {
     this.region = region;
 
-    const stocksDynamic = STOCKS_DYNAMIC_DATA[this.region];
     const stockDynamic = stocksDynamic[this.stockSymbol];
     if (!stockDynamic) {
       throw new BadRequestError(

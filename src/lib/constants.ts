@@ -1,16 +1,9 @@
 import path from "path";
-import fs from "fs";
 
 import { Site } from "@/types";
 
 export const DATA_DIR = path.join(process.cwd(), "local-data");
 export const DAILY_DIR = path.join(DATA_DIR, "daily");
-
-export const TR_DYNAMIC_PATH = path.join(DATA_DIR, "stocks-dynamic", "tr.json");
-
-if (!fs.existsSync(TR_DYNAMIC_PATH)) {
-  throw new Error(`File not found: ${TR_DYNAMIC_PATH}`);
-}
 
 export const OBSERVATION_START_DATE = 1735516800000;
 export const OBSERVATION_START_DATE_STR = "2024/12/30";

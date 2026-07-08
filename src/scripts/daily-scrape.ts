@@ -1,26 +1,23 @@
 // execute config to load environment variables
 import "@/config";
 
-import fs from "fs";
-
 import type { ScrapeItem } from "@/types";
 import {
   scrape,
   updateScrapeSheet,
   upsertSymbolPrice,
-  TR_DYNAMIC_PATH,
+  getStockPricesMap,
+  upsertStockPrice,
   DAILY_SAVED_SYMBOLS,
   TR_FUND_SYMBOLS,
   GENERIC_SYMBOLS,
   TR_STOCK_SYMBOLS,
 } from "@/lib/index";
 
+const TR_REGION = "tr";
+
 async function scrapeTrStocks() {
-  const trStocksJson = fs.readFileSync(TR_DYNAMIC_PATH, "utf-8");
-  const trStocks = JSON.parse(trStocksJson) as Record<
-    string,
-    { price?: number }
-  >;
+  const trStocks = await getStockPricesMap(TR_REGION);
 
   const trStockKeys = Object.keys(trStocks).filter((key) => key !== "test");
   if (trStockKeys.length === 0) {
@@ -35,11 +32,10 @@ async function scrapeTrStocks() {
   for (const result of scrapeResults) {
     const stockSymbol = result.symbol;
     if (trStocks[stockSymbol]) {
-      trStocks[stockSymbol].price = Number(result.value);
+      // only the current price gets overridden; color/notes are untouched
+      await upsertStockPrice(TR_REGION, stockSymbol, Number(result.value));
     }
   }
-
-  fs.writeFileSync(TR_DYNAMIC_PATH, JSON.stringify(trStocks, null, 2));
 }
 
 async function saveToSymbolPricesTable(
@@ -71,7 +67,7 @@ async function main() {
     await saveToSymbolPricesTable(allResults, currentDate);
 
     // await scrapeTrStocks();
-    // console.log("scraped TR stocks and saved in local-data");
+    // console.log("scraped TR stocks and saved to stock_prices table");
 
     console.log("all done!");
   } catch (error) {

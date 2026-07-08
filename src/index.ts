@@ -69,22 +69,32 @@ router.get("/yoy-returns", async (req, res, next) => {
  * @route GET /api/stock-names
  * @description Returns a list of all stock symbols for a given region.
  */
-router.get("/stock-names", (req, res) => {
+router.get("/stock-names", async (req, res, next) => {
   const { region } = req.query;
-  res
-    .status(200)
-    .json(StockService.getStockNames(StockService.requireRegion(region)));
+  try {
+    const stockNames = await StockService.getStockNames(
+      StockService.requireRegion(region),
+    );
+    res.status(200).json(stockNames);
+  } catch (error) {
+    next(error);
+  }
 });
 
 /**
  * @route GET /api/all-stock
  * @description Returns detailed data for all stocks in a given region.
  */
-router.get("/all-stock", (req, res) => {
+router.get("/all-stock", async (req, res, next) => {
   const { region } = req.query;
-  res
-    .status(200)
-    .json(StockService.getAllStockData(StockService.requireRegion(region)));
+  try {
+    const allStockData = await StockService.getAllStockData(
+      StockService.requireRegion(region),
+    );
+    res.status(200).json(allStockData);
+  } catch (error) {
+    next(error);
+  }
 });
 
 /**
@@ -95,7 +105,7 @@ router.get("/stock", async (req, res) => {
   const { stock, region } = req.query;
   const stockSymbol = StockService.requireStockSymbol(stock);
   const stockRegion = StockService.requireRegion(region);
-  const stockService = new StockService(stockSymbol, stockRegion);
+  const stockService = await StockService.create(stockSymbol, stockRegion);
   const metrics = stockService.getMetrics();
 
   if (["ktlev", "froto", "alfas"].includes(stockSymbol)) {

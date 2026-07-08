@@ -83,6 +83,7 @@ export type DerivedMetric = {
 
 export type StockDynamicInfo = {
   price: number;
+  color?: string;
   notes?: string[];
 };
 
