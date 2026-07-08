@@ -1,7 +1,5 @@
-import path from "path";
 import {
-  parseCSV,
-  DAILY_DIR,
+  getDailyPriceHistory,
   OBSERVATION_START_DATE,
   round,
   getDaysBetween,
@@ -16,9 +14,10 @@ import { BadRequestError } from "@/lib/errors";
 const USDTRY_SYMBOL = "USDTRY";
 
 /**
- * Calculates return series for a financial symbol.
+ * Calculates yield series for a financial symbol.
  *
- * Uses a static (class-level) cache to store and share parsed historical price data across all instances, while storing symbol-specific configurations within each instance.
+ * This is a stateless utility class with static methods. It uses a static
+ * cache to store historical price data fetched from Postgres.
  */
 export class YieldService {
   private static readonly symbolToPrices = new Map<
@@ -50,20 +49,33 @@ export class YieldService {
     return Math.pow(ratio, DAYS_IN_YEAR / days) - 1;
   }
 
-  public static getCumulativeYields(symbol: string): CumulativeYield[] {
+  public static async getCumulativeYields(
+    symbol: string,
+  ): Promise<CumulativeYield[]> {
     const config =
       returnSymbolConfig[
         YieldService.requireSymbol(symbol) as keyof typeof returnSymbolConfig
       ];
     const withholdingTax =
       "withholdingTax" in config ? config.withholdingTax : 0;
-    const symbolData = YieldService.getPriceHistory(config.symbol);
+    const symbolData = await YieldService.getPriceHistory(config.symbol);
     const startIndex = symbolData.findIndex(
       (entry) => entry.date === OBSERVATION_START_DATE,
     );
     const startEntry = symbolData[startIndex];
 
     if (config.kind === "base" || config.kind === "usdAdjusted") {
+      let usdtryTimeToPrice: Map<number, number> | undefined;
+      let usdtryStartEntry: DailyPrice | undefined;
+
+      if (config.kind === "usdAdjusted") {
+        usdtryTimeToPrice = await YieldService.getTimeToPriceMap(USDTRY_SYMBOL);
+        const usdtryData = await YieldService.getPriceHistory(USDTRY_SYMBOL);
+        usdtryStartEntry = usdtryData.find(
+          (entry) => entry.date === OBSERVATION_START_DATE,
+        );
+      }
+
       return symbolData.slice(startIndex + 1).flatMap((currentEntry) => {
         if (currentEntry.value == null || startEntry?.value == null) {
           return [];
@@ -73,15 +85,7 @@ export class YieldService {
           (currentEntry.value / startEntry.value - 1) * (1 - withholdingTax);
 
         if (config.kind === "usdAdjusted") {
-          const usdtryData = YieldService.getPriceHistory(USDTRY_SYMBOL);
-          const usdtryStartEntry = usdtryData!.find(
-            (entry) => entry.date === OBSERVATION_START_DATE,
-          );
-
-          const usdtryCurrentValue = YieldService.getSymbolValue(
-            USDTRY_SYMBOL,
-            currentEntry.date,
-          );
+          const usdtryCurrentValue = usdtryTimeToPrice!.get(currentEntry.date);
 
           if (usdtryCurrentValue == null || usdtryStartEntry?.value == null) {
             return [];
@@ -106,16 +110,24 @@ export class YieldService {
     throw new Error(`Unhandled symbol kind: ${(config as any).kind}`);
   }
 
-  public static getYoyYields(symbol: string): YoyYield[] {
+  public static async getYoyYields(symbol: string): Promise<YoyYield[]> {
     const config =
       returnSymbolConfig[
         YieldService.requireSymbol(symbol) as keyof typeof returnSymbolConfig
       ];
     const withholdingTax =
       "withholdingTax" in config ? config.withholdingTax : 0;
-    const symbolData = YieldService.getPriceHistory(config.symbol);
+    const symbolData = await YieldService.getPriceHistory(config.symbol);
 
     if (config.kind === "base" || config.kind === "usdAdjusted") {
+      let usdtryData: DailyPrice[] | undefined;
+      let usdtryTimeToPrice: Map<number, number> | undefined;
+
+      if (config.kind === "usdAdjusted") {
+        usdtryData = await YieldService.getPriceHistory(USDTRY_SYMBOL);
+        usdtryTimeToPrice = await YieldService.getTimeToPriceMap(USDTRY_SYMBOL);
+      }
+
       return symbolData.slice(1).flatMap((currentEntry, index) => {
         const targetDate = currentEntry.date - DAYS_IN_YEAR * MS_IN_DAY;
         const baselineEntry = YieldService.getClosestEntry(
@@ -131,11 +143,7 @@ export class YieldService {
         let netYield = grossYield * (1 - withholdingTax);
 
         if (config.kind === "usdAdjusted") {
-          const usdtryData = YieldService.getPriceHistory(USDTRY_SYMBOL);
-          const usdtryCurrentValue = YieldService.getSymbolValue(
-            USDTRY_SYMBOL,
-            currentEntry.date,
-          );
+          const usdtryCurrentValue = usdtryTimeToPrice!.get(currentEntry.date);
           if (usdtryCurrentValue == null) {
             return [];
           }
@@ -179,26 +187,25 @@ export class YieldService {
   }
 
   /**
-   * Retrieves the whole dataset for a symbol.
+   * Retrieves the whole dataset for a symbol, fetching from Postgres on first
+   * access and caching the result in memory for subsequent calls.
    */
-  private static getSymbolData(symbol: string): {
+  private static async getSymbolData(symbol: string): Promise<{
     priceHistory: DailyPrice[];
     timeToPrice: Map<number, number>;
-  } {
+  }> {
     const upperSym = symbol.toUpperCase();
     let symbolData = YieldService.symbolToPrices.get(upperSym);
 
     if (!symbolData) {
-      const { data: parsedData } = parseCSV<DailyPrice>({
-        filePath: path.join(DAILY_DIR, `${upperSym}.csv`),
-        header: true,
-      });
+      // daily_prices is stored ascending by date already (see getDailyPriceHistory)
+      const priceHistory = await getDailyPriceHistory(upperSym);
 
-      if (!parsedData || parsedData.length === 0) {
+      if (!priceHistory || priceHistory.length === 0) {
         throw new Error(`Data for symbol ${symbol} is missing or empty.`);
       }
 
-      const startEntry = parsedData.find(
+      const startEntry = priceHistory.find(
         (d) => d.date === OBSERVATION_START_DATE,
       );
       if (!startEntry || startEntry.value == null) {
@@ -206,9 +213,6 @@ export class YieldService {
           `Baseline date ${OBSERVATION_START_DATE} not found for symbol ${symbol}.`,
         );
       }
-
-      // Safely reverse descending data to ascending order without mutating original array
-      const priceHistory = [...parsedData].reverse();
 
       // Validate chronological integrity
       for (let i = 1; i < priceHistory.length; i++) {
@@ -232,29 +236,17 @@ export class YieldService {
   /**
    * Retrieves price history for a symbol.
    */
-  private static getPriceHistory(symbol: string): DailyPrice[] {
-    return YieldService.getSymbolData(symbol).priceHistory;
+  private static async getPriceHistory(symbol: string): Promise<DailyPrice[]> {
+    return (await YieldService.getSymbolData(symbol)).priceHistory;
   }
 
   /**
    * Retrieves the time-to-price map for a symbol.
    */
-  private static getTimeToPriceMap(symbol: string): Map<number, number> {
-    return YieldService.getSymbolData(symbol).timeToPrice;
-  }
-
-  /**
-   * Retrieves the price for a symbol at a specific date.
-   */
-  private static getSymbolValue(symbol: string, date: number): number {
-    const timeToPrice = YieldService.getTimeToPriceMap(symbol);
-    const value = timeToPrice.get(date);
-    if (value === undefined) {
-      throw new Error(
-        `Missing historical price for date ${date} in symbol ${symbol}`,
-      );
-    }
-    return value;
+  private static async getTimeToPriceMap(
+    symbol: string,
+  ): Promise<Map<number, number>> {
+    return (await YieldService.getSymbolData(symbol)).timeToPrice;
   }
 
   /**

@@ -2,13 +2,12 @@
 import "@/config";
 
 import fs from "fs";
-import path from "path";
 
-import type { DailyPrice, ScrapeItem } from "@/types";
+import type { ScrapeItem } from "@/types";
 import {
   scrape,
   updateScrapeSheet,
-  updateCsvFile,
+  upsertDailyPrice,
   TR_DYNAMIC_PATH,
   DAILY_SAVED_SYMBOLS,
   TR_FUND_SYMBOLS,
@@ -43,26 +42,19 @@ async function scrapeTrStocks() {
   fs.writeFileSync(TR_DYNAMIC_PATH, JSON.stringify(trStocks, null, 2));
 }
 
-function updateDailyCsv(symbol: string, currentDate: number, value: string) {
-  const fileName = `${symbol}.csv`;
-  const filePath = path.join(process.cwd(), "local-data", "daily", fileName);
-  updateCsvFile<DailyPrice>(
-    filePath,
-    { date: currentDate, value: Number(value) },
-    "date",
-  );
-}
-
-function saveToLocalDailyCsv(allResults: ScrapeItem[], currentDate: number) {
+async function saveToDailyPricesTable(
+  allResults: ScrapeItem[],
+  currentDate: number,
+) {
   const filteredResults = allResults.filter((result) => {
     return DAILY_SAVED_SYMBOLS.includes(
       result.symbol as (typeof DAILY_SAVED_SYMBOLS)[number],
     );
   });
   for (const result of filteredResults) {
-    updateDailyCsv(result.symbol, currentDate, result.value);
+    await upsertDailyPrice(result.symbol, currentDate, Number(result.value));
   }
-  console.log("Updated local daily CSV files");
+  console.log("Updated daily_prices table in Postgres");
 }
 
 async function main() {
@@ -76,7 +68,7 @@ async function main() {
     await updateScrapeSheet(allResults);
     console.log("Updated Google Sheet with all scraped data");
 
-    saveToLocalDailyCsv(allResults, currentDate);
+    await saveToDailyPricesTable(allResults, currentDate);
 
     // await scrapeTrStocks();
     // console.log("scraped TR stocks and saved in local-data");

@@ -37,10 +37,10 @@ app.use((req, res, next) => {
  * @description Returns cumulative yields for a specific symbol.
  * @queryparam {string} symbol - The symbol to get yields for.
  */
-router.get("/cumulative-returns", (req, res, next) => {
+router.get("/cumulative-returns", async (req, res, next) => {
   const { symbol } = req.query;
   try {
-    const cumulativeYields = YieldService.getCumulativeYields(
+    const cumulativeYields = await YieldService.getCumulativeYields(
       YieldService.requireSymbol(symbol),
     );
     res.status(200).json(cumulativeYields);
@@ -53,10 +53,10 @@ router.get("/cumulative-returns", (req, res, next) => {
  * @route GET /api/yoy-returns
  * @description Returns year-over-year annualized returns for a specific symbol.
  */
-router.get("/yoy-returns", (req, res, next) => {
+router.get("/yoy-returns", async (req, res, next) => {
   const { symbol } = req.query;
   try {
-    const yoyReturns = YieldService.getYoyYields(
+    const yoyReturns = await YieldService.getYoyYields(
       YieldService.requireSymbol(symbol),
     );
     res.status(200).json(yoyReturns);

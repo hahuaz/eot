@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: eot-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-eot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-eot}
+      POSTGRES_DB: ${POSTGRES_DB:-eot}
+    ports:
+      - "5432:5432"
+    volumes:
+      - eot-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-eot}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  eot-postgres-data:
