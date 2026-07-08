@@ -8,7 +8,6 @@
     "migrate:create": "node-pg-migrate -j ts create",
     "migrate:up": "node-pg-migrate --envPath .env.development -j ts up",
     "migrate:down": "node-pg-migrate --envPath .env.development -j ts down",
-    "db:migrate-daily": "cross-env NODE_ENV=development tsx src/scripts/migrate-daily-to-db.ts",
     "dev:vscode": "echo 'to run the \"Start Dev Servers\" VS Code task press (Ctrl+Shift+B)'",
     "dev:backend": "tsx watch src",
     "dev:web": "cd client-web && pnpm dev",
