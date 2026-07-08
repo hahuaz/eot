@@ -9,7 +9,7 @@ export default function Home() {
       <br />
       <Link href="/cumulative-yields">Cumulative Yields</Link>
       <br />
-      <Link href="/yoy-yields">YoY Returns</Link>
+      <Link href="/yoy-yields">YoY Yields</Link>
     </div>
   );
 }
