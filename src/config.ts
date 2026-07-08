@@ -8,6 +8,8 @@ dotenv.config({
 
 interface AppConfig {
   NODE_ENV: string;
+  APP_PORT: number;
+  DATABASE_URL: string;
   SHEETS: {
     name: string;
     id: string;
@@ -25,6 +27,8 @@ function getEnv(key: string, required: boolean = true): string {
 
 export const APP_CONFIG: AppConfig = {
   NODE_ENV: getEnv("NODE_ENV", false) || "development",
+  APP_PORT: Number(getEnv("PORT", false)) || 5555,
+  DATABASE_URL: getEnv("DATABASE_URL"),
   SHEETS: [
     {
       name: "invest",

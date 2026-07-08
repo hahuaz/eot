@@ -1,15 +1,14 @@
 import { Pool } from "pg";
 
-function getDatabaseUrl(): string {
-  const url = process.env.DATABASE_URL;
-  if (!url) {
-    throw new Error("Missing required environment variable: DATABASE_URL");
-  }
-  return url;
-}
+import { APP_CONFIG } from "@/config";
 
+// Importing APP_CONFIG (rather than reading process.env.DATABASE_URL
+// directly) means this module has a real dependency on config.ts, so its
+// dotenv.config() call is guaranteed to have already run by the time we get
+// here - no matter which entrypoint (server, script, test) imports this file
+// first. See config.ts for where DATABASE_URL is loaded and validated.
 export const pool = new Pool({
-  connectionString: getDatabaseUrl(),
+  connectionString: APP_CONFIG.DATABASE_URL,
 });
 
 pool.on("error", (err) => {

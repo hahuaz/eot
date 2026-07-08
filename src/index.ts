@@ -1,11 +1,10 @@
-import "./config";
-
 import path from "path";
 import fs from "fs";
 
 import express, { Response, Request, NextFunction, Router } from "express";
 import cors from "cors";
 
+import { APP_CONFIG } from "@/config";
 import { DATA_DIR } from "@/lib";
 import { BadRequestError } from "@/lib/errors";
 import { StockService, YieldService } from "@/services";
@@ -14,7 +13,7 @@ import { StockResponse } from "./shared/types/index.js";
 // --- Express App Setup ---
 const app = express();
 const router = Router();
-const PORT = process.env.PORT || 5555;
+const { APP_PORT } = APP_CONFIG;
 
 app.use(cors());
 app.use(express.json());
@@ -131,6 +130,6 @@ app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
   res.status(500).json({ error: "Internal server error." });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+app.listen(APP_PORT, () => {
+  console.log(`Server is running on http://localhost:${APP_PORT}`);
 });

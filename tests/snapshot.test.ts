@@ -11,8 +11,10 @@ const DATE_THRESHOLD = 1780261200000;
 
 interface SymbolSnapshot {
   symbol: string;
-  cumulativeYields: ReturnType<typeof YieldService.getCumulativeYields>;
-  yoyYields: ReturnType<typeof YieldService.getYoyYields>;
+  cumulativeYields: Awaited<
+    ReturnType<typeof YieldService.getCumulativeYields>
+  >;
+  yoyYields: Awaited<ReturnType<typeof YieldService.getYoyYields>>;
 }
 
 function filterByDateThreshold<T extends { date: number }>(
@@ -22,7 +24,7 @@ function filterByDateThreshold<T extends { date: number }>(
   return data.filter((item) => item.date < threshold);
 }
 
-function generateSnapshots() {
+async function generateSnapshots() {
   if (!fs.existsSync(SNAPSHOT_DIR)) {
     fs.mkdirSync(SNAPSHOT_DIR, { recursive: true });
   }
@@ -36,8 +38,8 @@ function generateSnapshots() {
     try {
       console.log(`Processing ${symbol}...`);
 
-      let cumulativeYields = YieldService.getCumulativeYields(symbol);
-      let yoyYields = YieldService.getYoyYields(symbol);
+      let cumulativeYields = await YieldService.getCumulativeYields(symbol);
+      let yoyYields = await YieldService.getYoyYields(symbol);
 
       cumulativeYields = filterByDateThreshold(
         cumulativeYields,
@@ -80,8 +82,8 @@ function generateSnapshots() {
 }
 
 describe("Snapshot Integrity", () => {
-  it("should regenerate snapshots and verify they are up-to-date", () => {
-    generateSnapshots();
+  it("should regenerate snapshots and verify they are up-to-date", async () => {
+    await generateSnapshots();
 
     try {
       execSync("git diff --exit-code local-data/snapshot/", {
