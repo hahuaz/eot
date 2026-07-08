@@ -40,19 +40,9 @@ app.use((req, res, next) => {
 router.get("/cumulative-returns", (req, res, next) => {
   const { symbol } = req.query;
   try {
-    const yieldService = new YieldService(YieldService.requireSymbol(symbol));
-    const cumulativeYields = yieldService.getCumulativeYields();
-    res.status(200).json(cumulativeYields);
-  } catch (error) {
-    next(error);
-  }
-});
-
-router.get("/cummulative-returns", (req, res, next) => {
-  const { symbol } = req.query;
-  try {
-    const yieldService = new YieldService(YieldService.requireSymbol(symbol));
-    const cumulativeYields = yieldService.getCumulativeYields();
+    const cumulativeYields = YieldService.getCumulativeYields(
+      YieldService.requireSymbol(symbol),
+    );
     res.status(200).json(cumulativeYields);
   } catch (error) {
     next(error);
@@ -66,8 +56,9 @@ router.get("/cummulative-returns", (req, res, next) => {
 router.get("/yoy-returns", (req, res, next) => {
   const { symbol } = req.query;
   try {
-    const yieldService = new YieldService(YieldService.requireSymbol(symbol));
-    const yoyReturns = yieldService.getYoyYields();
+    const yoyReturns = YieldService.getYoyYields(
+      YieldService.requireSymbol(symbol),
+    );
     res.status(200).json(yoyReturns);
   } catch (error) {
     next(error);

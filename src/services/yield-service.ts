@@ -10,11 +10,7 @@ import {
 } from "@/lib";
 import { DailyPrice } from "@/types";
 import { CumulativeYield, YoyYield } from "@/shared/types";
-import {
-  returnSymbolConfig,
-  cumulativeSymbolsAll,
-  ReturnSymbolConfigValue,
-} from "@/shared/constants";
+import { returnSymbolConfig, cumulativeSymbolsAll } from "@/shared/constants";
 import { BadRequestError } from "@/lib/errors";
 
 const USDTRY_SYMBOL = "USDTRY";
@@ -25,9 +21,6 @@ const USDTRY_SYMBOL = "USDTRY";
  * Uses a static (class-level) cache to store and share parsed historical price data across all instances, while storing symbol-specific configurations within each instance.
  */
 export class YieldService {
-  private readonly symbol: string;
-  private readonly config: ReturnSymbolConfigValue;
-
   private static readonly symbolToPrices = new Map<
     string,
     {
@@ -35,6 +28,8 @@ export class YieldService {
       timeToPrice: Map<number, number>;
     }
   >();
+
+  private constructor() {}
 
   public static requireSymbol(symbol: unknown): string {
     if (typeof symbol !== "string" || !symbol) {
@@ -55,15 +50,11 @@ export class YieldService {
     return Math.pow(ratio, DAYS_IN_YEAR / days) - 1;
   }
 
-  constructor(symbol: string) {
-    this.symbol = YieldService.requireSymbol(symbol);
+  public static getCumulativeYields(symbol: string): CumulativeYield[] {
     const config =
-      returnSymbolConfig[this.symbol as keyof typeof returnSymbolConfig];
-    this.config = config;
-  }
-
-  public getCumulativeYields(): CumulativeYield[] {
-    const config = this.config;
+      returnSymbolConfig[
+        YieldService.requireSymbol(symbol) as keyof typeof returnSymbolConfig
+      ];
     const withholdingTax =
       "withholdingTax" in config ? config.withholdingTax : 0;
     const symbolData = YieldService.getPriceHistory(config.symbol);
@@ -115,8 +106,11 @@ export class YieldService {
     throw new Error(`Unhandled symbol kind: ${(config as any).kind}`);
   }
 
-  public getYoyYields(): YoyYield[] {
-    const config = this.config;
+  public static getYoyYields(symbol: string): YoyYield[] {
+    const config =
+      returnSymbolConfig[
+        YieldService.requireSymbol(symbol) as keyof typeof returnSymbolConfig
+      ];
     const withholdingTax =
       "withholdingTax" in config ? config.withholdingTax : 0;
     const symbolData = YieldService.getPriceHistory(config.symbol);

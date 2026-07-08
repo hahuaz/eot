@@ -11,8 +11,8 @@ const DATE_THRESHOLD = 1780261200000;
 
 interface SymbolSnapshot {
   symbol: string;
-  cumulativeYields: ReturnType<YieldService["getCumulativeYields"]>;
-  yoyYields: ReturnType<YieldService["getYoyYields"]>;
+  cumulativeYields: ReturnType<typeof YieldService.getCumulativeYields>;
+  yoyYields: ReturnType<typeof YieldService.getYoyYields>;
 }
 
 function filterByDateThreshold<T extends { date: number }>(
@@ -36,11 +36,13 @@ function generateSnapshots() {
     try {
       console.log(`Processing ${symbol}...`);
 
-      const yieldService = new YieldService(symbol);
-      let cumulativeYields = yieldService.getCumulativeYields();
-      let yoyYields = yieldService.getYoyYields();
+      let cumulativeYields = YieldService.getCumulativeYields(symbol);
+      let yoyYields = YieldService.getYoyYields(symbol);
 
-      cumulativeYields = filterByDateThreshold(cumulativeYields, DATE_THRESHOLD);
+      cumulativeYields = filterByDateThreshold(
+        cumulativeYields,
+        DATE_THRESHOLD,
+      );
       yoyYields = filterByDateThreshold(yoyYields, DATE_THRESHOLD);
 
       const snapshot: SymbolSnapshot = {
@@ -72,7 +74,9 @@ function generateSnapshots() {
   const summaryPath = path.join(SNAPSHOT_DIR, "snapshot-summary.json");
   fs.writeFileSync(summaryPath, JSON.stringify(summary, null, 2));
 
-  console.log("Snapshot generation complete! Summary saved to snapshot-summary.json");
+  console.log(
+    "Snapshot generation complete! Summary saved to snapshot-summary.json",
+  );
 }
 
 describe("Snapshot Integrity", () => {
