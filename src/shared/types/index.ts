@@ -8,15 +8,6 @@ export type StockConfig = {
   selectedGrowthMetrics: string[];
 };
 
-export type Inflation = {
-  date: string;
-  mom: number;
-  qoq: number;
-  yoy: number;
-  ytd: number;
-  accumulative: number;
-};
-
 export const BASE_METRIC_NAMES = [
   "Cash & cash equivalents",
   "Short term liabilities",

@@ -7,7 +7,7 @@ import type { ScrapeItem } from "@/types";
 import {
   scrape,
   updateScrapeSheet,
-  upsertDailyPrice,
+  upsertSymbolPrice,
   TR_DYNAMIC_PATH,
   DAILY_SAVED_SYMBOLS,
   TR_FUND_SYMBOLS,
@@ -42,7 +42,7 @@ async function scrapeTrStocks() {
   fs.writeFileSync(TR_DYNAMIC_PATH, JSON.stringify(trStocks, null, 2));
 }
 
-async function saveToDailyPricesTable(
+async function saveToSymbolPricesTable(
   allResults: ScrapeItem[],
   currentDate: number,
 ) {
@@ -52,9 +52,9 @@ async function saveToDailyPricesTable(
     );
   });
   for (const result of filteredResults) {
-    await upsertDailyPrice(result.symbol, currentDate, Number(result.value));
+    await upsertSymbolPrice(result.symbol, currentDate, Number(result.value));
   }
-  console.log("Updated daily_prices table in Postgres");
+  console.log("Updated symbol_prices table in Postgres");
 }
 
 async function main() {
@@ -68,7 +68,7 @@ async function main() {
     await updateScrapeSheet(allResults);
     console.log("Updated Google Sheet with all scraped data");
 
-    await saveToDailyPricesTable(allResults, currentDate);
+    await saveToSymbolPricesTable(allResults, currentDate);
 
     // await scrapeTrStocks();
     // console.log("scraped TR stocks and saved in local-data");

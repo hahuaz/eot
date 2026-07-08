@@ -1,5 +1,5 @@
 import {
-  getDailyPriceHistory,
+  getSymbolPriceHistory,
   OBSERVATION_START_DATE,
   round,
   getDaysBetween,
@@ -198,8 +198,8 @@ export class YieldService {
     let symbolData = YieldService.symbolToPrices.get(upperSym);
 
     if (!symbolData) {
-      // daily_prices is stored ascending by date already (see getDailyPriceHistory)
-      const priceHistory = await getDailyPriceHistory(upperSym);
+      // symbol_prices is stored ascending by date already (see getSymbolPriceHistory)
+      const priceHistory = await getSymbolPriceHistory(upperSym);
 
       if (!priceHistory || priceHistory.length === 0) {
         throw new Error(`Data for symbol ${symbol} is missing or empty.`);
