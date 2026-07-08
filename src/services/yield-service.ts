@@ -6,7 +6,7 @@ import {
   MS_IN_DAY,
   DAYS_IN_YEAR,
 } from "@/lib";
-import { DailyPrice } from "@/types";
+import { SymbolPrice } from "@/types";
 import { CumulativeYield, YoyYield } from "@/shared/types";
 import { returnSymbolConfig, cumulativeSymbolsAll } from "@/shared/constants";
 import { BadRequestError } from "@/lib/errors";
@@ -23,7 +23,7 @@ export class YieldService {
   private static readonly symbolToPrices = new Map<
     string,
     {
-      priceHistory: DailyPrice[];
+      priceHistory: SymbolPrice[];
       timeToPrice: Map<number, number>;
     }
   >();
@@ -66,7 +66,7 @@ export class YieldService {
 
     if (config.kind === "base" || config.kind === "usdAdjusted") {
       let usdtryTimeToPrice: Map<number, number> | undefined;
-      let usdtryStartEntry: DailyPrice | undefined;
+      let usdtryStartEntry: SymbolPrice | undefined;
 
       if (config.kind === "usdAdjusted") {
         usdtryTimeToPrice = await YieldService.getTimeToPriceMap(USDTRY_SYMBOL);
@@ -120,7 +120,7 @@ export class YieldService {
     const symbolData = await YieldService.getPriceHistory(config.symbol);
 
     if (config.kind === "base" || config.kind === "usdAdjusted") {
-      let usdtryData: DailyPrice[] | undefined;
+      let usdtryData: SymbolPrice[] | undefined;
       let usdtryTimeToPrice: Map<number, number> | undefined;
 
       if (config.kind === "usdAdjusted") {
@@ -191,7 +191,7 @@ export class YieldService {
    * access and caching the result in memory for subsequent calls.
    */
   private static async getSymbolData(symbol: string): Promise<{
-    priceHistory: DailyPrice[];
+    priceHistory: SymbolPrice[];
     timeToPrice: Map<number, number>;
   }> {
     const upperSym = symbol.toUpperCase();
@@ -236,7 +236,7 @@ export class YieldService {
   /**
    * Retrieves price history for a symbol.
    */
-  private static async getPriceHistory(symbol: string): Promise<DailyPrice[]> {
+  private static async getPriceHistory(symbol: string): Promise<SymbolPrice[]> {
     return (await YieldService.getSymbolData(symbol)).priceHistory;
   }
 
@@ -253,9 +253,9 @@ export class YieldService {
    * Identifies the closest available historical entry relative to a target date.
    */
   private static getClosestEntry(
-    data: DailyPrice[],
+    data: SymbolPrice[],
     targetDate: number,
-  ): DailyPrice {
+  ): SymbolPrice {
     if (data.length === 0) {
       throw new Error("Cannot find closest entry: data set is empty.");
     }
