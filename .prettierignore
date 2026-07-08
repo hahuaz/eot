@@ -1,3 +1,2 @@
-local-data/snapshot
-node_modules
+tests/__snapshots__
 pnpm-lock.yaml

@@ -108,8 +108,13 @@ router.get("/stock", async (req, res) => {
   const metrics = stockService.getMetrics();
 
   if (["ktlev", "froto", "alfas"].includes(stockSymbol)) {
-    // write data to temp file
-    const tempFilePath = path.join(DATA_DIR, "snapshot", `${stockSymbol}.json`);
+    // write data to temp file for manual debugging
+    const tempFilePath = path.join(
+      DATA_DIR,
+      "debug-snapshot",
+      `${stockSymbol}.json`,
+    );
+    fs.mkdirSync(path.dirname(tempFilePath), { recursive: true });
     fs.writeFileSync(tempFilePath, JSON.stringify(metrics, null, 2));
   }
 
