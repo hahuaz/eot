@@ -12,8 +12,7 @@ import {
 import { useState } from "react";
 import type { InferGetStaticPropsType, GetStaticProps } from "next";
 import { API_URL, DEFAULT_RETURN_SYMBOLS, returnSymbolColors } from "@/lib";
-import { YoyYield } from "@/shared/types";
-import { cumulativeSymbolsAll } from "@/shared/constants";
+import { YoyYield, cumulativeSymbolsAll } from "@eot/shared";
 
 interface YoyReturnsData {
   [key: string]: YoyYield[];

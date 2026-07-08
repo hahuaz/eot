@@ -6,9 +6,10 @@
     "outDir": "./dist",
     "esModuleInterop": true,
     "strict": true,
+    "incremental": true,
+    "tsBuildInfoFile": "./tsconfig.tsbuildinfo",
     "paths": {
-      "@/*": ["./src/*"],
-      "@shared/*": ["./src/shared/*"]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src/**/*.ts", "tests/**/*.ts"],

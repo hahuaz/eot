@@ -7,7 +7,7 @@ import {
   StockSymbol,
   StockDynamicInfoMap,
   StockDynamicInfo,
-} from "@shared/types";
+} from "@eot/shared";
 import { Region, regions } from "@/types";
 import path from "path";
 import { parseCSV } from "@/lib/file";

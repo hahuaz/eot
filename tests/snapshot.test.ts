@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { cumulativeSymbolsAll } from "@/shared/constants";
+import { cumulativeSymbolsAll } from "@eot/shared";
 import { YieldService } from "@/services";
 
 const DATE_THRESHOLD = 1780261200000;

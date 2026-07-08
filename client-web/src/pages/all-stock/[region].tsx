@@ -14,7 +14,7 @@ import {
   SortingState,
 } from "@tanstack/react-table";
 import { API_URL, formatNumber } from "@/lib";
-import { MetricNames } from "@/shared/types";
+import { MetricNames } from "@eot/shared";
 
 interface StockSummary {
   stockName: string;

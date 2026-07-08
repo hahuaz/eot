@@ -7,8 +7,12 @@ import {
   DAYS_IN_YEAR,
 } from "@/lib";
 import { SymbolPrice } from "@/types";
-import { CumulativeYield, YoyYield } from "@/shared/types";
-import { returnSymbolConfig, cumulativeSymbolsAll } from "@/shared/constants";
+import {
+  CumulativeYield,
+  YoyYield,
+  returnSymbolConfig,
+  cumulativeSymbolsAll,
+} from "@eot/shared";
 import { BadRequestError } from "@/lib/errors";
 
 const USDTRY_SYMBOL = "USDTRY";

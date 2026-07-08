@@ -16,7 +16,7 @@
     "test:update": "vitest run -u",
     "format": "prettier --write .",
     "prepare": "husky",
-    "check:ts": "pnpm -w exec tsc --noEmit && pnpm -w exec tsc --noEmit --project client-web/tsconfig.json",
+    "check:ts": "pnpm -w exec tsc --noEmit && pnpm -w exec tsc --noEmit --project client-web/tsconfig.json && pnpm -w exec tsc --noEmit --project packages/shared/tsconfig.json",
     "check:lint": "oxlint",
     "check:format": "prettier --check .",
     "check:all": "pnpm check:ts && pnpm check:lint && pnpm check:format"
@@ -26,6 +26,7 @@
   "license": "ISC",
   "packageManager": "pnpm@11.10.0",
   "dependencies": {
+    "@eot/shared": "workspace:*",
     "cors": "^2.8.6",
     "dotenv": "^16.6.1",
     "express": "^5.2.1",

@@ -1,5 +1,10 @@
+packages:
+  - "client-web"
+  - "packages/*"
 allowBuilds:
   esbuild: true
   puppeteer: true
+  sharp: true
+  unrs-resolver: true
 minimumReleaseAgeExclude:
   - pnpm@11.10.0

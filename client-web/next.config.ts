@@ -9,10 +9,10 @@ const nextConfig: NextConfig = {
   },
   reactStrictMode: true,
   output: "export",
-  experimental: {
-    // import types from `shared` directory
-    externalDir: true,
-  },
+  // @eot/shared ships raw TypeScript source (no build step), so Next.js
+  // needs to be told to transpile it like it does its own app code -
+  // by default it assumes packages in node_modules are pre-compiled.
+  transpilePackages: ["@eot/shared"],
 };
 
 export default nextConfig;

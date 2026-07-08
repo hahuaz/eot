@@ -1,4 +1,4 @@
-import { cumulativeSymbolsAll, returnSymbolConfig } from "@/shared/constants";
+import { cumulativeSymbolsAll, returnSymbolConfig } from "@eot/shared";
 
 export const API_URL = "http://localhost:5555/";
 

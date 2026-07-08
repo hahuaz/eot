@@ -22,7 +22,7 @@ import {
   BaseMetric,
   MetricNames,
   StockResponse,
-} from "@/shared/types";
+} from "@eot/shared";
 
 const SECTIONS: Record<string, MetricNames[]> = {
   "Balance sheet": [

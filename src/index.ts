@@ -8,7 +8,7 @@ import { APP_CONFIG } from "@/config";
 import { DATA_DIR } from "@/lib";
 import { BadRequestError } from "@/lib/errors";
 import { StockService, YieldService } from "@/services";
-import { StockResponse } from "./shared/types/index.js";
+import { StockResponse } from "@eot/shared";
 
 // --- Express App Setup ---
 const app = express();
