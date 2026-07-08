@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { cumulativeSymbolsAll } from "@eot/shared";
+import { allSymbols } from "@eot/shared";
 import { YieldService } from "@/services";
 
 const DATE_THRESHOLD = 1780261200000;
@@ -13,7 +13,7 @@ function filterByDateThreshold<T extends { date: number }>(
 }
 
 describe("Yield regression snapshots", () => {
-  it.each(cumulativeSymbolsAll)(
+  it.each(allSymbols)(
     "%s cumulative + YoY yields match snapshot",
     async (symbol) => {
       const cumulativeYields = filterByDateThreshold(

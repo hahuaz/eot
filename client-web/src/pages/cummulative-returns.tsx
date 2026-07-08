@@ -12,7 +12,7 @@ import {
 import { useState } from "react";
 import type { InferGetStaticPropsType, GetStaticProps } from "next";
 import { API_URL, DEFAULT_RETURN_SYMBOLS, returnSymbolColors } from "@/lib";
-import { CumulativeYield, cumulativeSymbolsAll } from "@eot/shared";
+import { CumulativeYield, allSymbols } from "@eot/shared";
 
 interface CumulativeYieldsProps {
   [key: string]: CumulativeYield[];
@@ -24,7 +24,7 @@ export const getStaticProps: GetStaticProps<{
   // Fetch data for all base and composite symbols
   const symbolData: Record<string, CumulativeYield[]> = {};
 
-  for (const symbol of cumulativeSymbolsAll) {
+  for (const symbol of allSymbols) {
     const data = await fetch(
       `${API_URL}api/cumulative-returns?symbol=${symbol}`,
     ).then((res) => res.json());
@@ -92,7 +92,7 @@ const CumulativeYieldsChart = ({
   console.log("Filtered data for chart:", filteredData);
 
   // pre-determined symbols (keys from CumulativeYields)
-  const allowedSymbols = cumulativeSymbolsAll;
+  const allowedSymbols = allSymbols;
 
   const [selectedSymbols, setSelectedSymbols] = useState<string[]>(
     DEFAULT_RETURN_SYMBOLS,

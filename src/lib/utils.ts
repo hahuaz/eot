@@ -7,6 +7,16 @@ export const wait = (seconds: number): Promise<void> => {
 };
 
 /**
+ * Compile-time exhaustiveness check. Call this in the `default` branch of a
+ * switch over a union type - if a new variant is ever added without handling
+ * it, TypeScript will flag the call site as an error instead of it silently
+ * doing nothing at runtime.
+ */
+export function assertNever(value: never): never {
+  throw new Error(`Unhandled case: ${JSON.stringify(value)}`);
+}
+
+/**
  * Rounds a number to a fixed number of decimal places (limit floating point precision issues).
  */
 export function round(value: number): number {

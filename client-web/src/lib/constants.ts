@@ -1,4 +1,4 @@
-import { cumulativeSymbolsAll, returnSymbolConfig } from "@eot/shared";
+import { allSymbols, symbolConfig } from "@eot/shared";
 
 export const API_URL = "http://localhost:5555/";
 
@@ -14,11 +14,11 @@ export const CHART_COLORS = [
   "#FF1493", // tp2_usdtry
 ];
 
-export const returnSymbolColors = cumulativeSymbolsAll.reduce(
+export const returnSymbolColors = allSymbols.reduce(
   (acc, symbol, index) => {
-    acc[symbol as keyof typeof returnSymbolConfig] =
+    acc[symbol as keyof typeof symbolConfig] =
       CHART_COLORS[index % CHART_COLORS.length];
     return acc;
   },
-  {} as Record<keyof typeof returnSymbolConfig, string>,
+  {} as Record<keyof typeof symbolConfig, string>,
 );

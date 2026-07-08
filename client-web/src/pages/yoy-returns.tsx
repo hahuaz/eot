@@ -12,7 +12,7 @@ import {
 import { useState } from "react";
 import type { InferGetStaticPropsType, GetStaticProps } from "next";
 import { API_URL, DEFAULT_RETURN_SYMBOLS, returnSymbolColors } from "@/lib";
-import { YoyYield, cumulativeSymbolsAll } from "@eot/shared";
+import { YoyYield, allSymbols } from "@eot/shared";
 
 interface YoyReturnsData {
   [key: string]: YoyYield[];
@@ -24,7 +24,7 @@ export const getStaticProps: GetStaticProps<{
   // Fetch data for all base and composite symbols
   const symbolData: Record<string, YoyYield[]> = {};
 
-  for (const symbol of cumulativeSymbolsAll) {
+  for (const symbol of allSymbols) {
     try {
       const data = await fetch(
         `${API_URL}api/yoy-returns?symbol=${symbol}`,
@@ -108,7 +108,7 @@ const YoyReturnsChart = ({
   });
 
   // Available symbols
-  const allowedSymbols = cumulativeSymbolsAll;
+  const allowedSymbols = allSymbols;
 
   const [selectedSymbols, setSelectedSymbols] = useState<string[]>(
     DEFAULT_RETURN_SYMBOLS,

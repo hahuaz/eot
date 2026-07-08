@@ -57,11 +57,11 @@ exports[`Yield regression snapshots > BASAKSEHIR_USDTRY cumulative + YoY yields 
     },
     {
       "date": 1772236800000,
-      "value": 0.08903260091159182,
+      "value": 0.0890326009115916,
     },
     {
       "date": 1774828800000,
-      "value": 0.1027369176523385,
+      "value": 0.10273691765233872,
     },
     {
       "date": 1777507200000,
@@ -184,19 +184,19 @@ exports[`Yield regression snapshots > BGP cumulative + YoY yields match snapshot
   "cumulativeYields": [
     {
       "date": 1738195200000,
-      "value": 0.03239464964112282,
+      "value": 0.03239464964112273,
     },
     {
       "date": 1740700800000,
-      "value": 0.05965286104589822,
+      "value": 0.05965286104589827,
     },
     {
       "date": 1743292800000,
-      "value": 0.084433053232058,
+      "value": 0.08443305323205791,
     },
     {
       "date": 1745971200000,
-      "value": 0.12655937994852928,
+      "value": 0.12655937994852925,
     },
     {
       "date": 1748563200000,
@@ -204,11 +204,11 @@ exports[`Yield regression snapshots > BGP cumulative + YoY yields match snapshot
     },
     {
       "date": 1751241600000,
-      "value": 0.20670744234775654,
+      "value": 0.20670744234775648,
     },
     {
       "date": 1753833600000,
-      "value": 0.2479302832571205,
+      "value": 0.24793028325712047,
     },
     {
       "date": 1756512000000,
@@ -216,11 +216,11 @@ exports[`Yield regression snapshots > BGP cumulative + YoY yields match snapshot
     },
     {
       "date": 1759190400000,
-      "value": 0.32459425063497377,
+      "value": 0.3245942506349737,
     },
     {
       "date": 1761782400000,
-      "value": 0.36451092761420506,
+      "value": 0.3645109276142051,
     },
     {
       "date": 1764460800000,
@@ -228,11 +228,11 @@ exports[`Yield regression snapshots > BGP cumulative + YoY yields match snapshot
     },
     {
       "date": 1767052800000,
-      "value": 0.44374311411023204,
+      "value": 0.44374311411023193,
     },
     {
       "date": 1769731200000,
-      "value": 0.48496446820806455,
+      "value": 0.4849644682080646,
     },
     {
       "date": 1772236800000,
@@ -240,11 +240,11 @@ exports[`Yield regression snapshots > BGP cumulative + YoY yields match snapshot
     },
     {
       "date": 1774828800000,
-      "value": 0.562492520887449,
+      "value": 0.5624925208874492,
     },
     {
       "date": 1777507200000,
-      "value": 0.6083158044761737,
+      "value": 0.6083158044761736,
     },
     {
       "date": 1780099200000,
@@ -371,11 +371,11 @@ exports[`Yield regression snapshots > BGP_USDTRY cumulative + YoY yields match s
     },
     {
       "date": 1743292800000,
-      "value": 0.004527459836011882,
+      "value": 0.00452745983601166,
     },
     {
       "date": 1745971200000,
-      "value": 0.03170414879133099,
+      "value": 0.031704148791330766,
     },
     {
       "date": 1748563200000,
@@ -383,7 +383,7 @@ exports[`Yield regression snapshots > BGP_USDTRY cumulative + YoY yields match s
     },
     {
       "date": 1751241600000,
-      "value": 0.06766044202989319,
+      "value": 0.06766044202989296,
     },
     {
       "date": 1753833600000,
@@ -419,11 +419,11 @@ exports[`Yield regression snapshots > BGP_USDTRY cumulative + YoY yields match s
     },
     {
       "date": 1774828800000,
-      "value": 0.23662775696771576,
+      "value": 0.23662775696771599,
     },
     {
       "date": 1777507200000,
-      "value": 0.253949359301856,
+      "value": 0.2539493593018558,
     },
     {
       "date": 1780099200000,
@@ -542,63 +542,63 @@ exports[`Yield regression snapshots > EURTRY cumulative + YoY yields match snaps
   "cumulativeYields": [
     {
       "date": 1738195200000,
-      "value": 0.015649110945108013,
+      "value": 0.0156491109451081,
     },
     {
       "date": 1740700800000,
-      "value": 0.04071222539081876,
+      "value": 0.040712225390818764,
     },
     {
       "date": 1743292800000,
-      "value": 0.116365044139217,
+      "value": 0.11636504413921711,
     },
     {
       "date": 1745971200000,
-      "value": 0.19316291978603783,
+      "value": 0.19316291978603786,
     },
     {
       "date": 1748563200000,
-      "value": 0.21271367579622358,
+      "value": 0.21271367579622355,
     },
     {
       "date": 1751241600000,
-      "value": 0.27283325245233003,
+      "value": 0.27283325245233014,
     },
     {
       "date": 1753833600000,
-      "value": 0.2692693991722874,
+      "value": 0.2692693991722875,
     },
     {
       "date": 1756512000000,
-      "value": 0.3111978385687879,
+      "value": 0.31119783856878785,
     },
     {
       "date": 1759190400000,
-      "value": 0.3332069226868486,
+      "value": 0.33320692268684865,
     },
     {
       "date": 1761782400000,
-      "value": 0.3221426740895432,
+      "value": 0.32214267408954333,
     },
     {
       "date": 1764460800000,
-      "value": 0.34124058735966245,
+      "value": 0.3412405873596624,
     },
     {
       "date": 1767052800000,
-      "value": 0.37625888100677773,
+      "value": 0.3762588810067776,
     },
     {
       "date": 1769731200000,
-      "value": 0.414562942687176,
+      "value": 0.41456294268717586,
     },
     {
       "date": 1772236800000,
-      "value": 0.4166098682094035,
+      "value": 0.4166098682094036,
     },
     {
       "date": 1774828800000,
-      "value": 0.39217653505782524,
+      "value": 0.3921765350578253,
     },
     {
       "date": 1777507200000,
@@ -725,23 +725,23 @@ exports[`Yield regression snapshots > GOLD cumulative + YoY yields match snapsho
     },
     {
       "date": 1740700800000,
-      "value": 0.09635316698656426,
+      "value": 0.09635316698656429,
     },
     {
       "date": 1743292800000,
-      "value": 0.09635316698656426,
+      "value": 0.09635316698656429,
     },
     {
       "date": 1745971200000,
-      "value": 0.26218809980806146,
+      "value": 0.2621880998080614,
     },
     {
       "date": 1748563200000,
-      "value": 0.2653397312859884,
+      "value": 0.2653397312859885,
     },
     {
       "date": 1751241600000,
-      "value": 0.2596852207293665,
+      "value": 0.2596852207293666,
     },
     {
       "date": 1753833600000,
@@ -749,7 +749,7 @@ exports[`Yield regression snapshots > GOLD cumulative + YoY yields match snapsho
     },
     {
       "date": 1756512000000,
-      "value": 0.31021190019193856,
+      "value": 0.3102119001919385,
     },
     {
       "date": 1759190400000,
@@ -765,7 +765,7 @@ exports[`Yield regression snapshots > GOLD cumulative + YoY yields match snapsho
     },
     {
       "date": 1767052800000,
-      "value": 0.645617658349328,
+      "value": 0.6456176583493282,
     },
     {
       "date": 1769731200000,
@@ -777,7 +777,7 @@ exports[`Yield regression snapshots > GOLD cumulative + YoY yields match snapsho
     },
     {
       "date": 1774828800000,
-      "value": 0.7558330134357005,
+      "value": 0.7558330134357004,
     },
     {
       "date": 1777507200000,
@@ -900,19 +900,19 @@ exports[`Yield regression snapshots > TP2 cumulative + YoY yields match snapshot
   "cumulativeYields": [
     {
       "date": 1738195200000,
-      "value": 0.028409019837925348,
+      "value": 0.028409019837925365,
     },
     {
       "date": 1740700800000,
-      "value": 0.05789340056169243,
+      "value": 0.05789340056169248,
     },
     {
       "date": 1743292800000,
-      "value": 0.08737778128545952,
+      "value": 0.0873777812854596,
     },
     {
       "date": 1745971200000,
-      "value": 0.1250522677658286,
+      "value": 0.1250522677658285,
     },
     {
       "date": 1748563200000,
@@ -924,19 +924,19 @@ exports[`Yield regression snapshots > TP2 cumulative + YoY yields match snapshot
     },
     {
       "date": 1753833600000,
-      "value": 0.24790385411485827,
+      "value": 0.24790385411485816,
     },
     {
       "date": 1756512000000,
-      "value": 0.288854382897868,
+      "value": 0.2888543828978681,
     },
     {
       "date": 1759190400000,
-      "value": 0.3379950174374798,
+      "value": 0.33799501743747973,
     },
     {
       "date": 1761782400000,
-      "value": 0.3789455462204897,
+      "value": 0.37894554622048965,
     },
     {
       "date": 1764460800000,
@@ -944,11 +944,11 @@ exports[`Yield regression snapshots > TP2 cumulative + YoY yields match snapshot
     },
     {
       "date": 1767052800000,
-      "value": 0.4854169210563154,
+      "value": 0.4854169210563153,
     },
     {
       "date": 1769731200000,
-      "value": 0.5427476613525289,
+      "value": 0.542747661352529,
     },
     {
       "date": 1772236800000,
@@ -956,7 +956,7 @@ exports[`Yield regression snapshots > TP2 cumulative + YoY yields match snapshot
     },
     {
       "date": 1774828800000,
-      "value": 0.6492190361883546,
+      "value": 0.6492190361883547,
     },
     {
       "date": 1777507200000,
@@ -964,7 +964,7 @@ exports[`Yield regression snapshots > TP2 cumulative + YoY yields match snapshot
     },
     {
       "date": 1780099200000,
-      "value": 0.7641262199534803,
+      "value": 0.7641262199534802,
     },
   ],
   "yoyYields": [
@@ -1087,7 +1087,7 @@ exports[`Yield regression snapshots > TP2_USDTRY cumulative + YoY yields match s
     },
     {
       "date": 1743292800000,
-      "value": 0.007255207927583607,
+      "value": 0.007255207927583829,
     },
     {
       "date": 1745971200000,
@@ -1103,7 +1103,7 @@ exports[`Yield regression snapshots > TP2_USDTRY cumulative + YoY yields match s
     },
     {
       "date": 1753833600000,
-      "value": 0.08232370167482705,
+      "value": 0.08232370167482683,
     },
     {
       "date": 1756512000000,
@@ -1123,7 +1123,7 @@ exports[`Yield regression snapshots > TP2_USDTRY cumulative + YoY yields match s
     },
     {
       "date": 1767052800000,
-      "value": 0.21723569176818636,
+      "value": 0.21723569176818613,
     },
     {
       "date": 1769731200000,
@@ -1135,7 +1135,7 @@ exports[`Yield regression snapshots > TP2_USDTRY cumulative + YoY yields match s
     },
     {
       "date": 1774828800000,
-      "value": 0.30526707181401735,
+      "value": 0.3052670718140176,
     },
     {
       "date": 1777507200000,
@@ -1143,7 +1143,7 @@ exports[`Yield regression snapshots > TP2_USDTRY cumulative + YoY yields match s
     },
     {
       "date": 1780099200000,
-      "value": 0.35372460710513565,
+      "value": 0.3537246071051354,
     },
   ],
   "yoyYields": [
@@ -1258,27 +1258,27 @@ exports[`Yield regression snapshots > USDTRY cumulative + YoY yields match snaps
   "cumulativeYields": [
     {
       "date": 1738195200000,
-      "value": 0.016193181818181746,
+      "value": 0.016193181818181825,
     },
     {
       "date": 1740700800000,
-      "value": 0.03494318181818179,
+      "value": 0.03494318181818173,
     },
     {
       "date": 1743292800000,
-      "value": 0.07954545454545436,
+      "value": 0.07954545454545446,
     },
     {
       "date": 1745971200000,
-      "value": 0.09194034090909087,
+      "value": 0.0919403409090909,
     },
     {
       "date": 1748563200000,
-      "value": 0.11466051136363631,
+      "value": 0.11466051136363624,
     },
     {
       "date": 1751241600000,
-      "value": 0.13023522727272718,
+      "value": 0.13023522727272727,
     },
     {
       "date": 1753833600000,
@@ -1290,7 +1290,7 @@ exports[`Yield regression snapshots > USDTRY cumulative + YoY yields match snaps
     },
     {
       "date": 1759190400000,
-      "value": 0.18129914772727274,
+      "value": 0.18129914772727265,
     },
     {
       "date": 1761782400000,
@@ -1298,31 +1298,31 @@ exports[`Yield regression snapshots > USDTRY cumulative + YoY yields match snaps
     },
     {
       "date": 1764460800000,
-      "value": 0.20755795454545445,
+      "value": 0.20755795454545442,
     },
     {
       "date": 1767052800000,
-      "value": 0.22031988636363642,
+      "value": 0.22031988636363634,
     },
     {
       "date": 1769731200000,
-      "value": 0.235772443181818,
+      "value": 0.23577244318181803,
     },
     {
       "date": 1772236800000,
-      "value": 0.2488147727272727,
+      "value": 0.24881477272727268,
     },
     {
       "date": 1774828800000,
-      "value": 0.2635107954545455,
+      "value": 0.26351079545454537,
     },
     {
       "date": 1777507200000,
-      "value": 0.282600284090909,
+      "value": 0.2826002840909091,
     },
     {
       "date": 1780099200000,
-      "value": 0.3031647727272726,
+      "value": 0.30316477272727266,
     },
   ],
   "yoyYields": [

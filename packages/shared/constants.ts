@@ -1,21 +1,21 @@
-type BaseReturnConfig = {
+type BaseSymbolConfig = {
   kind: "base";
   symbol: string;
   withholdingTax?: number;
 };
 
-type UsdAdjustedReturnConfig = {
+type UsdAdjustedSymbolConfig = {
   kind: "usdAdjusted";
   symbol: string;
   withholdingTax?: number;
 };
 
-type ReturnSymbolConfig = BaseReturnConfig | UsdAdjustedReturnConfig;
+type SymbolConfig = BaseSymbolConfig | UsdAdjustedSymbolConfig;
 
-export type ReturnSymbolConfigValue =
-  (typeof returnSymbolConfig)[keyof typeof returnSymbolConfig];
+export type SymbolConfigValue =
+  (typeof symbolConfig)[keyof typeof symbolConfig];
 
-export const returnSymbolConfig = {
+export const symbolConfig = {
   BGP: { kind: "base", symbol: "BGP", withholdingTax: 0.175 },
   TP2: { kind: "base", symbol: "TP2", withholdingTax: 0.175 },
   USDTRY: { kind: "base", symbol: "USDTRY" },
@@ -36,14 +36,14 @@ export const returnSymbolConfig = {
     symbol: "BASAKSEHIR",
     withholdingTax: 0,
   },
-} as const satisfies Record<string, ReturnSymbolConfig>;
+} as const satisfies Record<string, SymbolConfig>;
 
-export const baseSymbols = Object.entries(returnSymbolConfig)
+export const baseSymbols = Object.entries(symbolConfig)
   .filter(([, config]) => config.kind === "base")
   .map(([symbol]) => symbol);
 
-export const usdAdjustedSymbols = Object.entries(returnSymbolConfig)
+export const usdAdjustedSymbols = Object.entries(symbolConfig)
   .filter(([, config]) => config.kind === "usdAdjusted")
   .map(([symbol]) => symbol);
 
-export const cumulativeSymbolsAll = [...baseSymbols, ...usdAdjustedSymbols];
+export const allSymbols = [...baseSymbols, ...usdAdjustedSymbols];
