@@ -56,20 +56,20 @@ yieldRouter.get("/cumulative", async (req, res, next) => {
 yieldRouter.get("/yoy", async (req, res, next) => {
   const { symbol } = req.query;
   try {
-    const yoyReturns = await YieldService.getYoyYields(
+    const yoyYields = await YieldService.getYoyYields(
       YieldService.requireSymbol(symbol),
     );
-    res.status(200).json(yoyReturns);
+    res.status(200).json(yoyYields);
   } catch (error) {
     next(error);
   }
 });
 
 /**
- * @route GET /api/stock/:region/names
+ * @route GET /api/stock/:region/symbols
  * @description Returns a list of all stock symbols for a given region.
  */
-stockRouter.get("/:region/names", async (req, res, next) => {
+stockRouter.get("/:region/symbols", async (req, res, next) => {
   const { region } = req.params;
   try {
     const stockNames = await StockService.getStockNames(

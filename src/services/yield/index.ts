@@ -1,12 +1,10 @@
 import {
-  getSymbolPriceHistory,
   OBSERVATION_START_DATE,
-  round,
   getDaysBetween,
   MS_IN_DAY,
   DAYS_IN_YEAR,
+  round,
 } from "@/lib";
-import { SymbolPrice } from "@/types";
 import {
   CumulativeYield,
   YoyYield,
@@ -15,17 +13,15 @@ import {
   SYMBOL_USDTRY,
 } from "@eot/shared";
 import { BadRequestError } from "@/lib/errors";
-
-type SymbolPriceData = {
-  // this is used for ordered access (scanning for the closest entry)
-  priceHistory: SymbolPrice[];
-  // this is used for O(1) lookup by exact date
-  timeToPrice: Map<number, number>;
-};
+import { getSymbolData } from "@/services/yield/symbol-data-cache";
+import {
+  getClosestEntry,
+  annualizeRatio,
+  computeNetYield,
+  applyBenchmarkAdjustment,
+} from "@/services/yield/yield-math";
 
 const BENCH_SYMBOL = SYMBOL_USDTRY;
-
-const symbolPriceCache = new Map<string, Promise<SymbolPriceData>>();
 
 export function requireSymbol(symbol: unknown): string {
   if (typeof symbol !== "string" || !symbol) {
@@ -36,73 +32,6 @@ export function requireSymbol(symbol: unknown): string {
     throw new BadRequestError(`Symbol not supported: ${symbol}`);
   }
   return normalizedSymbol;
-}
-
-function getSymbolData(symbol: string): Promise<SymbolPriceData> {
-  const upperSym = symbol.toUpperCase();
-  let cached = symbolPriceCache.get(upperSym);
-
-  if (!cached) {
-    // Cache the in-flight promise itself (not its resolved value) and don't
-    // await it here. This way, concurrent callers for the same symbol all
-    // get the same pending promise instead of racing into duplicate queries.
-    cached = loadSymbolData(upperSym);
-    symbolPriceCache.set(upperSym, cached);
-  }
-  return cached;
-}
-
-async function loadSymbolData(symbol: string): Promise<SymbolPriceData> {
-  const priceHistory = await getSymbolPriceHistory(symbol);
-
-  if (priceHistory.length === 0) {
-    throw new Error(`Data for symbol ${symbol} is missing or empty.`);
-  }
-
-  const startEntry = priceHistory.find(
-    (entry) => entry.date === OBSERVATION_START_DATE,
-  );
-  if (startEntry?.value == null) {
-    throw new Error(
-      `Baseline date ${OBSERVATION_START_DATE} not found for symbol ${symbol}.`,
-    );
-  }
-
-  for (let i = 1; i < priceHistory.length; i++) {
-    if (priceHistory[i - 1].date >= priceHistory[i].date) {
-      throw new Error(
-        `Data integrity issue for symbol ${symbol}: duplicate or out-of-order dates detected.`,
-      );
-    }
-  }
-
-  const timeToPrice = new Map(
-    priceHistory.map((entry) => [entry.date, entry.value]),
-  );
-  return { priceHistory, timeToPrice };
-}
-
-/**
- * Identifies the closest available historical entry relative to a target date.
- */
-function getClosestEntry(data: SymbolPrice[], targetDate: number): SymbolPrice {
-  if (data.length === 0) {
-    throw new Error("Cannot find closest entry: data set is empty.");
-  }
-
-  return data.reduce((closest, entry) =>
-    Math.abs(entry.date - targetDate) < Math.abs(closest.date - targetDate)
-      ? entry
-      : closest,
-  );
-}
-
-/**
- * Annualizes a return ratio over a given number of days.
- */
-export function annualizeRatio(ratio: number, days: number): number {
-  if (days <= 0) return 0;
-  return Math.pow(ratio, DAYS_IN_YEAR / days) - 1;
 }
 
 export async function getCumulativeYields(
@@ -133,9 +62,11 @@ export async function getCumulativeYields(
         return [];
       }
 
-      let netYield =
-        (currentEntry.value - symbolStartEntry.value) / symbolStartEntry.value;
-      netYield = netYield * (1 - withholdingTax);
+      let netYield = computeNetYield(
+        currentEntry.value,
+        symbolStartEntry.value,
+        withholdingTax,
+      );
 
       if (benchData) {
         const benchCurrentValue = benchData.timeToPrice.get(currentEntry.date);
@@ -143,9 +74,11 @@ export async function getCumulativeYields(
           return [];
         }
 
-        const benchYield =
-          (benchCurrentValue - benchStartEntry.value) / benchStartEntry.value;
-        netYield = (1 + netYield) / (1 + benchYield) - 1;
+        netYield = applyBenchmarkAdjustment(
+          netYield,
+          benchCurrentValue,
+          benchStartEntry.value,
+        );
       }
 
       return [{ date: currentEntry.date, value: netYield }];
@@ -171,8 +104,11 @@ export async function getYoyYields(symbol: string): Promise<YoyYield[]> {
       return [];
     }
 
-    let netYield = (currentEntry.value - baseEntry.value) / baseEntry.value;
-    netYield = netYield * (1 - withholdingTax);
+    let netYield = computeNetYield(
+      currentEntry.value,
+      baseEntry.value,
+      withholdingTax,
+    );
 
     if (benchData) {
       const benchCurrentValue = benchData.timeToPrice.get(currentEntry.date);
@@ -188,9 +124,11 @@ export async function getYoyYields(symbol: string): Promise<YoyYield[]> {
         return [];
       }
 
-      const benchYield =
-        (benchCurrentValue - benchBaseEntry.value) / benchBaseEntry.value;
-      netYield = (1 + netYield) / (1 + benchYield) - 1;
+      netYield = applyBenchmarkAdjustment(
+        netYield,
+        benchCurrentValue,
+        benchBaseEntry.value,
+      );
     }
 
     const daysPassed = getDaysBetween(baseEntry.date, currentEntry.date);

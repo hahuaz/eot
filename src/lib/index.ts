@@ -4,4 +4,3 @@ export * from "@/lib/constants";
 export * from "@/lib/dates";
 export * from "@/lib/scrape";
 export * from "@/lib/sheet";
-export * from "@/lib/db";

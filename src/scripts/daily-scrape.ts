@@ -5,14 +5,16 @@ import type { ScrapeItem } from "@/types";
 import {
   scrape,
   updateScrapeSheet,
-  upsertSymbolPrice,
-  getStockPricesMap,
-  upsertStockPrice,
   DAILY_SAVED_SYMBOLS,
   TR_FUND_SYMBOLS,
   GENERIC_SYMBOLS,
   TR_STOCK_SYMBOLS,
 } from "@/lib/index";
+import { upsertSymbolPrice } from "@/db/yield-prices.repository";
+import {
+  getStockPricesMap,
+  upsertStockPrice,
+} from "@/db/stock-prices.repository";
 
 const TR_REGION = "tr";
 

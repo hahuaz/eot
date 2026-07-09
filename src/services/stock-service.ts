@@ -12,7 +12,7 @@ import { Region, regions } from "@/types";
 import path from "path";
 import { parseCSV } from "@/lib/file";
 import { DATA_DIR, OBSERVATION_START_DATE_STR } from "@/lib/constants";
-import { getStockPricesMap } from "@/lib/db";
+import { getStockPricesMap } from "@/db/stock-prices.repository";
 import { BadRequestError } from "@/lib/errors";
 import {
   getAvailableDates,

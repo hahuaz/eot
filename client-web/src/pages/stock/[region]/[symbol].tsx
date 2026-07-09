@@ -50,11 +50,11 @@ const SECTIONS: Record<string, MetricNames[]> = {
 
 export const getStaticPaths: GetStaticPaths = async () => {
   const [stockNamesTr, stockNamesUs] = await Promise.all([
-    fetch(`${API_URL}api/stock/tr/names`).then((res) => {
+    fetch(`${API_URL}api/stock/tr/symbols`).then((res) => {
       console.log("res", res);
       return res.json();
     }),
-    fetch(`${API_URL}api/stock/us/names`).then((res) => res.json()),
+    fetch(`${API_URL}api/stock/us/symbols`).then((res) => res.json()),
   ]);
 
   const pathsTr = stockNamesTr.map((symbol: string) => ({
