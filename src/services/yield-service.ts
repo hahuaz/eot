@@ -11,7 +11,7 @@ import { SymbolPrice } from "@/types";
 import {
   CumulativeYield,
   YoyYield,
-  SymbolConfigValue,
+  SymbolConfig,
   symbolConfig,
   allSymbols,
 } from "@eot/shared";
@@ -30,11 +30,11 @@ export function requireSymbol(symbol: unknown): string {
   return normalizedSymbol;
 }
 
-function getReturnConfig(symbol: string): SymbolConfigValue {
+function getReturnConfig(symbol: string): SymbolConfig {
   return symbolConfig[requireSymbol(symbol) as keyof typeof symbolConfig];
 }
 
-function isBenched(kind: SymbolConfigValue["kind"]): boolean {
+function isBenched(kind: SymbolConfig["kind"]): boolean {
   switch (kind) {
     case "base":
       return false;
@@ -125,7 +125,7 @@ export async function getCumulativeYields(
   symbol: string,
 ): Promise<CumulativeYield[]> {
   const config = getReturnConfig(symbol);
-  const withholdingTax = "withholdingTax" in config ? config.withholdingTax : 0;
+  const withholdingTax = config.withholdingTax ?? 0;
 
   const symbolData = await getSymbolData(config.symbol);
   const symbolStartIndex = symbolData.priceHistory.findIndex(
@@ -170,7 +170,7 @@ export async function getCumulativeYields(
 
 export async function getYoyYields(symbol: string): Promise<YoyYield[]> {
   const config = getReturnConfig(symbol);
-  const withholdingTax = "withholdingTax" in config ? config.withholdingTax : 0;
+  const withholdingTax = config.withholdingTax ?? 0;
 
   const symbolData = await getSymbolData(config.symbol);
   const benchData = isBenched(config.kind)

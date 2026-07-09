@@ -10,10 +10,7 @@ type UsdAdjustedSymbolConfig = {
   withholdingTax?: number;
 };
 
-type SymbolConfig = BaseSymbolConfig | UsdAdjustedSymbolConfig;
-
-export type SymbolConfigValue =
-  (typeof symbolConfig)[keyof typeof symbolConfig];
+export type SymbolConfig = BaseSymbolConfig | UsdAdjustedSymbolConfig;
 
 export const symbolConfig = {
   BGP: { kind: "base", symbol: "BGP", withholdingTax: 0.175 },
