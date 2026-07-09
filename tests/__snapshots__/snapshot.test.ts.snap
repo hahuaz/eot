@@ -1,5 +1,184 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`Yield regression snapshots > BASAKSEHIR cumulative + YoY yields match snapshot 1`] = `
+{
+  "cumulativeYields": [
+    {
+      "date": 1738195200000,
+      "value": 0.01694,
+    },
+    {
+      "date": 1740700800000,
+      "value": 0.04,
+    },
+    {
+      "date": 1743292800000,
+      "value": 0.0625,
+    },
+    {
+      "date": 1745971200000,
+      "value": 0.1,
+    },
+    {
+      "date": 1748563200000,
+      "value": 0.14284,
+    },
+    {
+      "date": 1751241600000,
+      "value": 0.1549,
+    },
+    {
+      "date": 1753833600000,
+      "value": 0.17886,
+    },
+    {
+      "date": 1756512000000,
+      "value": 0.19752,
+    },
+    {
+      "date": 1759190400000,
+      "value": 0.22726,
+    },
+    {
+      "date": 1761782400000,
+      "value": 0.25714,
+    },
+    {
+      "date": 1764460800000,
+      "value": 0.27586,
+    },
+    {
+      "date": 1767052800000,
+      "value": 0.28834,
+    },
+    {
+      "date": 1769731200000,
+      "value": 0.31914,
+    },
+    {
+      "date": 1772236800000,
+      "value": 0.36,
+    },
+    {
+      "date": 1774828800000,
+      "value": 0.39332,
+    },
+    {
+      "date": 1777507200000,
+      "value": 0.44,
+    },
+    {
+      "date": 1780099200000,
+      "value": 0.45384,
+    },
+  ],
+  "yoyYields": [
+    {
+      "baselineDate": 1735516800000,
+      "date": 1738195200000,
+      "daysPassed": 31,
+      "yoyReturnPercent": 0.2187,
+    },
+    {
+      "baselineDate": 1735516800000,
+      "date": 1740700800000,
+      "daysPassed": 60,
+      "yoyReturnPercent": 0.26946,
+    },
+    {
+      "baselineDate": 1735516800000,
+      "date": 1743292800000,
+      "daysPassed": 90,
+      "yoyReturnPercent": 0.27873,
+    },
+    {
+      "baselineDate": 1735516800000,
+      "date": 1745971200000,
+      "daysPassed": 121,
+      "yoyReturnPercent": 0.3331,
+    },
+    {
+      "baselineDate": 1735516800000,
+      "date": 1748563200000,
+      "daysPassed": 151,
+      "yoyReturnPercent": 0.3809,
+    },
+    {
+      "baselineDate": 1735516800000,
+      "date": 1751241600000,
+      "daysPassed": 182,
+      "yoyReturnPercent": 0.33485,
+    },
+    {
+      "baselineDate": 1735516800000,
+      "date": 1753833600000,
+      "daysPassed": 212,
+      "yoyReturnPercent": 0.32751,
+    },
+    {
+      "baselineDate": 1735516800000,
+      "date": 1756512000000,
+      "daysPassed": 243,
+      "yoyReturnPercent": 0.31095,
+    },
+    {
+      "baselineDate": 1735516800000,
+      "date": 1759190400000,
+      "daysPassed": 274,
+      "yoyReturnPercent": 0.31363,
+    },
+    {
+      "baselineDate": 1735516800000,
+      "date": 1761782400000,
+      "daysPassed": 304,
+      "yoyReturnPercent": 0.31621,
+    },
+    {
+      "baselineDate": 1735516800000,
+      "date": 1764460800000,
+      "daysPassed": 335,
+      "yoyReturnPercent": 0.304,
+    },
+    {
+      "baselineDate": 1735516800000,
+      "date": 1767052800000,
+      "daysPassed": 365,
+      "yoyReturnPercent": 0.28834,
+    },
+    {
+      "baselineDate": 1738195200000,
+      "date": 1769731200000,
+      "daysPassed": 365,
+      "yoyReturnPercent": 0.29717,
+    },
+    {
+      "baselineDate": 1740700800000,
+      "date": 1772236800000,
+      "daysPassed": 365,
+      "yoyReturnPercent": 0.30769,
+    },
+    {
+      "baselineDate": 1743292800000,
+      "date": 1774828800000,
+      "daysPassed": 365,
+      "yoyReturnPercent": 0.31136,
+    },
+    {
+      "baselineDate": 1745971200000,
+      "date": 1777507200000,
+      "daysPassed": 365,
+      "yoyReturnPercent": 0.30909,
+    },
+    {
+      "baselineDate": 1748563200000,
+      "date": 1780099200000,
+      "daysPassed": 365,
+      "yoyReturnPercent": 0.27213,
+    },
+  ],
+}
+`;
+
 exports[`Yield regression snapshots > BASAKSEHIR_USDTRY cumulative + YoY yields match snapshot 1`] = `
 {
   "cumulativeYields": [

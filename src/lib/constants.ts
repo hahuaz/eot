@@ -5,6 +5,7 @@ import { Site } from "@/types";
 export const DATA_DIR = path.join(process.cwd(), "local-data");
 export const DAILY_DIR = path.join(DATA_DIR, "daily");
 
+// TODO: client can pick observation start date
 export const OBSERVATION_START_DATE = 1735516800000;
 export const OBSERVATION_START_DATE_STR = "2024/12/30";
 

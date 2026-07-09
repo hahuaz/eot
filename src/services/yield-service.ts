@@ -5,19 +5,27 @@ import {
   getDaysBetween,
   MS_IN_DAY,
   DAYS_IN_YEAR,
-  assertNever,
 } from "@/lib";
 import { SymbolPrice } from "@/types";
 import {
   CumulativeYield,
   YoyYield,
-  SymbolConfig,
   symbolConfig,
   allSymbols,
+  SYMBOL_USDTRY,
 } from "@eot/shared";
 import { BadRequestError } from "@/lib/errors";
 
-const BENCH_SYMBOL = "USDTRY";
+type SymbolPriceData = {
+  // this is used for ordered access (scanning for the closest entry)
+  priceHistory: SymbolPrice[];
+  // this is used for O(1) lookup by exact date
+  timeToPrice: Map<number, number>;
+};
+
+const BENCH_SYMBOL = SYMBOL_USDTRY;
+
+const symbolPriceCache = new Map<string, Promise<SymbolPriceData>>();
 
 export function requireSymbol(symbol: unknown): string {
   if (typeof symbol !== "string" || !symbol) {
@@ -29,30 +37,6 @@ export function requireSymbol(symbol: unknown): string {
   }
   return normalizedSymbol;
 }
-
-function getReturnConfig(symbol: string): SymbolConfig {
-  return symbolConfig[requireSymbol(symbol) as keyof typeof symbolConfig];
-}
-
-function isBenched(kind: SymbolConfig["kind"]): boolean {
-  switch (kind) {
-    case "base":
-      return false;
-    case "usdAdjusted":
-      return true;
-    default:
-      return assertNever(kind);
-  }
-}
-
-type SymbolPriceData = {
-  // this is used for ordered access (scanning for the closest entry)
-  priceHistory: SymbolPrice[];
-  // this is used for O(1) lookup by exact date
-  timeToPrice: Map<number, number>;
-};
-
-const symbolPriceCache = new Map<string, Promise<SymbolPriceData>>();
 
 function getSymbolData(symbol: string): Promise<SymbolPriceData> {
   const upperSym = symbol.toUpperCase();
@@ -124,8 +108,8 @@ export function annualizeRatio(ratio: number, days: number): number {
 export async function getCumulativeYields(
   symbol: string,
 ): Promise<CumulativeYield[]> {
-  const config = getReturnConfig(symbol);
-  const withholdingTax = config.withholdingTax ?? 0;
+  const config = symbolConfig[symbol];
+  const { withholdingTax } = config;
 
   const symbolData = await getSymbolData(config.symbol);
   const symbolStartIndex = symbolData.priceHistory.findIndex(
@@ -133,7 +117,7 @@ export async function getCumulativeYields(
   );
   const symbolStartEntry = symbolData.priceHistory[symbolStartIndex];
 
-  const benchData = isBenched(config.kind)
+  const benchData = config.isUsdBench
     ? await getSymbolData(BENCH_SYMBOL)
     : null;
   const benchStartEntry = benchData
@@ -169,11 +153,11 @@ export async function getCumulativeYields(
 }
 
 export async function getYoyYields(symbol: string): Promise<YoyYield[]> {
-  const config = getReturnConfig(symbol);
-  const withholdingTax = config.withholdingTax ?? 0;
+  const config = symbolConfig[symbol];
+  const { withholdingTax } = config;
 
   const symbolData = await getSymbolData(config.symbol);
-  const benchData = isBenched(config.kind)
+  const benchData = config.isUsdBench
     ? await getSymbolData(BENCH_SYMBOL)
     : null;
 

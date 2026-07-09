@@ -1,24 +1,21 @@
-import { allSymbols, symbolConfig } from "@eot/shared";
+import { allSymbols } from "@eot/shared";
 
 export const API_URL = "http://localhost:5555/";
 
 export const DEFAULT_RETURN_SYMBOLS = ["BGP_USDTRY", "TP2_USDTRY", "GOLD"];
 
-export const CHART_COLORS = [
-  "#8B4513", // bgp
-  "#228B22", // tp2
-  "#1E90FF", // usdtry
-  "#FFD700", // eurtry
-  "#D4AF37", // gold
-  "#9932CC", // bgp_usdtry
-  "#FF1493", // tp2_usdtry
-];
+// Evenly spaced hues around the color wheel, so every symbol gets a visually
+// distinct color no matter how many symbols exist - no per-symbol list to
+// keep in sync as symbols are added or removed.
+function colorForIndex(index: number, total: number): string {
+  const hue = (360 * index) / Math.max(total, 1);
+  return `hsl(${hue}, 65%, 45%)`;
+}
 
 export const returnSymbolColors = allSymbols.reduce(
   (acc, symbol, index) => {
-    acc[symbol as keyof typeof symbolConfig] =
-      CHART_COLORS[index % CHART_COLORS.length];
+    acc[symbol] = colorForIndex(index, allSymbols.length);
     return acc;
   },
-  {} as Record<keyof typeof symbolConfig, string>,
+  {} as Record<(typeof allSymbols)[number], string>,
 );
