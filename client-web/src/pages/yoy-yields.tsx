@@ -1,18 +1,22 @@
-import React from "react";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
+import React, { useMemo } from "react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
 import { useState } from "react";
 import type { InferGetStaticPropsType, GetStaticProps } from "next";
-import { API_URL, DEFAULT_RETURN_SYMBOLS, returnSymbolColors } from "@/lib";
+import {
+  API_URL,
+  DEFAULT_RETURN_SYMBOLS,
+  returnSymbolColors,
+  formatDate,
+} from "@/lib";
 import { YoyYield, allSymbols } from "@eot/shared";
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
 
 interface YoyReturnsData {
   [key: string]: YoyYield[];
@@ -114,6 +118,17 @@ const YoyReturnsChart = ({
     DEFAULT_RETURN_SYMBOLS,
   );
 
+  const chartConfig = useMemo<ChartConfig>(
+    () =>
+      Object.fromEntries(
+        selectedSymbols.map((symbol) => [
+          symbol,
+          { label: symbol.toUpperCase(), color: returnSymbolColors[symbol] },
+        ]),
+      ),
+    [selectedSymbols],
+  );
+
   return (
     <div className="w-full">
       <div>
@@ -139,7 +154,7 @@ const YoyReturnsChart = ({
           >
             {allDates.map((date) => (
               <option key={date} value={date}>
-                {new Date(date).toLocaleDateString()}
+                {formatDate(date)}
               </option>
             ))}
           </select>
@@ -175,7 +190,10 @@ const YoyReturnsChart = ({
 
       {/* Chart */}
       <div className="mt-6 bg-white rounded-lg shadow p-4">
-        <ResponsiveContainer width="100%" height={1000}>
+        <ChartContainer
+          config={chartConfig}
+          className="aspect-auto h-[1000px] w-full"
+        >
           <LineChart data={filteredData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis
@@ -192,31 +210,52 @@ const YoyReturnsChart = ({
               tickFormatter={(value) => `${(value * 100).toFixed(1)}%`}
               tick={{ fontSize: 12 }}
             />
-            <Tooltip
-              formatter={(value) => {
-                if (value === undefined || typeof value !== "number")
-                  return "N/A";
-                return `${(value * 100).toFixed(2)}%`;
-              }}
-              labelFormatter={(date) =>
-                new Date(date).toLocaleDateString("en-US", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })
-              }
+            <ChartTooltip
+              content={({ active, payload, label }) => (
+                <ChartTooltipContent
+                  active={active}
+                  label={label}
+                  // recharts' itemSorter is ignored when a custom `content`
+                  // is used, so sort the payload ourselves (descending).
+                  payload={
+                    payload
+                      ? [...payload].sort(
+                          (a, b) =>
+                            (Number(b.value) || 0) - (Number(a.value) || 0),
+                        )
+                      : payload
+                  }
+                  labelFormatter={(_, payload) =>
+                    formatDate(
+                      (payload?.[0]?.payload as { date: number })?.date,
+                    )
+                  }
+                  formatter={(value, name) => (
+                    <>
+                      <div
+                        className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
+                        style={{ backgroundColor: `var(--color-${name})` }}
+                      />
+                      <div className="flex flex-1 items-center justify-between leading-none">
+                        <span className="text-muted-foreground">{name}</span>
+                        <span className="font-mono font-medium tabular-nums text-foreground">
+                          {typeof value === "number"
+                            ? `${(value * 100).toFixed(2)}%`
+                            : "N/A"}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                />
+              )}
             />
-            <Legend />
+            <ChartLegend content={<ChartLegendContent />} />
             {selectedSymbols.map((symbol) => (
               <Line
                 key={symbol}
                 type="monotone"
                 dataKey={symbol}
-                stroke={
-                  returnSymbolColors[
-                    symbol as keyof typeof returnSymbolColors
-                  ] || "#000"
-                }
+                stroke={`var(--color-${symbol})`}
                 connectNulls
                 isAnimationActive={false}
                 dot={false}
@@ -224,7 +263,7 @@ const YoyReturnsChart = ({
               />
             ))}
           </LineChart>
-        </ResponsiveContainer>
+        </ChartContainer>
       </div>
 
       {/* Data Table */}
@@ -256,20 +295,10 @@ const YoyReturnsChart = ({
               {filteredData.slice(-20).map((row, idx) => (
                 <tr key={idx} className="border-b hover:bg-gray-50">
                   <td className="px-4 py-3 text-gray-600">
-                    {new Date(row.date).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                    })}
+                    {formatDate(row.date)}
                   </td>
                   <td className="px-4 py-3 text-gray-600">
-                    {row.baselineDate
-                      ? new Date(row.baselineDate).toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                        })
-                      : "N/A"}
+                    {row.baselineDate ? formatDate(row.baselineDate) : "N/A"}
                   </td>
                   <td className="px-4 py-3 text-gray-600">
                     {row.daysPassed ?? "N/A"}

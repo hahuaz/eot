@@ -5,6 +5,14 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/**
+ * Formats a date as YYYY-MM-DD. Unlike the locale-dependent default of
+ * `toLocaleDateString()`, this ordering is unambiguous and sorts correctly as plain text.
+ */
+export function formatDate(date: number | Date): string {
+  return new Date(date).toLocaleDateString("en-CA");
+}
+
 export const formatNumber = ({
   num,
   digits = 0,

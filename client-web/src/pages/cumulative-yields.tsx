@@ -1,18 +1,22 @@
-import React from "react";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
+import React, { useMemo } from "react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
 import { useState } from "react";
 import type { InferGetStaticPropsType, GetStaticProps } from "next";
-import { API_URL, DEFAULT_RETURN_SYMBOLS, returnSymbolColors } from "@/lib";
+import {
+  API_URL,
+  DEFAULT_RETURN_SYMBOLS,
+  returnSymbolColors,
+  formatDate,
+} from "@/lib";
 import { CumulativeYield, allSymbols } from "@eot/shared";
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
 
 interface CumulativeYieldsProps {
   [key: string]: CumulativeYield[];
@@ -98,6 +102,17 @@ const CumulativeYieldsChart = ({
     DEFAULT_RETURN_SYMBOLS,
   );
 
+  const chartConfig = useMemo<ChartConfig>(
+    () =>
+      Object.fromEntries(
+        selectedSymbols.map((symbol) => [
+          symbol,
+          { label: symbol, color: returnSymbolColors[symbol] },
+        ]),
+      ),
+    [selectedSymbols],
+  );
+
   return (
     <div className="w-full h-[500px]">
       {/* Controls: checkboxes to include symbols in the chart */}
@@ -139,31 +154,63 @@ const CumulativeYieldsChart = ({
         >
           {allDates.map((date) => (
             <option key={date} value={date}>
-              {new Date(date).toLocaleDateString()}
+              {formatDate(date)}
             </option>
           ))}
         </select>
       </div>
 
-      <ResponsiveContainer width="100%" height="100%">
+      <ChartContainer
+        config={chartConfig}
+        className="aspect-auto h-full w-full"
+      >
         <LineChart data={filteredData}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis
             dataKey="date"
             minTickGap={20}
-            tickFormatter={(date) => new Date(date).toLocaleDateString()}
+            tickFormatter={(date) => formatDate(date)}
           />
           <YAxis
             tickFormatter={(v) => `${(v * 100).toFixed(2)}%`}
             domain={["auto", "auto"]}
           />
-          <Tooltip
-            formatter={(value: number) => `${(value * 100).toFixed(2)}%`}
-            labelFormatter={(label: number) =>
-              new Date(label).toLocaleDateString()
-            }
+          <ChartTooltip
+            content={({ active, payload, label }) => (
+              <ChartTooltipContent
+                active={active}
+                label={label}
+                // recharts' itemSorter is ignored when a custom `content` is
+                // used, so sort the payload ourselves (descending by value).
+                payload={
+                  payload
+                    ? [...payload].sort(
+                        (a, b) =>
+                          (Number(b.value) || 0) - (Number(a.value) || 0),
+                      )
+                    : payload
+                }
+                labelFormatter={(_, payload) =>
+                  formatDate((payload?.[0]?.payload as { date: number })?.date)
+                }
+                formatter={(value, name) => (
+                  <>
+                    <div
+                      className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
+                      style={{ backgroundColor: `var(--color-${name})` }}
+                    />
+                    <div className="flex flex-1 items-center justify-between leading-none">
+                      <span className="text-muted-foreground">{name}</span>
+                      <span className="font-mono font-medium tabular-nums text-foreground">
+                        {`${(Number(value) * 100).toFixed(2)}%`}
+                      </span>
+                    </div>
+                  </>
+                )}
+              />
+            )}
           />
-          <Legend />
+          <ChartLegend content={<ChartLegendContent />} />
 
           {/* Render only selected symbol lines */}
           {filteredData.length > 0 &&
@@ -172,16 +219,13 @@ const CumulativeYieldsChart = ({
                 key={key}
                 type="monotone"
                 dataKey={key}
-                stroke={
-                  returnSymbolColors[key as keyof typeof returnSymbolColors] ||
-                  "#333333"
-                }
+                stroke={`var(--color-${key})`}
                 name={key}
                 dot={false}
               />
             ))}
         </LineChart>
-      </ResponsiveContainer>
+      </ChartContainer>
     </div>
   );
 };
