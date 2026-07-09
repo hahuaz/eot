@@ -30,7 +30,7 @@ export const getStaticProps: GetStaticProps<{
 
   for (const symbol of allSymbols) {
     const data = await fetch(
-      `${API_URL}api/cumulative-returns?symbol=${symbol}`,
+      `${API_URL}api/yield/cumulative?symbol=${symbol}`,
     ).then((res) => res.json());
     symbolData[symbol] = data;
   }

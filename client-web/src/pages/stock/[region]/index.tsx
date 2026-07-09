@@ -52,8 +52,8 @@ export const getStaticProps: GetStaticProps<{
   const { region } = params as { region: string };
 
   const [allStock, bgpReturn] = await Promise.all([
-    fetch(`${API_URL}api/all-stock?region=${region}`).then((res) => res.json()),
-    fetch(`${API_URL}api/cumulative-returns?symbol=bgp_usdtry`).then((res) =>
+    fetch(`${API_URL}api/stock/${region}`).then((res) => res.json()),
+    fetch(`${API_URL}api/yield/cumulative?symbol=bgp_usdtry`).then((res) =>
       res.json(),
     ),
   ]);
@@ -161,7 +161,7 @@ const RegionalStocksPage = ({
       header: "Stock Name",
       cell: ({ getValue }) => (
         <Link
-          href={`/stocks/${region}/${getValue()}`}
+          href={`/stock/${region}/${getValue()}`}
           className="hover:underline text-blue-600"
         >
           {getValue()}

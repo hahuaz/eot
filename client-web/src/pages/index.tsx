@@ -3,9 +3,9 @@ import Link from "next/link";
 export default function Home() {
   return (
     <div>
-      <Link href="/all-stock/us">View US Stocks</Link>
+      <Link href="/stock/us">View US Stocks</Link>
       <br />
-      <Link href="/all-stock/tr">View TR Stocks</Link>
+      <Link href="/stock/tr">View TR Stocks</Link>
       <br />
       <Link href="/cumulative-yields">Cumulative Yields</Link>
       <br />

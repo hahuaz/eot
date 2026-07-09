@@ -30,9 +30,9 @@ export const getStaticProps: GetStaticProps<{
 
   for (const symbol of allSymbols) {
     try {
-      const data = await fetch(
-        `${API_URL}api/yoy-returns?symbol=${symbol}`,
-      ).then((res) => res.json());
+      const data = await fetch(`${API_URL}api/yield/yoy?symbol=${symbol}`).then(
+        (res) => res.json(),
+      );
       symbolData[symbol] = data;
     } catch (error) {
       console.error(`Failed to fetch YoY returns for ${symbol}:`, error);

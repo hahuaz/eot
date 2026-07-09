@@ -50,19 +50,19 @@ const SECTIONS: Record<string, MetricNames[]> = {
 
 export const getStaticPaths: GetStaticPaths = async () => {
   const [stockNamesTr, stockNamesUs] = await Promise.all([
-    fetch(`${API_URL}api/stock-names?region=tr`).then((res) => {
+    fetch(`${API_URL}api/stock/tr/names`).then((res) => {
       console.log("res", res);
       return res.json();
     }),
-    fetch(`${API_URL}api/stock-names?region=us`).then((res) => res.json()),
+    fetch(`${API_URL}api/stock/us/names`).then((res) => res.json()),
   ]);
 
-  const pathsTr = stockNamesTr.map((stock: string) => ({
-    params: { slug: ["tr", stock] },
+  const pathsTr = stockNamesTr.map((symbol: string) => ({
+    params: { region: "tr", symbol },
   }));
 
-  const pathsUs = stockNamesUs.map((stock: string) => ({
-    params: { slug: ["us", stock] },
+  const pathsUs = stockNamesUs.map((symbol: string) => ({
+    params: { region: "us", symbol },
   }));
 
   return {
@@ -74,11 +74,10 @@ export const getStaticPaths: GetStaticPaths = async () => {
 export const getStaticProps: GetStaticProps<StockResponse> = async ({
   params,
 }) => {
-  const { slug } = params as { slug: string[] };
-  const [region, stock] = slug;
+  const { region, symbol } = params as { region: string; symbol: string };
 
   const { stockConfig, baseMetrics, derivedMetrics } = await fetch(
-    `${API_URL}api/stock?stock=${stock}&region=${region}`,
+    `${API_URL}api/stock/${region}/${symbol}`,
   ).then((res) => res.json());
 
   return {

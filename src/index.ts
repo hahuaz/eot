@@ -12,7 +12,8 @@ import { StockResponse } from "@eot/shared";
 
 // --- Express App Setup ---
 const app = express();
-const router = Router();
+const yieldRouter = Router();
+const stockRouter = Router();
 const { APP_PORT } = APP_CONFIG;
 
 app.use(cors());
@@ -32,11 +33,11 @@ app.use((req, res, next) => {
 // --- API Routes ---
 
 /**
- * @route GET /api/cumulative-returns
+ * @route GET /api/yield/cumulative
  * @description Returns cumulative yields for a specific symbol.
  * @queryparam {string} symbol - The symbol to get yields for.
  */
-router.get("/cumulative-returns", async (req, res, next) => {
+yieldRouter.get("/cumulative", async (req, res, next) => {
   const { symbol } = req.query;
   try {
     const cumulativeYields = await YieldService.getCumulativeYields(
@@ -49,10 +50,10 @@ router.get("/cumulative-returns", async (req, res, next) => {
 });
 
 /**
- * @route GET /api/yoy-returns
+ * @route GET /api/yield/yoy
  * @description Returns year-over-year annualized returns for a specific symbol.
  */
-router.get("/yoy-returns", async (req, res, next) => {
+yieldRouter.get("/yoy", async (req, res, next) => {
   const { symbol } = req.query;
   try {
     const yoyReturns = await YieldService.getYoyYields(
@@ -65,11 +66,11 @@ router.get("/yoy-returns", async (req, res, next) => {
 });
 
 /**
- * @route GET /api/stock-names
+ * @route GET /api/stock/:region/names
  * @description Returns a list of all stock symbols for a given region.
  */
-router.get("/stock-names", async (req, res, next) => {
-  const { region } = req.query;
+stockRouter.get("/:region/names", async (req, res, next) => {
+  const { region } = req.params;
   try {
     const stockNames = await StockService.getStockNames(
       StockService.requireRegion(region),
@@ -81,28 +82,12 @@ router.get("/stock-names", async (req, res, next) => {
 });
 
 /**
- * @route GET /api/all-stock
- * @description Returns detailed data for all stocks in a given region.
- */
-router.get("/all-stock", async (req, res, next) => {
-  const { region } = req.query;
-  try {
-    const allStockData = await StockService.getAllStockData(
-      StockService.requireRegion(region),
-    );
-    res.status(200).json(allStockData);
-  } catch (error) {
-    next(error);
-  }
-});
-
-/**
- * @route GET /api/stock
+ * @route GET /api/stock/:region/:symbol
  * @description Returns detailed data for a single stock in a given region.
  */
-router.get("/stock", async (req, res) => {
-  const { stock, region } = req.query;
-  const stockSymbol = StockService.requireStockSymbol(stock);
+stockRouter.get("/:region/:symbol", async (req, res) => {
+  const { region, symbol } = req.params;
+  const stockSymbol = StockService.requireStockSymbol(symbol);
   const stockRegion = StockService.requireRegion(region);
   const stockService = await StockService.create(stockSymbol, stockRegion);
   const metrics = stockService.getMetrics();
@@ -121,8 +106,25 @@ router.get("/stock", async (req, res) => {
   res.status(200).json(metrics as StockResponse);
 });
 
-// Mount the router under the /api prefix
-app.use("/api", router);
+/**
+ * @route GET /api/stock/:region
+ * @description Returns detailed data for all stocks in a given region.
+ */
+stockRouter.get("/:region", async (req, res, next) => {
+  const { region } = req.params;
+  try {
+    const allStockData = await StockService.getAllStockData(
+      StockService.requireRegion(region),
+    );
+    res.status(200).json(allStockData);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Mount each domain's router under /api/<domain>
+app.use("/api/yield", yieldRouter);
+app.use("/api/stock", stockRouter);
 
 // Handle errors and send appropriate responses
 app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
