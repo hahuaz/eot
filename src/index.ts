@@ -72,10 +72,10 @@ yieldRouter.get("/yoy", async (req, res, next) => {
 stockRouter.get("/:region/symbols", async (req, res, next) => {
   const { region } = req.params;
   try {
-    const stockNames = await StockService.getStockNames(
+    const stockSymbols = await StockService.getStockSymbols(
       StockService.requireRegion(region),
     );
-    res.status(200).json(stockNames);
+    res.status(200).json(stockSymbols);
   } catch (error) {
     next(error);
   }
@@ -87,21 +87,8 @@ stockRouter.get("/:region/symbols", async (req, res, next) => {
  */
 stockRouter.get("/:region/:symbol", async (req, res) => {
   const { region, symbol } = req.params;
-  const stockSymbol = StockService.requireStockSymbol(symbol);
-  const stockRegion = StockService.requireRegion(region);
-  const stockService = await StockService.create(stockSymbol, stockRegion);
+  const stockService = await StockService.create(symbol, region);
   const metrics = stockService.getMetrics();
-
-  if (["ktlev", "froto", "alfas"].includes(stockSymbol)) {
-    // write data to temp file for manual debugging
-    const tempFilePath = path.join(
-      DATA_DIR,
-      "debug-snapshot",
-      `${stockSymbol}.json`,
-    );
-    fs.mkdirSync(path.dirname(tempFilePath), { recursive: true });
-    fs.writeFileSync(tempFilePath, JSON.stringify(metrics, null, 2));
-  }
 
   res.status(200).json(metrics as StockResponse);
 });

@@ -1,4 +1,5 @@
-export type StockSymbol = string;
+// Branded so a plain string can't be passed where a StockSymbol is expected
+export type StockSymbol = string & { readonly __brand: "StockSymbol" };
 
 export type StockConfig = {
   stockSymbol: StockSymbol;
@@ -38,7 +39,7 @@ export type DerivedMetricNames = (typeof DERIVED_METRIC_NAMES)[number];
 
 export type MetricNames = BaseMetricNames | DerivedMetricNames;
 
-export const DATES = [
+export const STOCK_DATES = [
   "current",
   "2026/3/30",
   "2025/12/30",
@@ -53,7 +54,7 @@ export const DATES = [
   "2019/12/30",
 ] as const;
 
-export type Dates = (typeof DATES)[number];
+export type StockDate = (typeof STOCK_DATES)[number];
 
 export const GROWTH_COLUMNS = [
   "Total growth",
@@ -71,14 +72,14 @@ export type GrowthRecord = {
 export type BaseMetric = {
   metricName: BaseMetricNames;
 } & {
-  [key in Dates]: number | null;
+  [key in StockDate]: number | null;
 } & GrowthRecord;
 
 export type DerivedMetric = {
   metricName: DerivedMetricNames;
 } & {
   // while calculating the derived metric, if one of the base metrics is negative, the value is set to "N/A". e.g., net debt / operating income can be "N/A" if operating income is negative.
-  [key in Dates]: number | "N/A";
+  [key in StockDate]: number | "N/A";
 } & GrowthRecord;
 
 export type StockDynamicInfo = {
@@ -94,7 +95,7 @@ export type StockDynamicInfoMap = {
 export type Stock = {
   stockSymbol: StockSymbol;
   metrics: (BaseMetric | DerivedMetric)[];
-  availableDates: Dates[];
+  availableDates: StockDate[];
   config: StockConfig;
   price: number;
   notes?: string[];
@@ -115,19 +116,6 @@ export type YoyYield = {
   // e.g. 0.05 means a 5% annualized return
   yoyReturnPercent: number;
 };
-
-// TODO: yield symbols shouldn't be hardcoded here
-export type CumulativeYields = {
-  usdtry: CumulativeYield[];
-  eurtry: CumulativeYield[];
-  bgp: CumulativeYield[];
-  gold: CumulativeYield[];
-  tp2: CumulativeYield[];
-  bgp_usdtry: CumulativeYield[];
-  tp2_usdtry: CumulativeYield[];
-};
-
-export type CumulativeReturns = CumulativeYields;
 
 // API responses
 

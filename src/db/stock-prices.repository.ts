@@ -36,6 +36,37 @@ export async function getStockPricesMap(
 }
 
 /**
+ * Fetches a single (region, symbol) row. Used when only one stock is
+ * needed, so callers don't have to pull the whole region's table just to
+ * read one row.
+ */
+export async function getStockPrice(
+  region: string,
+  symbol: string,
+): Promise<StockPriceRow | undefined> {
+  const { rows } = await pool.query<{
+    symbol: string;
+    price: number;
+    color: string | null;
+    notes: string[] | null;
+  }>(
+    `SELECT symbol, price, color, notes FROM stock_prices WHERE region = $1 AND symbol = $2`,
+    [region, symbol],
+  );
+
+  const row = rows[0];
+  if (!row) {
+    return undefined;
+  }
+
+  return {
+    price: row.price,
+    ...(row.color ? { color: row.color } : {}),
+    ...(row.notes && row.notes.length > 0 ? { notes: row.notes } : {}),
+  };
+}
+
+/**
  * Overrides just the current price for a (region, symbol), leaving any
  * existing color/notes untouched.
  */

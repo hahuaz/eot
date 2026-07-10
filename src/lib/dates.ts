@@ -1,13 +1,34 @@
-import { DATES, BaseMetricNames, BaseMetric } from "@eot/shared";
+import { STOCK_DATES, StockDate } from "@eot/shared";
 
 export const MS_IN_DAY = 24 * 60 * 60 * 1000;
 export const DAYS_IN_YEAR = 365;
 
-export const CURRENT_DATE = DATES[0];
-export const LAST_DATE = DATES[1];
-export const TTM_START_DATE = DATES[5];
+export const CURRENT_DATE = STOCK_DATES[0];
+export const LAST_DATE = STOCK_DATES[1];
+export const TTM_START_DATE = findDateOneYearBefore(LAST_DATE);
 
-export const lastDateObj = new Date(LAST_DATE);
+function findDateOneYearBefore(dateStr: string): StockDate {
+  const target = new Date(dateStr);
+  target.setFullYear(target.getFullYear() - 1);
+
+  const match = STOCK_DATES.find((candidate) => {
+    if (candidate === "current") return false;
+    const parsed = new Date(candidate);
+    return (
+      parsed.getFullYear() === target.getFullYear() &&
+      parsed.getMonth() === target.getMonth() &&
+      parsed.getDate() === target.getDate()
+    );
+  });
+
+  if (!match) {
+    throw new Error(
+      `STOCK_DATES has no entry exactly one year before ${dateStr} - can't derive TTM_START_DATE`,
+    );
+  }
+
+  return match;
+}
 
 export const whichQuarter = (date: string) => {
   const month = new Date(date).getMonth() + 1;
@@ -19,6 +40,7 @@ export const whichQuarter = (date: string) => {
  * Given the date, calculate the years passed
  */
 export const getYearsPassed = ({ date }: { date: string }): number => {
+  const lastDateObj = new Date(LAST_DATE);
   const monthsPassed =
     (lastDateObj.getFullYear() - new Date(date).getFullYear()) * 12 +
     (lastDateObj.getMonth() - new Date(date).getMonth());
@@ -30,26 +52,21 @@ export const getYearsPassed = ({ date }: { date: string }): number => {
 };
 
 /**
- * Returns an array of dates from the predefined DATES constant for which the specified metric has defined values.
- * This is particularly useful for stocks with limited historical data (e.g., recently IPO'd), as it filters out dates where no data points exist for the given metric.
+ * Returns the dates (from the predefined STOCK_DATES constant) for which the
+ * given metric record has a defined value. This is particularly useful for
+ * stocks with limited historical data (e.g., recently IPO'd), as it filters
+ * out dates where no data points exist for the metric.
+ *
  */
-export const getAvailableDates = ({
-  baseMetrics,
-  metricName,
-}: {
-  baseMetrics: BaseMetric[];
-  metricName: BaseMetricNames;
-}): (typeof DATES)[number][] => {
-  const availableDates: (typeof DATES)[number][] = [];
-  const metric = baseMetrics.find((item) => item.metricName === metricName);
-  if (!metric) {
-    throw new Error(`Metric ${metricName} not found`);
-  }
+export const getAvailableDates = (
+  metric: Record<StockDate, number | null>,
+): StockDate[] => {
+  const availableDates: StockDate[] = [];
 
-  for (let i = DATES.length - 1; i >= 0; i--) {
-    const date = DATES[i];
+  for (let i = 0; i < STOCK_DATES.length; i++) {
+    const date = STOCK_DATES[i];
     if (metric[date]) {
-      availableDates.unshift(date);
+      availableDates.push(date);
     }
   }
 

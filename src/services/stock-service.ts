@@ -1,18 +1,20 @@
-import {
-  DATES,
-  Dates,
+import path from "path";
+
+import { STOCK_DATES, REGIONS, REGION_CONFIG } from "@eot/shared";
+import type {
+  StockDate,
   StockConfig,
   DerivedMetric,
   BaseMetric,
+  BaseMetricNames,
+  DerivedMetricNames,
   StockSymbol,
-  StockDynamicInfoMap,
   StockDynamicInfo,
+  Region,
 } from "@eot/shared";
-import { Region, regions } from "@/types";
-import path from "path";
 import { parseCSV } from "@/lib/file";
 import { DATA_DIR, OBSERVATION_START_DATE_STR } from "@/lib/constants";
-import { getStockPricesMap } from "@/db/stock-prices.repository";
+import { getStockPricesMap, getStockPrice } from "@/db/stock-prices.repository";
 import { BadRequestError } from "@/lib/errors";
 import {
   getAvailableDates,
@@ -22,61 +24,127 @@ import {
 } from "@/lib/dates";
 import { round, calcYearlyGrowth } from "@/lib/utils";
 
-export const TAXES = {
-  tr: {
-    withholdingTax: 0.175,
-    dividendTax: 0.15,
-  },
-  us: {
-    withholdingTax: 0.24,
-    dividendTax: 0.2,
-  },
+type DerivedMetricSpec = {
+  name: DerivedMetricNames;
+  dates: StockDate[];
+  compute: (date: StockDate) => number | "N/A" | undefined;
 };
 
-export const DATE_TO_USDTRY = {
-  current: 46.31,
-  "2026/3/30": 44.5,
-  "2025/12/30": 43,
-  "2025/9/30": 41.66,
-  "2025/6/30": 39.81,
-  "2025/3/30": 37.93,
-  "2024/12/30": 35.32,
-  "2023/12/30": 29.78,
-  "2022/12/30": 18.61,
-  "2021/12/30": 13.21,
-  "2020/12/30": 7.4,
-  "2019/12/30": 5.97,
+type ParsedStockCsv = {
+  baseMetrics: BaseMetric[];
+  config: StockConfig;
 };
 
-const getUsdTryRate = (date: Dates): number => {
+// TODO: no region check right now (always converts) - US stocks are
+// already USD-denominated, so this currently produces wrong numbers for
+// them. Revisit once US handling is addressed.
+const toUsdValue = ({
+  value,
+  date,
+}: {
+  value: number;
+  date: StockDate;
+}): number => {
+  const DATE_TO_USDTRY = {
+    current: 46.31,
+    "2026/3/30": 44.5,
+    "2025/12/30": 43,
+    "2025/9/30": 41.66,
+    "2025/6/30": 39.81,
+    "2025/3/30": 37.93,
+    "2024/12/30": 35.32,
+    "2023/12/30": 29.78,
+    "2022/12/30": 18.61,
+    "2021/12/30": 13.21,
+    "2020/12/30": 7.4,
+    "2019/12/30": 5.97,
+  };
+
   const usdTryRate = DATE_TO_USDTRY[date];
   if (usdTryRate == null) {
     throw new Error(`USDTRY rate not found for date ${date}`);
   }
-  return usdTryRate;
+
+  return value / usdTryRate;
 };
+
+// For every stock, growth calculation is done for these metrics. There is
+// also a "selected growth metric" set, obtainable from config, which
+// declares which of these growths are used for performance calculation.
+const GROWTH_APPLIED_METRICS = [
+  "Equity",
+  "Total assets",
+  "Revenue",
+  "Operating income",
+  "Net income",
+] as const;
+
+const SHEET_SECTIONS = ["Balance sheet", "Income statement", "Statistics"];
+
+/**
+ * Loads and parses a stock's CSV file into base metric rows plus its config.
+ * Pulled out of the class so it can be reasoned about / tested independently
+ * of DB access and the rest of the calculation pipeline.
+ *
+ * NOTE: the "#config" row's fields are read positionally (outstandingShares,
+ * trimDigit, selectedGrowthMetrics are columns 2/3/4). That indexing is left
+ * untouched here intentionally - fixing it means changing the CSV format
+ * itself, which is out of scope for this pass.
+ */
+function loadStockCsv(
+  region: Region,
+  stockSymbol: StockSymbol,
+): ParsedStockCsv {
+  const stockPath = path.join(DATA_DIR, "stocks", region, `${stockSymbol}.csv`);
+
+  let { data: baseMetrics } = parseCSV<BaseMetric>({
+    filePath: stockPath,
+    header: true,
+  });
+
+  baseMetrics = baseMetrics.filter(
+    (m) => !SHEET_SECTIONS.includes(m.metricName),
+  );
+
+  const configIndex = baseMetrics.findIndex(
+    (item) => item.metricName === "#config",
+  );
+
+  const configValues =
+    configIndex !== -1 ? Object.values(baseMetrics[configIndex]) : [];
+
+  const config: StockConfig = {
+    stockSymbol,
+    outstandingShares: configValues[2] as number,
+    trimDigit: configValues[3] as number,
+    selectedGrowthMetrics: (configValues[4] as string)
+      .split("|")
+      .map((param) => param.trim()),
+  };
+
+  // Ignore CSV content after the config metric
+  baseMetrics = baseMetrics.filter((_, i) => i < configIndex);
+
+  return { baseMetrics, config };
+}
 
 export class StockService {
   // Separate array for derived metrics to maintain type safety and make it easier to distinguish between base and calculated values
   private derivedMetrics: DerivedMetric[] = [];
-  // for every stock, growth calculation is done for below metrics. there is also selected growth metric, which is obtainable from config and it declares which growths are used for performance calculation
-  private GROWTH_APPLIED_METRICS = [
-    "Equity",
-    "Total assets",
-    "Revenue",
-    "Operating income",
-    "Net income",
-  ] as const;
   private baseMetrics!: BaseMetric[];
-  private config!: StockConfig;
-  /** For recently IPO'd stocks, not all historical dates will have values thus available dates is calculated with the earliest defined date */
-  private equityDates!: Dates[];
-  private priceDates!: Dates[];
+  // For recently IPO'd stocks, not all historical dates will have values thus available dates is calculated with the earliest defined date
+  private equityDates!: StockDate[];
+  private priceDates!: StockDate[];
   private dynamicInfo!: StockDynamicInfo;
   private region!: Region;
+  private config!: StockConfig;
 
-  public static async getStockNames(region: Region): Promise<string[]> {
-    return Object.keys(await StockService.getStocksDynamicData(region));
+  // Name -> metric indexes, built once per instance. These maps + the accessors below give every calculation the same O(1) lookup and the same two well-defined failure modes: getX() throws when a metric is required, tryGetX() returns undefined when it's optional.
+  private baseByName = new Map<BaseMetricNames, BaseMetric>();
+  private derivedByName = new Map<DerivedMetricNames, DerivedMetric>();
+
+  public static async getStockSymbols(region: Region): Promise<string[]> {
+    return Object.keys(await getStockPricesMap(region));
   }
 
   public static async getAllStockData(region: Region): Promise<
@@ -87,17 +155,18 @@ export class StockService {
       stockConfig: StockConfig;
     }>
   > {
-    const stocksDynamic = await StockService.getStocksDynamicData(region);
+    const stocksDynamic = await getStockPricesMap(region);
     const stockNames = Object.keys(stocksDynamic);
 
     return Promise.all(
       stockNames.map(async (stockSymbol) => {
-        const analyzer = await StockService.create(
+        const stockDynamic = stocksDynamic[stockSymbol];
+        const analyzer = new StockService(
           stockSymbol as StockSymbol,
           region,
+          stockDynamic,
         );
         const metrics = analyzer.getMetrics();
-        const stockDynamic = stocksDynamic[stockSymbol];
 
         return {
           stockDynamic,
@@ -108,7 +177,7 @@ export class StockService {
   }
 
   public static requireRegion(region: unknown): Region {
-    if (typeof region !== "string" || !regions.includes(region as Region)) {
+    if (typeof region !== "string" || !REGIONS.includes(region as Region)) {
       throw new BadRequestError(
         `Invalid or missing region parameter: ${region}`,
       );
@@ -117,95 +186,47 @@ export class StockService {
     return region as Region;
   }
 
-  public static requireStockSymbol(stock: unknown): StockSymbol {
-    if (typeof stock !== "string" || !stock) {
+  public static requireStockSymbol(stockSymbol: unknown): StockSymbol {
+    if (typeof stockSymbol !== "string" || !stockSymbol) {
       throw new BadRequestError(`Stock symbol is required.`);
     }
 
-    return stock as StockSymbol;
-  }
-
-  private static readonly stocksDynamicCache = new Map<
-    Region,
-    Promise<StockDynamicInfoMap>
-  >();
-
-  private static getStocksDynamicData(
-    region: Region,
-  ): Promise<StockDynamicInfoMap> {
-    let cached = StockService.stocksDynamicCache.get(region);
-    if (!cached) {
-      cached = getStockPricesMap(region);
-      StockService.stocksDynamicCache.set(region, cached);
-    }
-    return cached;
+    return stockSymbol as StockSymbol;
   }
 
   public static async create(
-    stockSymbol: StockSymbol,
-    region: Region,
+    stock: unknown,
+    region: unknown,
   ): Promise<StockService> {
-    const stocksDynamic = await StockService.getStocksDynamicData(region);
-    return new StockService(stockSymbol, region, stocksDynamic);
+    const validRegion = StockService.requireRegion(region);
+    const stockSymbol = StockService.requireStockSymbol(stock);
+
+    const dynamicInfo = await getStockPrice(validRegion, stockSymbol);
+    if (!dynamicInfo) {
+      throw new BadRequestError(
+        `Stock not found in dynamic data: ${stockSymbol}`,
+      );
+    }
+
+    return new StockService(stockSymbol, validRegion, dynamicInfo);
   }
 
   private constructor(
     private stockSymbol: StockSymbol,
     region: Region,
-    stocksDynamic: StockDynamicInfoMap,
+    dynamicInfo: StockDynamicInfo,
   ) {
     this.region = region;
-
-    const stockDynamic = stocksDynamic[this.stockSymbol];
-    if (!stockDynamic) {
-      throw new BadRequestError(
-        `Stock not found in dynamic data: ${this.stockSymbol}`,
-      );
-    }
+    this.dynamicInfo = dynamicInfo;
 
     // 1. set base metrics
-    const stockPath = path.join(
-      DATA_DIR,
-      "stocks",
-      this.region,
-      `${this.stockSymbol}.csv`,
-    );
-
-    let { data: baseMetrics } = parseCSV<BaseMetric>({
-      filePath: stockPath,
-      header: true,
-    });
-    console.log("baseMetrics", baseMetrics);
-
-    const SHEET_SECTIONS = ["Balance sheet", "Income statement", "Statistics"];
-    baseMetrics = baseMetrics.filter(
-      (m) => !SHEET_SECTIONS.includes(m.metricName),
-    );
-
-    const configIndex = baseMetrics.findIndex(
-      (item) => item.metricName === "#config",
-    );
-
-    const configValues =
-      configIndex !== -1 ? Object.values(baseMetrics[configIndex]) : [];
-
-    const stockConfig: StockConfig = {
-      stockSymbol: this.stockSymbol,
-      outstandingShares: configValues[2] as number,
-      trimDigit: configValues[3] as number,
-      selectedGrowthMetrics: (configValues[4] as string)
-        .split("|")
-        .map((param) => param.trim()),
-    };
-
-    // Ignore CSV content after the config metric
-    baseMetrics = baseMetrics.filter((_, i) => i < configIndex);
-
+    const { baseMetrics, config } = loadStockCsv(region, this.stockSymbol);
     this.baseMetrics = baseMetrics;
+    this.config = config;
 
-    this.config = stockConfig;
-
-    this.dynamicInfo = stockDynamic;
+    for (const metric of this.baseMetrics) {
+      this.baseByName.set(metric.metricName, metric);
+    }
 
     // 2. populate current column
     for (const metric of this.baseMetrics) {
@@ -219,32 +240,54 @@ export class StockService {
     }
 
     // 3. calculate dates
-    this.equityDates = getAvailableDates({
-      baseMetrics: this.baseMetrics,
-      metricName: "Equity",
-    });
-    this.priceDates = getAvailableDates({
-      baseMetrics: this.baseMetrics,
-      metricName: "Price",
-    });
+    this.equityDates = getAvailableDates(this.getBase("Equity"));
+    this.priceDates = getAvailableDates(this.getBase("Price"));
+  }
+
+  /** Required lookup: throws with a clear message if the base metric isn't present. */
+  private getBase(name: BaseMetricNames): BaseMetric {
+    const metric = this.baseByName.get(name);
+    if (!metric) {
+      throw new Error(
+        `Base metric "${name}" not found for ${this.stockSymbol}`,
+      );
+    }
+    return metric;
+  }
+
+  /** Optional lookup: some calculations tolerate a whole metric being absent (defaulting to 0). */
+  private tryGetBase(name: BaseMetricNames): BaseMetric | undefined {
+    return this.baseByName.get(name);
+  }
+
+  /** Required lookup for a metric this class itself computed earlier in the pipeline. */
+  private getDerived(name: DerivedMetricNames): DerivedMetric {
+    const metric = this.derivedByName.get(name);
+    if (!metric) {
+      throw new Error(
+        `Derived metric "${name}" not found for ${this.stockSymbol}`,
+      );
+    }
+    return metric;
+  }
+
+  /** Records a derived metric so later calculations can look it up by name (e.g. EV/OI depends on Enterprise value). */
+  private addDerivedMetric(metric: DerivedMetric) {
+    this.derivedMetrics.push(metric);
+    this.derivedByName.set(metric.metricName, metric);
   }
 
   public getMetrics() {
     // 1: create derived metrics
-    this.usdPriceMetric();
+    this.computeSimpleDerivedMetrics();
     this.usdYieldMetric();
     this.observationStartYieldMetric();
-    this.debtMetric();
-    this.evMetric();
-    this.evToOiMetric();
-    this.evToNiMetric();
-    this.mvToBvMetric();
 
     // 2: calculate growth rates
     this.calcGrowths();
 
-    // 3: adjust growths to USD for TRY-denominated statements
-    this.calcUsdGrowth();
+    // 3: calculate selected growth median
+    this.calcSelectedGrowthMedian();
 
     return {
       baseMetrics: this.baseMetrics,
@@ -253,50 +296,15 @@ export class StockService {
     };
   }
 
-  private usdPriceMetric() {
-    const priceMetric = this.baseMetrics.find(
-      (item) => item.metricName === "Price",
-    );
-    if (!priceMetric) {
-      throw new Error("Price metric not found");
-    }
-
-    const usdPriceMetric = {
-      metricName: "USD Price",
-    } as Partial<DerivedMetric>;
-
-    for (const date of this.priceDates) {
-      const priceValue = priceMetric[date];
-      if (priceValue == null) {
-        continue;
-      }
-
-      usdPriceMetric[date] = round(priceValue / getUsdTryRate(date));
-    }
-
-    this.derivedMetrics.push(usdPriceMetric as DerivedMetric);
-  }
-
   private usdYieldMetric() {
-    const dividendIndex = this.baseMetrics.findIndex(
-      (item) => item.metricName === "Dividend",
-    );
-    const priceIndex = this.baseMetrics.findIndex(
-      (item) => item.metricName === "Price",
-    );
-
-    if (dividendIndex === -1 || priceIndex === -1) {
-      throw new Error("Dividend or Price metric not found");
-    }
-
-    const dividendMetric = this.baseMetrics[dividendIndex];
-    const priceMetric = this.baseMetrics[priceIndex];
+    const dividendMetric = this.getBase("Dividend");
+    const priceMetric = this.getBase("Price");
 
     const usdYieldMetric = {
       metricName: "USD Yield",
     } as Partial<DerivedMetric>;
 
-    const { dividendTax } = TAXES[this.region];
+    const { dividendTax } = REGION_CONFIG[this.region];
 
     for (let dateIndex = 0; dateIndex < this.priceDates.length; dateIndex++) {
       // previous price is needed to calculate yield, so we skip the last date
@@ -312,64 +320,57 @@ export class StockService {
 
       const priceValue = priceMetric[date] ?? 0;
       const previousPriceValue = priceMetric[previousDate] ?? 0;
-      const usdPriceValue = priceValue / getUsdTryRate(date);
-      const previousUsdPriceValue =
-        previousPriceValue / getUsdTryRate(previousDate);
+      const usdPriceValue = toUsdValue({ value: priceValue, date });
+      const previousUsdPriceValue = toUsdValue({
+        value: previousPriceValue,
+        date: previousDate,
+      });
       const usdPriceYield =
         (usdPriceValue - previousUsdPriceValue) / previousUsdPriceValue;
 
       usdYieldMetric[date] = round(usdPriceYield + netDividendYield);
     }
 
-    this.addYieldGrowths(usdYieldMetric);
-
-    this.derivedMetrics.push(usdYieldMetric as DerivedMetric);
-  }
-
-  private addYieldGrowths(metric: Partial<DerivedMetric>) {
     // calculate total growth by multiplying growth rates for each date
     let totalGrowth = 1;
-    Object.entries(metric).forEach(([key, value]) => {
+    Object.entries(usdYieldMetric).forEach(([key, value]) => {
       if (key !== "metricName") {
         totalGrowth = totalGrowth * (1 + (value as number));
       }
     });
     totalGrowth = totalGrowth - 1;
-    metric["Total growth"] = round(totalGrowth);
+    usdYieldMetric["Total growth"] = round(totalGrowth);
 
     // calculate yearly growth
     const yearlyGrowth = calcYearlyGrowth({
       totalGrowth,
       startDate: this.priceDates[this.priceDates.length - 1],
     });
-    metric["Yearly growth"] = round(yearlyGrowth);
+    usdYieldMetric["Yearly growth"] = round(yearlyGrowth);
 
     // calculate ttm growth: current date price change is included
     let ttmGrowth = 1;
-    const ttmQuarters = DATES.slice(0, DATES.indexOf(TTM_START_DATE));
+    const ttmQuarters = STOCK_DATES.slice(
+      0,
+      STOCK_DATES.indexOf(TTM_START_DATE),
+    );
     ttmQuarters.forEach((date) => {
-      const dateYield = metric[date] as number;
+      const dateYield = usdYieldMetric[date] as number;
       ttmGrowth = ttmGrowth * (1 + dateYield);
     });
     ttmGrowth = ttmGrowth - 1;
 
-    metric["TTM growth"] = round(ttmGrowth);
+    usdYieldMetric["TTM growth"] = round(ttmGrowth);
+
+    this.addDerivedMetric(usdYieldMetric as DerivedMetric);
   }
 
   // Calculates single point-to-point return from the observation start date to today and stores it as the current value.
   private observationStartYieldMetric() {
-    const priceMetric = this.baseMetrics.find(
-      (item) => item.metricName === "Price",
-    );
-    if (!priceMetric) {
-      throw new Error("Price metric not found");
-    }
+    const priceMetric = this.getBase("Price");
 
     const observationStartPrice =
-      priceMetric[OBSERVATION_START_DATE_STR as Dates];
-    const observationStartUsdTryRate = getUsdTryRate(
-      OBSERVATION_START_DATE_STR as Dates,
-    );
+      priceMetric[OBSERVATION_START_DATE_STR as StockDate];
 
     const metric = {
       metricName: "Observation Start Yield",
@@ -377,12 +378,14 @@ export class StockService {
 
     // if stock made IPO after observation start date, return cannot be calculated
     if (observationStartPrice == null || observationStartPrice <= 0) {
-      this.derivedMetrics.push(metric as DerivedMetric);
+      this.addDerivedMetric(metric as DerivedMetric);
       return;
     }
 
-    const observationStartUsdPrice =
-      observationStartPrice / observationStartUsdTryRate;
+    const observationStartUsdPrice = toUsdValue({
+      value: observationStartPrice,
+      date: OBSERVATION_START_DATE_STR as StockDate,
+    });
 
     const currentPrice = priceMetric[CURRENT_DATE];
 
@@ -392,253 +395,144 @@ export class StockService {
       );
     }
 
-    const currentUsdPrice = currentPrice / getUsdTryRate(CURRENT_DATE);
+    const currentUsdPrice = toUsdValue({
+      value: currentPrice,
+      date: CURRENT_DATE,
+    });
     metric[CURRENT_DATE] = round(
       (currentUsdPrice - observationStartUsdPrice) / observationStartUsdPrice,
     );
 
-    this.derivedMetrics.push(metric as DerivedMetric);
+    this.addDerivedMetric(metric as DerivedMetric);
   }
 
-  private debtMetric() {
-    const debtMetric = {
-      metricName: "Net debt / operating income",
-    } as Partial<DerivedMetric>;
+  private computeSimpleDerivedMetrics() {
+    const specs: DerivedMetricSpec[] = [
+      {
+        name: "USD Price",
+        dates: this.priceDates,
+        compute: (date) => {
+          const priceValue = this.getBase("Price")[date];
+          if (priceValue == null) return undefined;
+          return toUsdValue({ value: priceValue, date });
+        },
+      },
+      {
+        name: "Net debt / operating income",
+        dates: this.equityDates,
+        compute: (date) => {
+          const cash = this.tryGetBase("Cash & cash equivalents")?.[date] ?? 0;
+          const shortTermLiabilities =
+            this.tryGetBase("Short term liabilities")?.[date] ?? 0;
+          const longTermLiabilities =
+            this.tryGetBase("Long term liabilities")?.[date] ?? 0;
+          const operatingIncome = this.getBase("Operating income")[date];
 
-    for (const date of this.equityDates) {
-      const cash =
-        this.baseMetrics.find(
-          (item) => item.metricName === "Cash & cash equivalents",
-        )?.[date] ?? 0;
-      const shortTermLiabilities =
-        this.baseMetrics.find(
-          (item) => item.metricName === "Short term liabilities",
-        )?.[date] ?? 0;
-      const longTermLiabilities =
-        this.baseMetrics.find(
-          (item) => item.metricName === "Long term liabilities",
-        )?.[date] ?? 0;
-      const operatingIncome = this.baseMetrics.find(
-        (item) => item.metricName === "Operating income",
-      )![date];
+          if (operatingIncome == null) {
+            throw new Error(`Operating income not found for date ${date}`);
+          }
+          if (operatingIncome <= 0) return "N/A";
 
-      if (operatingIncome == null) {
-        console.log("stockConfig", this.config);
-        throw new Error(`Operating income not found for date ${date}`);
+          const netDebt = shortTermLiabilities + longTermLiabilities - cash;
+          return netDebt / operatingIncome;
+        },
+      },
+      {
+        name: "Enterprise value",
+        dates: this.priceDates,
+        compute: (date) => {
+          const price = this.getBase("Price")[date]!;
+          const cashValue = this.getBase("Cash & cash equivalents")[date] ?? 0;
+          const shortTermLiabilities =
+            this.getBase("Short term liabilities")[date] ?? 0;
+          const longTermLiabilities =
+            this.getBase("Long term liabilities")[date] ?? 0;
+
+          // base metrics are already trimmed by trimDigit. apply same to derived metrics
+          const marketValue =
+            (price * this.config.outstandingShares) / this.config.trimDigit;
+          return (
+            marketValue + shortTermLiabilities + longTermLiabilities - cashValue
+          );
+        },
+      },
+      {
+        name: "EV / operating income",
+        dates: this.priceDates,
+        compute: (date) => {
+          const enterpriseValue = this.getDerived("Enterprise value")[date];
+          const operatingIncome = this.getBase("Operating income")[date];
+
+          if (operatingIncome == null) {
+            throw new Error(
+              `Operating income not found for date ${date} and symbol ${this.config.stockSymbol}`,
+            );
+          }
+          if (enterpriseValue == null) {
+            throw new Error(`Enterprise value not found for date ${date}`);
+          }
+          if (operatingIncome <= 0 || enterpriseValue == "N/A") return "N/A";
+
+          return enterpriseValue / operatingIncome;
+        },
+      },
+      {
+        name: "EV / net income",
+        dates: this.equityDates,
+        compute: (date) => {
+          const enterpriseValue = this.getDerived("Enterprise value")?.[date];
+          const netIncome = this.getBase("Net income")[date];
+
+          if (netIncome == null) {
+            throw new Error(`Net income not found for date ${date}`);
+          }
+          if (enterpriseValue == null) return undefined;
+          if (netIncome <= 0 || enterpriseValue == "N/A") return "N/A";
+
+          return enterpriseValue / netIncome;
+        },
+      },
+      {
+        name: "Market value / book value",
+        dates: this.equityDates,
+        compute: (date) => {
+          const price = this.getBase("Price")[date];
+          const bookValue = this.getBase("Equity")[date];
+
+          if (bookValue == null) {
+            throw new Error(`Book value not found for date ${date}`);
+          }
+          if (price == null) return undefined;
+
+          return (
+            (price * this.config.outstandingShares) /
+            this.config.trimDigit /
+            bookValue
+          );
+        },
+      },
+    ];
+
+    for (const spec of specs) {
+      const metric = { metricName: spec.name } as Partial<DerivedMetric>;
+
+      for (const date of spec.dates) {
+        const value = spec.compute(date);
+        if (value === undefined) continue;
+        metric[date] = value === "N/A" ? "N/A" : round(value);
       }
 
-      if (operatingIncome <= 0) {
-        debtMetric[date] = "N/A";
-      } else {
-        const netDebt = shortTermLiabilities + longTermLiabilities - cash;
-        debtMetric[date] = round(netDebt / operatingIncome);
-      }
+      this.addDerivedMetric(metric as DerivedMetric);
     }
-
-    this.derivedMetrics.push(debtMetric as DerivedMetric);
-  }
-
-  private evMetric() {
-    const enterpriseValueMetric = {
-      metricName: "Enterprise value",
-    } as Partial<DerivedMetric>;
-
-    for (const date of this.priceDates) {
-      const price = this.baseMetrics.find(
-        (item) => item.metricName === "Price",
-      )![date]!;
-      const cashValue =
-        this.baseMetrics.find(
-          (item) => item.metricName === "Cash & cash equivalents",
-        )![date] ?? 0;
-      const shortTermLiabilities =
-        this.baseMetrics.find(
-          (item) => item.metricName === "Short term liabilities",
-        )![date] ?? 0;
-      const longTermLiabilities =
-        this.baseMetrics.find(
-          (item) => item.metricName === "Long term liabilities",
-        )![date] ?? 0;
-
-      // base metrics are already trimmed by trimDigit. apply same to derived metrics
-      const marketValue =
-        (price * this.config.outstandingShares) / this.config.trimDigit;
-      enterpriseValueMetric[date] = round(
-        marketValue + shortTermLiabilities + longTermLiabilities - cashValue,
-      );
-    }
-
-    this.derivedMetrics.push(enterpriseValueMetric as DerivedMetric);
-  }
-
-  private evToOiMetric() {
-    const evToOIMetric = {
-      metricName: "EV / operating income",
-    } as Partial<DerivedMetric>;
-
-    for (const date of this.priceDates) {
-      const enterpriseValue = this.derivedMetrics.find(
-        (item) => item.metricName === "Enterprise value",
-      )![date];
-      const operatingIncome = this.baseMetrics.find(
-        (item) => item.metricName === "Operating income",
-      )![date];
-
-      if (operatingIncome == null) {
-        throw new Error(
-          `Operating income not found for date ${date} and symbol ${this.config.stockSymbol}`,
-        );
-      }
-
-      if (enterpriseValue == null) {
-        throw new Error(`Enterprise value not found for date ${date}`);
-      }
-
-      if (operatingIncome <= 0 || enterpriseValue == "N/A") {
-        evToOIMetric[date] = "N/A";
-      } else {
-        evToOIMetric[date] = round(enterpriseValue / operatingIncome);
-      }
-    }
-
-    this.derivedMetrics.push(evToOIMetric as DerivedMetric);
-  }
-
-  private evToNiMetric() {
-    const evNIMetric = {
-      metricName: "EV / net income",
-    } as Partial<DerivedMetric>;
-
-    for (const date of this.equityDates) {
-      const enterpriseValue = this.derivedMetrics.find(
-        (item) => item.metricName === "Enterprise value",
-      )?.[date];
-      const netIncome = this.baseMetrics.find(
-        (item) => item.metricName === "Net income",
-      )![date];
-
-      if (netIncome == null) {
-        throw new Error(`Net income not found for date ${date}`);
-      }
-      if (enterpriseValue == null) {
-        continue;
-      }
-
-      if (netIncome <= 0 || enterpriseValue == "N/A") {
-        evNIMetric[date] = "N/A";
-      } else {
-        evNIMetric[date] = round(enterpriseValue / netIncome);
-      }
-    }
-
-    this.derivedMetrics.push(evNIMetric as DerivedMetric);
-  }
-
-  private mvToBvMetric() {
-    const mvToBVMetric = {
-      metricName: "Market value / book value",
-    } as Partial<DerivedMetric>;
-
-    for (const date of this.equityDates) {
-      const price = this.baseMetrics.find(
-        (item) => item.metricName === "Price",
-      )![date];
-      const bookValue = this.baseMetrics.find(
-        (item) => item.metricName === "Equity",
-      )![date];
-
-      if (bookValue == null) {
-        throw new Error(`Book value not found for date ${date}`);
-      }
-
-      if (price == null) {
-        continue;
-      }
-
-      mvToBVMetric[date] = round(
-        (price * this.config.outstandingShares) /
-          this.config.trimDigit /
-          bookValue,
-      );
-    }
-
-    this.derivedMetrics.push(mvToBVMetric as DerivedMetric);
   }
 
   private calcGrowths() {
-    for (const metricName of this.GROWTH_APPLIED_METRICS) {
-      let metric = this.baseMetrics.find(
-        (item) => item.metricName === metricName,
-      );
+    const firstEquityDate = this.equityDates[this.equityDates.length - 1];
 
-      if (!metric) {
-        throw new Error(`${metricName} not found in metrics`);
-      }
+    for (const metricName of GROWTH_APPLIED_METRICS) {
+      const metric = this.getBase(metricName);
 
-      const firstDateValue =
-        metric?.[this.equityDates[this.equityDates.length - 1]];
-      const lastDateValue = metric?.[LAST_DATE];
-
-      if (firstDateValue == null || lastDateValue == null) {
-        throw new Error(
-          `${metricName} firstDateValue: ${firstDateValue}, lastDateValue: ${lastDateValue} not found`,
-        );
-      }
-
-      if (firstDateValue <= 0 || lastDateValue <= 0) {
-        metric["Total growth"] = "N/A";
-      } else {
-        const totalGrowth = (lastDateValue - firstDateValue) / firstDateValue;
-        metric["Total growth"] = round(totalGrowth);
-      }
-
-      let ttmStartValue = metric?.[TTM_START_DATE];
-
-      if (ttmStartValue == undefined || lastDateValue == undefined) {
-        throw new Error(
-          `calcGrowths: ${metricName} ttmStartValue: ${ttmStartValue}, lastDateValue: ${lastDateValue}`,
-        );
-      }
-
-      if (ttmStartValue <= 0 || lastDateValue <= 0) {
-        metric["TTM growth"] = "N/A";
-      } else {
-        const ttmGrowth = (lastDateValue - ttmStartValue) / ttmStartValue;
-        metric["TTM growth"] = round(ttmGrowth);
-      }
-    }
-  }
-
-  private getComparableGrowthValue({
-    value,
-    date,
-  }: {
-    value: number;
-    date: Dates;
-  }): number {
-    if (this.region !== "tr") {
-      return value;
-    }
-
-    return value / getUsdTryRate(date);
-  }
-
-  private calcUsdGrowth() {
-    for (const metricName of this.GROWTH_APPLIED_METRICS) {
-      const metric = this.baseMetrics.find(
-        (item) => item.metricName === metricName,
-      );
-
-      if (!metric) {
-        throw new Error(`${metricName} not found in metrics`);
-      }
-
-      if (metric?.["Total growth"] == null) {
-        throw new Error(`Total growth not found for metric ${metricName}`);
-      }
-
-      const firstDate = this.equityDates[this.equityDates.length - 1];
-      const firstDateValue = metric[firstDate];
+      const firstDateValue = metric[firstEquityDate];
       const lastDateValue = metric[LAST_DATE];
 
       if (firstDateValue == null || lastDateValue == null) {
@@ -651,29 +545,21 @@ export class StockService {
         metric["Total growth"] = "N/A";
         metric["Yearly growth"] = "N/A";
       } else {
-        const comparableFirstDateValue = this.getComparableGrowthValue({
+        const usdFirstDateValue = toUsdValue({
           value: firstDateValue,
-          date: firstDate,
+          date: firstEquityDate,
         });
-        const comparableLastDateValue = this.getComparableGrowthValue({
+        const usdLastDateValue = toUsdValue({
           value: lastDateValue,
           date: LAST_DATE,
         });
 
-        metric["Total growth"] = round(
-          (comparableLastDateValue - comparableFirstDateValue) /
-            comparableFirstDateValue,
+        const totalGrowth =
+          (usdLastDateValue - usdFirstDateValue) / usdFirstDateValue;
+        metric["Total growth"] = round(totalGrowth);
+        metric["Yearly growth"] = round(
+          calcYearlyGrowth({ totalGrowth, startDate: firstEquityDate }),
         );
-
-        const yearlyGrowth = calcYearlyGrowth({
-          totalGrowth: metric["Total growth"]!,
-          startDate: firstDate,
-        });
-        metric["Yearly growth"] = round(yearlyGrowth);
-      }
-
-      if (metric["TTM growth"] === undefined) {
-        throw new Error(`TTM growth not found for metric ${metricName}`);
       }
 
       const ttmStartValue = metric[TTM_START_DATE];
@@ -686,25 +572,26 @@ export class StockService {
       if (ttmStartValue <= 0 || lastDateValue <= 0) {
         metric["TTM growth"] = "N/A";
       } else {
-        const comparableTtmStartValue = this.getComparableGrowthValue({
+        const usdTtmStartValue = toUsdValue({
           value: ttmStartValue,
           date: TTM_START_DATE,
         });
-        const comparableLastDateValue = this.getComparableGrowthValue({
+        const usdLastDateValue = toUsdValue({
           value: lastDateValue,
           date: LAST_DATE,
         });
 
         metric["TTM growth"] = round(
-          (comparableLastDateValue - comparableTtmStartValue) /
-            comparableTtmStartValue,
+          (usdLastDateValue - usdTtmStartValue) / usdTtmStartValue,
         );
       }
     }
+  }
 
-    // calculate selected growth median
+  private calcSelectedGrowthMedian() {
+    const firstEquityDate = this.equityDates[this.equityDates.length - 1];
     const selectedMetrics = this.config.selectedGrowthMetrics.map((name) => {
-      const metric = this.baseMetrics.find((m) => m.metricName === name);
+      const metric = this.baseByName.get(name as BaseMetricNames);
       if (!metric) {
         throw new Error(`Growth metric ${name} not found in metrics`);
       }
@@ -739,11 +626,11 @@ export class StockService {
       "Yearly growth": round(
         calcYearlyGrowth({
           totalGrowth: avgTotalGrowth,
-          startDate: this.equityDates[this.equityDates.length - 1],
+          startDate: firstEquityDate,
         }),
       ),
     } as DerivedMetric;
 
-    this.derivedMetrics.push(selectedGrowth);
+    this.addDerivedMetric(selectedGrowth);
   }
 }

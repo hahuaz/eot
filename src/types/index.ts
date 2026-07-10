@@ -14,9 +14,6 @@ export type ScrapeItem = {
 
 export type ScrapeResult = ScrapeItem[];
 
-export const regions = ["tr", "us"] as const;
-export type Region = (typeof regions)[number];
-
 export type SymbolPrice = {
   date: number;
   value: number;

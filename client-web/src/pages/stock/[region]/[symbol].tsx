@@ -16,7 +16,7 @@ import {
 import { formatNumber, API_URL } from "@/lib";
 
 import {
-  DATES,
+  STOCK_DATES,
   GROWTH_COLUMNS,
   DerivedMetric,
   BaseMetric,
@@ -127,7 +127,7 @@ const getDisplayMetrics = (metrics: (BaseMetric | DerivedMetric)[]) => {
     });
 
     // Format Date Columns
-    DATES.forEach((field) => {
+    STOCK_DATES.forEach((field) => {
       const value = (metric as any)[field];
       if (NORMALIZED_METRIC_NAMES.includes(metric.metricName as MetricNames)) {
         newMetric[field] = formatNumber({
@@ -170,7 +170,7 @@ const StockDetailPage = ({
           <TableHeader>
             <TableRow>
               <TableHead className="text-left" />
-              {[...GROWTH_COLUMNS, ...DATES].map((field) => (
+              {[...GROWTH_COLUMNS, ...STOCK_DATES].map((field) => (
                 <TableHead key={field} className="text-right w-[90px]">
                   {field}
                 </TableHead>
@@ -206,7 +206,7 @@ const StockDetailPage = ({
                       ))}
 
                       {/* Date Columns */}
-                      {DATES.map((field) => (
+                      {STOCK_DATES.map((field) => (
                         <TableCell key={field} className="text-right">
                           {metric[field]}
                         </TableCell>
