@@ -11,15 +11,13 @@ import {
   TR_STOCK_SYMBOLS,
 } from "@/lib/index";
 import { upsertSymbolPrice } from "@/db/yield-prices.repository";
-import {
-  getStockPricesMap,
-  upsertStockPrice,
-} from "@/db/stock-prices.repository";
+import { getStockInfoMap } from "@/db/stock-info.repository";
+import { upsertCurrentPrice } from "@/db/quarterly-stock-prices.repository";
 
 const TR_REGION = "tr";
 
 async function scrapeTrStocks() {
-  const trStocks = await getStockPricesMap(TR_REGION);
+  const trStocks = await getStockInfoMap(TR_REGION);
 
   const trStockKeys = Object.keys(trStocks).filter((key) => key !== "test");
   if (trStockKeys.length === 0) {
@@ -35,7 +33,7 @@ async function scrapeTrStocks() {
     const stockSymbol = result.symbol;
     if (trStocks[stockSymbol]) {
       // only the current price gets overridden; color/notes are untouched
-      await upsertStockPrice(TR_REGION, stockSymbol, Number(result.value));
+      await upsertCurrentPrice(TR_REGION, stockSymbol, Number(result.value));
     }
   }
 }

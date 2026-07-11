@@ -37,6 +37,16 @@ export const whichQuarter = (date: string) => {
 };
 
 /**
+ * '2025/3/30' -> '2025Q1'. Used to map STOCK_DATES / CSV date columns onto
+ * the '<year>Q<1-4>' quarter labels stored in yoy_financial_reports and
+ * quarterly_stock_prices.
+ */
+export const toQuarterLabel = (date: string): string => {
+  const year = new Date(date).getFullYear();
+  return `${year}Q${whichQuarter(date)}`;
+};
+
+/**
  * Given the date, calculate the years passed
  */
 export const getYearsPassed = ({ date }: { date: string }): number => {

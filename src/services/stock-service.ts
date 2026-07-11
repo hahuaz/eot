@@ -1,9 +1,13 @@
-import path from "path";
-
-import { STOCK_DATES, REGIONS, REGION_CONFIG } from "@eot/shared";
+import {
+  STOCK_DATES,
+  BASE_METRIC_NAMES,
+  REGIONS,
+  REGION_CONFIG,
+} from "@eot/shared";
 import type {
   StockDate,
   StockConfig,
+  StockConfigResponse,
   DerivedMetric,
   BaseMetric,
   BaseMetricNames,
@@ -12,12 +16,25 @@ import type {
   StockDynamicInfo,
   Region,
 } from "@eot/shared";
-import { parseCSV } from "@/lib/file";
-import { DATA_DIR, OBSERVATION_START_DATE_STR } from "@/lib/constants";
-import { getStockPricesMap, getStockPrice } from "@/db/stock-prices.repository";
+import { OBSERVATION_START_DATE_STR } from "@/lib/constants";
+import {
+  getStockInfoMap,
+  getStockInfo,
+  getStockConfig,
+} from "@/db/stock-info.repository";
+import {
+  getCurrentPricesMap,
+  getCurrentPrice,
+  getQuarterlyPriceHistory,
+} from "@/db/quarterly-stock-prices.repository";
+import {
+  getFinancialReportsBySymbol,
+  METRIC_FIELD_MAP,
+} from "@/db/yoy-financial-reports.repository";
 import { BadRequestError } from "@/lib/errors";
 import {
   getAvailableDates,
+  toQuarterLabel,
   LAST_DATE,
   CURRENT_DATE,
   TTM_START_DATE,
@@ -30,7 +47,7 @@ type DerivedMetricSpec = {
   compute: (date: StockDate) => number | "N/A" | undefined;
 };
 
-type ParsedStockCsv = {
+type ParsedStock = {
   baseMetrics: BaseMetric[];
   config: StockConfig;
 };
@@ -79,53 +96,64 @@ const GROWTH_APPLIED_METRICS = [
   "Net income",
 ] as const;
 
-const SHEET_SECTIONS = ["Balance sheet", "Income statement", "Statistics"];
-
 /**
- * Loads and parses a stock's CSV file into base metric rows plus its config.
- * Pulled out of the class so it can be reasoned about / tested independently
- * of DB access and the rest of the calculation pipeline.
- *
- * NOTE: the "#config" row's fields are read positionally (outstandingShares,
- * trimDigit, selectedGrowthMetrics are columns 2/3/4). That indexing is left
- * untouched here intentionally - fixing it means changing the CSV format
- * itself, which is out of scope for this pass.
+ * Loads a stock's base metrics + config from the DB (yoy_financial_reports,
+ * quarterly_stock_prices, stock_info), reconstructing the same shape the
+ * CSV parser used to produce. Pulled out of the class so it can be reasoned
+ * about / tested independently of the rest of the calculation pipeline.
  */
-function loadStockCsv(
+async function loadStockFromDb(
   region: Region,
   stockSymbol: StockSymbol,
-): ParsedStockCsv {
-  const stockPath = path.join(DATA_DIR, "stocks", region, `${stockSymbol}.csv`);
+): Promise<ParsedStock> {
+  const [config, financialReports, priceHistory] = await Promise.all([
+    getStockConfig(region, stockSymbol),
+    getFinancialReportsBySymbol(region, stockSymbol),
+    getQuarterlyPriceHistory(region, stockSymbol),
+  ]);
 
-  let { data: baseMetrics } = parseCSV<BaseMetric>({
-    filePath: stockPath,
-    header: true,
+  if (!config) {
+    throw new Error(`Stock config not found in DB for ${stockSymbol}`);
+  }
+
+  const metricNames = BASE_METRIC_NAMES.filter(
+    (name) => name !== "#config",
+  ) as Exclude<BaseMetricNames, "#config">[];
+
+  const baseMetrics: BaseMetric[] = metricNames.map((metricName) => {
+    const metric = { metricName } as BaseMetric;
+
+    for (const date of STOCK_DATES) {
+      // populated later, uniformly for CSV and DB alike, by the constructor
+      if (date === "current") continue;
+
+      const quarter = toQuarterLabel(date);
+
+      if (metricName === "Price") {
+        metric[date] = priceHistory[quarter]?.price ?? null;
+      } else if (metricName === "Dividend") {
+        metric[date] = priceHistory[quarter]?.dividend ?? null;
+      } else {
+        // yoy_financial_reports stores true absolute values (raw CSV value
+        // * trimDigit, see import-financial-reports.ts) - used as-is, no
+        // trimDigit adjustment needed.
+        const field = METRIC_FIELD_MAP[metricName];
+        metric[date] = financialReports[quarter]?.[field] ?? null;
+      }
+    }
+
+    return metric;
   });
 
-  baseMetrics = baseMetrics.filter(
-    (m) => !SHEET_SECTIONS.includes(m.metricName),
-  );
-
-  const configIndex = baseMetrics.findIndex(
-    (item) => item.metricName === "#config",
-  );
-
-  const configValues =
-    configIndex !== -1 ? Object.values(baseMetrics[configIndex]) : [];
-
-  const config: StockConfig = {
-    stockSymbol,
-    outstandingShares: configValues[2] as number,
-    trimDigit: configValues[3] as number,
-    selectedGrowthMetrics: (configValues[4] as string)
-      .split("|")
-      .map((param) => param.trim()),
+  return {
+    baseMetrics,
+    config: {
+      stockSymbol,
+      outstandingShares: config.outstandingShares,
+      trimDigit: config.trimDigit,
+      selectedGrowthMetrics: config.selectedGrowthMetrics,
+    },
   };
-
-  // Ignore CSV content after the config metric
-  baseMetrics = baseMetrics.filter((_, i) => i < configIndex);
-
-  return { baseMetrics, config };
 }
 
 export class StockService {
@@ -144,7 +172,7 @@ export class StockService {
   private derivedByName = new Map<DerivedMetricNames, DerivedMetric>();
 
   public static async getStockSymbols(region: Region): Promise<string[]> {
-    return Object.keys(await getStockPricesMap(region));
+    return Object.keys(await getStockInfoMap(region));
   }
 
   public static async getAllStockData(region: Region): Promise<
@@ -152,28 +180,56 @@ export class StockService {
       stockDynamic: StockDynamicInfo;
       baseMetrics: BaseMetric[];
       derivedMetrics: DerivedMetric[];
-      stockConfig: StockConfig;
+      stockConfig: StockConfigResponse;
     }>
   > {
-    const stocksDynamic = await getStockPricesMap(region);
-    const stockNames = Object.keys(stocksDynamic);
+    const stockInfoMap = await getStockInfoMap(region);
+    const currentPricesMap = await getCurrentPricesMap(region);
+    const stockNames = Object.keys(stockInfoMap);
 
-    return Promise.all(
+    const results = await Promise.all(
       stockNames.map(async (stockSymbol) => {
-        const stockDynamic = stocksDynamic[stockSymbol];
-        const analyzer = new StockService(
-          stockSymbol as StockSymbol,
-          region,
-          stockDynamic,
-        );
-        const metrics = analyzer.getMetrics();
+        try {
+          const price = currentPricesMap[stockSymbol];
+          if (price == null) {
+            throw new Error(`Current price not found for ${stockSymbol}`);
+          }
 
-        return {
-          stockDynamic,
-          ...metrics,
-        };
+          const stockDynamic: StockDynamicInfo = {
+            price,
+            ...stockInfoMap[stockSymbol],
+          };
+          const { baseMetrics, config } = await loadStockFromDb(
+            region,
+            stockSymbol as StockSymbol,
+          );
+          const analyzer = new StockService(
+            stockSymbol as StockSymbol,
+            region,
+            stockDynamic,
+            baseMetrics,
+            config,
+          );
+          const metrics = analyzer.getMetrics();
+
+          return {
+            stockDynamic,
+            ...metrics,
+          };
+        } catch (error) {
+          // Missing the latest quarter's data (e.g. a bank still awaiting
+          // its Equity figure) shouldn't take down the whole listing -
+          // just leave that stock out until its data is complete.
+          console.warn(
+            `Excluding ${stockSymbol} (${region}) from stock list - incomplete data:`,
+            error instanceof Error ? error.message : error,
+          );
+          return null;
+        }
       }),
     );
+
+    return results.filter((result) => result !== null);
   }
 
   public static requireRegion(region: unknown): Region {
@@ -201,26 +257,44 @@ export class StockService {
     const validRegion = StockService.requireRegion(region);
     const stockSymbol = StockService.requireStockSymbol(stock);
 
-    const dynamicInfo = await getStockPrice(validRegion, stockSymbol);
-    if (!dynamicInfo) {
+    const stockInfo = await getStockInfo(validRegion, stockSymbol);
+    if (!stockInfo) {
       throw new BadRequestError(
         `Stock not found in dynamic data: ${stockSymbol}`,
       );
     }
 
-    return new StockService(stockSymbol, validRegion, dynamicInfo);
+    const price = await getCurrentPrice(validRegion, stockSymbol);
+    if (price == null) {
+      throw new BadRequestError(
+        `Current price not found for stock: ${stockSymbol}`,
+      );
+    }
+
+    const dynamicInfo: StockDynamicInfo = { price, ...stockInfo };
+    const { baseMetrics, config } = await loadStockFromDb(
+      validRegion,
+      stockSymbol,
+    );
+
+    return new StockService(
+      stockSymbol,
+      validRegion,
+      dynamicInfo,
+      baseMetrics,
+      config,
+    );
   }
 
   private constructor(
     private stockSymbol: StockSymbol,
     region: Region,
     dynamicInfo: StockDynamicInfo,
+    baseMetrics: BaseMetric[],
+    config: StockConfig,
   ) {
     this.region = region;
     this.dynamicInfo = dynamicInfo;
-
-    // 1. set base metrics
-    const { baseMetrics, config } = loadStockCsv(region, this.stockSymbol);
     this.baseMetrics = baseMetrics;
     this.config = config;
 
@@ -289,10 +363,15 @@ export class StockService {
     // 3: calculate selected growth median
     this.calcSelectedGrowthMedian();
 
+    // trimDigit is kept internally (loaded from stock_info) for future use,
+    // but base metrics are already true absolute values now - no need to
+    // send it to the frontend.
+    const { trimDigit: _trimDigit, ...stockConfig } = this.config;
+
     return {
       baseMetrics: this.baseMetrics,
       derivedMetrics: this.derivedMetrics,
-      stockConfig: this.config,
+      stockConfig,
     };
   }
 
@@ -448,9 +527,7 @@ export class StockService {
           const longTermLiabilities =
             this.getBase("Long term liabilities")[date] ?? 0;
 
-          // base metrics are already trimmed by trimDigit. apply same to derived metrics
-          const marketValue =
-            (price * this.config.outstandingShares) / this.config.trimDigit;
+          const marketValue = price * this.config.outstandingShares;
           return (
             marketValue + shortTermLiabilities + longTermLiabilities - cashValue
           );
@@ -504,11 +581,7 @@ export class StockService {
           }
           if (price == null) return undefined;
 
-          return (
-            (price * this.config.outstandingShares) /
-            this.config.trimDigit /
-            bookValue
-          );
+          return (price * this.config.outstandingShares) / bookValue;
         },
       },
     ];

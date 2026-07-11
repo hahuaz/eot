@@ -119,8 +119,12 @@ export type YoyYield = {
 
 // API responses
 
+// trimDigit is an internal valuation detail (see StockConfig) - base
+// metrics are already true absolute values, so it isn't sent to clients.
+export type StockConfigResponse = Omit<StockConfig, "trimDigit">;
+
 export type StockResponse = {
   baseMetrics: BaseMetric[];
   derivedMetrics: DerivedMetric[];
-  stockConfig: StockConfig;
+  stockConfig: StockConfigResponse;
 };
