@@ -47,3 +47,41 @@ export const formatNumber = ({
 
   return formatNum;
 };
+
+const ABBREVIATIONS: Array<{ threshold: number; suffix: string }> = [
+  { threshold: 1_000_000_000_000, suffix: "T" },
+  { threshold: 1_000_000_000, suffix: "B" },
+  { threshold: 1_000_000, suffix: "M" },
+  { threshold: 1_000, suffix: "K" },
+];
+
+/**
+ * Abbreviates a large number the way tradingview.com does (e.g.
+ * 42603202000 -> "42.6B", not the full "42,603,202,000") - separate from
+ * formatNumber (used as-is by ratios/multiples/growth %, and by the
+ * original, non-v2 page) since only large absolute monetary figures (v2's
+ * balance-sheet/income-statement/enterprise-value rows) should ever get
+ * abbreviated this way.
+ */
+export const formatAbbreviatedNumber = ({
+  num,
+  digits = 1,
+}: {
+  num: number | null | undefined | "N/A";
+  digits?: number;
+}): string => {
+  if (num === "N/A") return "N/A";
+  if (num == null) return "";
+  if (typeof num !== "number") {
+    throw new Error(
+      `Invalid input for formatAbbreviatedNumber: expected a number, nullish or 'N/A', but received ${typeof num}`,
+    );
+  }
+
+  const abs = Math.abs(num);
+  const match = ABBREVIATIONS.find(({ threshold }) => abs >= threshold);
+  if (!match) return formatNumber({ num, digits: 0 });
+
+  const sign = num < 0 ? "-" : "";
+  return `${sign}${(abs / match.threshold).toFixed(digits)}${match.suffix}`;
+};

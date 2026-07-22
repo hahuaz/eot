@@ -26,7 +26,22 @@ export function getSymbolData(symbol: string): Promise<SymbolPriceData> {
 }
 
 async function loadSymbolData(symbol: string): Promise<SymbolPriceData> {
-  const priceHistory = await getSymbolPriceHistory(symbol);
+  const fullHistory = await getSymbolPriceHistory(symbol);
+
+  // The yield service is only ever meant to look at data from
+  // OBSERVATION_START_DATE onward (this function's own check right below
+  // already assumes that date is the true start) - filtered here, once, so
+  // every consumer (getCumulativeYields's explicit start-index lookup,
+  // getYoyYields's slice(1)/getClosestEntry baseline search) is immune to
+  // whatever earlier history symbol_prices happens to also hold, e.g. from
+  // a backfill covering dates before the observation start. Without this,
+  // adding earlier rows would silently change getYoyYields's output (its
+  // slice(1) would skip a different, wrong first entry, and its baseline
+  // search could reach past the intended start) even though nothing about
+  // the service's own intended behavior changed.
+  const priceHistory = fullHistory.filter(
+    (entry) => entry.date >= OBSERVATION_START_DATE,
+  );
 
   if (priceHistory.length === 0) {
     throw new Error(`Data for symbol ${symbol} is missing or empty.`);

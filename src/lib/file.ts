@@ -79,3 +79,20 @@ export function readJsonFile<T>(filePath: string): T {
     throw error;
   }
 }
+
+// order given json alphabetically by keys
+export function sortJsonByKeys<T extends Record<string, unknown>>(obj: T): T {
+  const sortedObj = Object.keys(obj)
+    .sort()
+    .reduce((result, key) => {
+      result[key as keyof T] = obj[key as keyof T];
+      return result;
+    }, {} as T);
+  return sortedObj;
+}
+
+export function sortJsonFile(filePath: string) {
+  const fileContent = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+  const sortedContent = sortJsonByKeys(fileContent);
+  fs.writeFileSync(filePath, JSON.stringify(sortedContent, null, 2));
+}

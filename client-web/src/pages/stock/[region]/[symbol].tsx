@@ -13,22 +13,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatNumber, API_URL } from "@/lib";
+import { formatNumber, formatAbbreviatedNumber, API_URL } from "@/lib";
 
-import {
-  STOCK_DATES,
-  GROWTH_COLUMNS,
-  DerivedMetric,
-  BaseMetric,
-  MetricNames,
-  StockResponse,
-} from "@eot/shared";
+import { StockMetricName, StockResponse } from "@eot/shared";
 
-const SECTIONS: Record<string, MetricNames[]> = {
+const GROWTH_COLUMN_LABELS = [
+  "Total growth",
+  "Yearly growth",
+  "TTM growth",
+] as const;
+
+const SECTIONS: Record<string, StockMetricName[]> = {
   "Balance sheet": [
-    "Cash & cash equivalents",
-    "Short term liabilities",
-    "Long term liabilities",
+    "Cash and equivalents",
+    "Short term debt",
+    "Long term debt",
     "Equity",
     "Total assets",
   ],
@@ -41,27 +40,55 @@ const SECTIONS: Record<string, MetricNames[]> = {
     "Market value / book value",
     "Price",
     "USD Price",
-    "Dividend",
-    "USD Yield",
-    "Observation Start Yield",
-    "Selected growth median",
+    "Dividend Yield",
+    "Total USD Yield",
   ],
 };
 
+// formatNumber defaults to 0 decimal digits, correct for the large
+// balance-sheet/income/enterprise-value figures every other row holds -
+// but Price/USD Price are small currency amounts, Dividend Yield/Total USD
+// Yield are fractional ratios (e.g. 0.0495 = ~5%), and the EV multiples are
+// small-magnitude ratios too (e.g. 5.2x), so rounding those to whole
+// numbers shows "0" for nearly every cell. Everything not listed here
+// keeps the 0-digit default.
+const METRIC_DIGITS: Partial<Record<StockMetricName, number>> = {
+  "Net debt / operating income": 2,
+  "EV / operating income": 2,
+  "EV / net income": 2,
+  "Market value / book value": 2,
+  Price: 2,
+  "USD Price": 2,
+  "Dividend Yield": 4,
+  "Total USD Yield": 4,
+};
+
+// Large absolute-monetary-value rows get abbreviated tradingview.com-style
+// (e.g. "42.6B" instead of "42,603,202,000") - ratios/multiples/prices
+// (everything in METRIC_DIGITS above) stay as precise decimal numbers,
+// where an abbreviation would be meaningless or actively misleading.
+const ABBREVIATED_METRIC_NAMES = new Set<StockMetricName>([
+  "Cash and equivalents",
+  "Short term debt",
+  "Long term debt",
+  "Equity",
+  "Total assets",
+  "Revenue",
+  "Operating income",
+  "Net income",
+  "Enterprise value",
+]);
+
 export const getStaticPaths: GetStaticPaths = async () => {
-  const [stockNamesTr, stockNamesUs] = await Promise.all([
-    fetch(`${API_URL}api/stock/tr/symbols`).then((res) => {
-      console.log("res", res);
-      return res.json();
-    }),
+  const [symbolsTr, symbolsUs] = await Promise.all([
+    fetch(`${API_URL}api/stock/tr/symbols`).then((res) => res.json()),
     fetch(`${API_URL}api/stock/us/symbols`).then((res) => res.json()),
   ]);
 
-  const pathsTr = stockNamesTr.map((symbol: string) => ({
+  const pathsTr = symbolsTr.map((symbol: string) => ({
     params: { region: "tr", symbol },
   }));
-
-  const pathsUs = stockNamesUs.map((symbol: string) => ({
+  const pathsUs = symbolsUs.map((symbol: string) => ({
     params: { region: "us", symbol },
   }));
 
@@ -76,154 +103,115 @@ export const getStaticProps: GetStaticProps<StockResponse> = async ({
 }) => {
   const { region, symbol } = params as { region: string; symbol: string };
 
-  const { stockConfig, baseMetrics, derivedMetrics } = await fetch(
+  const { quarters, metrics } = await fetch(
     `${API_URL}api/stock/${region}/${symbol}`,
   ).then((res) => res.json());
 
   return {
-    props: {
-      baseMetrics,
-      derivedMetrics,
-      stockConfig,
-    },
+    props: { quarters, metrics },
   };
 };
 
-/**
- * Prepares metrics for display.
- */
-const getDisplayMetrics = (metrics: (BaseMetric | DerivedMetric)[]) => {
-  // for some symbols, the metric values are too large, so we need to normalize them to make them more readable
-  const NORMALIZED_METRIC_NAMES: MetricNames[] = [
-    "Cash & cash equivalents",
-    "Short term liabilities",
-    "Long term liabilities",
-    "Equity",
-    "Total assets",
-    "Revenue",
-    "Operating income",
-    "Net income",
-    "Enterprise value",
-  ];
+/** Value cell content - abbreviated (tradingview.com-style) for large monetary metrics, plain otherwise. */
+const formatMetricValue = (
+  num: number | "N/A" | null | undefined,
+  metricName: StockMetricName,
+  digits: number,
+): string =>
+  ABBREVIATED_METRIC_NAMES.has(metricName)
+    ? formatAbbreviatedNumber({ num })
+    : formatNumber({ num, digits });
 
-  const evMetric = metrics.find((m) => m.metricName === "Enterprise value");
-  const evValue = (evMetric as any)?.current ?? 0;
+/** Growth cell, colored green/red for positive/negative, blank when null (no prior quarter to compare against, or not comparable). */
+const GrowthLabel = ({ growth }: { growth: number | null }) => {
+  if (growth == null) return null;
 
-  let normalizationDivisor = 1;
-  if (typeof evValue === "number") {
-    if (evValue > 999_999_999) normalizationDivisor = 1_000_000;
-    else if (evValue > 99_999_999) normalizationDivisor = 1_000;
-  }
+  const colorClass =
+    growth > 0 ? "text-green-600" : growth < 0 ? "text-red-600" : "";
 
-  const newMetrics = metrics.map((metric) => {
-    const newMetric: any = { ...metric };
-
-    // Format Growth Columns
-    GROWTH_COLUMNS.forEach((field) => {
-      newMetric[field] = formatNumber({
-        num: metric[field],
-        digits: 2,
-      });
-    });
-
-    // Format Date Columns
-    STOCK_DATES.forEach((field) => {
-      const value = (metric as any)[field];
-      if (NORMALIZED_METRIC_NAMES.includes(metric.metricName as MetricNames)) {
-        newMetric[field] = formatNumber({
-          num: value,
-          trim: normalizationDivisor,
-        });
-      } else {
-        newMetric[field] = formatNumber({
-          num: value,
-          digits: 2,
-        });
-      }
-    });
-
-    return newMetric;
-  });
-
-  return {
-    newMetrics,
-    normalizationDivisor,
-  };
+  return (
+    <span className={`ml-1 text-[10px] ${colorClass}`}>
+      ({formatNumber({ num: growth, digits: 2 })})
+    </span>
+  );
 };
 
 const StockDetailPage = ({
-  baseMetrics,
-  derivedMetrics,
-  stockConfig,
+  quarters,
+  metrics,
 }: InferGetStaticPropsType<typeof getStaticProps>) => {
-  const allMetrics = [...baseMetrics, ...derivedMetrics];
-
-  console.log("allMetrics", allMetrics);
-
-  const { newMetrics: displayMetrics, normalizationDivisor } =
-    getDisplayMetrics(allMetrics);
-
   return (
-    <>
-      <div className="max-w-[1500px]">
-        <Table className="table-fixed">
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-left" />
-              {[...GROWTH_COLUMNS, ...STOCK_DATES].map((field) => (
-                <TableHead key={field} className="text-right w-[90px]">
-                  {field}
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {Object.entries(SECTIONS).map(([sectionName, metrics]) => (
-              <React.Fragment key={sectionName}>
-                <TableRow>
-                  <TableCell className="text-left font-bold" colSpan={1}>
-                    {sectionName}
-                  </TableCell>
-                </TableRow>
-                {metrics.map((metricName) => {
-                  const metric = displayMetrics.find(
-                    (m) => m.metricName === metricName,
-                  );
-
-                  if (!metric) return null;
-
-                  return (
-                    <TableRow key={metric.metricName}>
-                      <TableCell className="text-left">
-                        {metric.metricName}
-                      </TableCell>
-
-                      {/* Growth Columns */}
-                      {GROWTH_COLUMNS.map((field) => (
-                        <TableCell key={field} className="text-right">
-                          {metric[field]}
-                        </TableCell>
-                      ))}
-
-                      {/* Date Columns */}
-                      {STOCK_DATES.map((field) => (
-                        <TableCell key={field} className="text-right">
-                          {metric[field]}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  );
-                })}
-              </React.Fragment>
+    <div className="">
+      <Table className="table-fixed">
+        <TableHeader>
+          <TableRow>
+            <TableHead className="text-left" />
+            {GROWTH_COLUMN_LABELS.map((label) => (
+              <TableHead key={label} className="text-right w-[90px]">
+                {label}
+              </TableHead>
             ))}
-          </TableBody>
-        </Table>
-      </div>
-      <p>
-        Normalization divisor: {formatNumber({ num: normalizationDivisor })}
-      </p>
-      <pre>{JSON.stringify(stockConfig, null, 2)}</pre>
-    </>
+            <TableHead className="text-right w-[130px]">current</TableHead>
+            {quarters.map((quarter) => (
+              <TableHead key={quarter} className="text-right w-[130px]">
+                {quarter}
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {Object.entries(SECTIONS).map(([sectionName, metricNames]) => (
+            <React.Fragment key={sectionName}>
+              <TableRow>
+                <TableCell className="text-left font-bold" colSpan={1}>
+                  {sectionName}
+                </TableCell>
+              </TableRow>
+              {metricNames.map((metricName) => {
+                const metric = metrics.find((m) => m.metricName === metricName);
+                if (!metric) return null;
+
+                const digits = METRIC_DIGITS[metric.metricName] ?? 0;
+
+                return (
+                  <TableRow key={metric.metricName}>
+                    <TableCell className="text-left">
+                      {metric.metricName}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {formatNumber({ num: metric.totalGrowth, digits: 2 })}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {formatNumber({ num: metric.yearlyGrowth, digits: 2 })}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {formatNumber({ num: metric.ttmGrowth, digits: 2 })}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {formatMetricValue(
+                        metric.current,
+                        metric.metricName,
+                        digits,
+                      )}
+                    </TableCell>
+                    {quarters.map((quarter) => (
+                      <TableCell key={quarter} className="text-right">
+                        {formatMetricValue(
+                          metric.values[quarter],
+                          metric.metricName,
+                          digits,
+                        )}
+                        <GrowthLabel growth={metric.qoqGrowth[quarter]} />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                );
+              })}
+            </React.Fragment>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 };
 

@@ -1,11 +1,13 @@
 {
   "compilerOptions": {
     "target": "es6",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "commonjs",
     "rootDir": "./",
     "outDir": "./dist",
     "esModuleInterop": true,
     "strict": true,
+    "skipLibCheck": true,
     "incremental": true,
     "tsBuildInfoFile": "./tsconfig.tsbuildinfo",
     "paths": {

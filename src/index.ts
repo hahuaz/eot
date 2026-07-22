@@ -5,10 +5,16 @@ import express, { Response, Request, NextFunction, Router } from "express";
 import cors from "cors";
 
 import { APP_CONFIG } from "@/config";
-import { DATA_DIR } from "@/lib";
 import { BadRequestError } from "@/lib/errors";
-import { StockService, YieldService } from "@/services";
-import { StockResponse } from "@eot/shared";
+import {
+  requireRegion,
+  requireStockSymbol,
+  getStockSymbols,
+  getStockData,
+  getAllStockData,
+  YieldService,
+} from "@/services";
+import { StockResponse, StockSummaryEntry } from "@eot/shared";
 
 // --- Express App Setup ---
 const app = express();
@@ -33,33 +39,15 @@ app.use((req, res, next) => {
 // --- API Routes ---
 
 /**
- * @route GET /api/yield/cumulative
- * @description Returns cumulative yields for a specific symbol.
- * @queryparam {string} symbol - The symbol to get yields for.
+ * @route GET /api/yield/all
+ * @description Returns cumulative + YoY yields for every yield-included
+ * symbol - the symbol list itself is DB-driven, so callers don't need to
+ * know it up front.
  */
-yieldRouter.get("/cumulative", async (req, res, next) => {
-  const { symbol } = req.query;
+yieldRouter.get("/all", async (req, res, next) => {
   try {
-    const cumulativeYields = await YieldService.getCumulativeYields(
-      YieldService.requireSymbol(symbol),
-    );
-    res.status(200).json(cumulativeYields);
-  } catch (error) {
-    next(error);
-  }
-});
-
-/**
- * @route GET /api/yield/yoy
- * @description Returns year-over-year annualized returns for a specific symbol.
- */
-yieldRouter.get("/yoy", async (req, res, next) => {
-  const { symbol } = req.query;
-  try {
-    const yoyYields = await YieldService.getYoyYields(
-      YieldService.requireSymbol(symbol),
-    );
-    res.status(200).json(yoyYields);
+    const allYieldData = await YieldService.getAllYieldData();
+    res.status(200).json(allYieldData);
   } catch (error) {
     next(error);
   }
@@ -67,14 +55,14 @@ yieldRouter.get("/yoy", async (req, res, next) => {
 
 /**
  * @route GET /api/stock/:region/symbols
- * @description Returns a list of all stock symbols for a given region.
+ * @description Returns symbols with at least one quarter of data for a
+ * given region - registered before /:region/:symbol so the literal
+ * "symbols" segment isn't swallowed as a symbol name.
  */
 stockRouter.get("/:region/symbols", async (req, res, next) => {
   const { region } = req.params;
   try {
-    const stockSymbols = await StockService.getStockSymbols(
-      StockService.requireRegion(region),
-    );
+    const stockSymbols = await getStockSymbols(requireRegion(region));
     res.status(200).json(stockSymbols);
   } catch (error) {
     next(error);
@@ -83,27 +71,30 @@ stockRouter.get("/:region/symbols", async (req, res, next) => {
 
 /**
  * @route GET /api/stock/:region/:symbol
- * @description Returns detailed data for a single stock in a given region.
+ * @description Returns per-line-item, QoQ growth financial data for a
+ * single stock from qoq_financial_reports.
  */
-stockRouter.get("/:region/:symbol", async (req, res) => {
+stockRouter.get("/:region/:symbol", async (req, res, next) => {
   const { region, symbol } = req.params;
-  const stockService = await StockService.create(symbol, region);
-  const metrics = stockService.getMetrics();
-
-  res.status(200).json(metrics as StockResponse);
+  try {
+    const validRegion = requireRegion(region);
+    const validSymbol = requireStockSymbol(symbol);
+    const data = await getStockData(validRegion, validSymbol);
+    res.status(200).json(data as StockResponse);
+  } catch (error) {
+    next(error);
+  }
 });
 
 /**
  * @route GET /api/stock/:region
- * @description Returns detailed data for all stocks in a given region.
+ * @description Returns data for every stock in a given region.
  */
 stockRouter.get("/:region", async (req, res, next) => {
   const { region } = req.params;
   try {
-    const allStockData = await StockService.getAllStockData(
-      StockService.requireRegion(region),
-    );
-    res.status(200).json(allStockData);
+    const allStockData = await getAllStockData(requireRegion(region));
+    res.status(200).json(allStockData as StockSummaryEntry[]);
   } catch (error) {
     next(error);
   }

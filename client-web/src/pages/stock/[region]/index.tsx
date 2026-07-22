@@ -14,21 +14,23 @@ import {
   SortingState,
 } from "@tanstack/react-table";
 import { API_URL, formatNumber } from "@/lib";
-import { MetricNames } from "@eot/shared";
+import { StockSummaryEntry } from "@eot/shared";
 
+// One-row-per-stock summary/screener, sourced from GET /api/stock/:region
+// (StockService.getAllStockData).
 interface StockSummary {
   stockName: string;
-  "Observation Start Yield"?: number;
-  "Total yield"?: number;
-  "TTM yield"?: number;
-  "EV / operating income"?: number;
-  "EV / net income"?: number;
-  "Net debt / operating income"?: number;
-  "TTM growth"?: number;
-  "Yearly growth"?: number;
-  "(ev/oi) / ttm growth": number | string;
-  "(ev/oi) / yearly growth": number | string;
-  "Market value / book value"?: number;
+  "Observation Start Yield": number | null;
+  "Total yield": number | "N/A" | null;
+  "TTM yield": number | "N/A" | null;
+  "EV / operating income": number | "N/A" | null;
+  "EV / net income": number | "N/A" | null;
+  "TTM growth": number | "N/A" | null;
+  "Yearly growth": number | "N/A" | null;
+  "(ev/oi) / ttm growth": number | "N/A";
+  "(ev/oi) / yearly growth": number | "N/A";
+  "Net debt / operating income": number | "N/A" | null;
+  "Market value / book value": number | "N/A" | null;
   Notes: string | null;
   color: string | null;
 }
@@ -46,82 +48,62 @@ export const getStaticPaths: GetStaticPaths = async () => {
 
 export const getStaticProps: GetStaticProps<{
   stocks: StockSummary[];
-  ttmNightlyYield: number;
   region: string;
 }> = async ({ params }) => {
   const { region } = params as { region: string };
 
-  const [allStock, bgpReturn] = await Promise.all([
-    fetch(`${API_URL}api/stock/${region}`).then((res) => res.json()),
-    fetch(`${API_URL}api/yield/cumulative?symbol=bgp_usdtry`).then((res) =>
-      res.json(),
-    ),
-  ]);
+  const entries: StockSummaryEntry[] = await fetch(
+    `${API_URL}api/stock/${region}`,
+  ).then((res) => res.json());
 
-  const stockSummary: StockSummary[] = allStock.map((data: any) => {
-    const { baseMetrics, derivedMetrics, stockConfig, stockDynamic } = data;
-    const { notes, color } = stockDynamic;
-    const allMetrics = [...baseMetrics, ...derivedMetrics];
+  const stockSummary: StockSummary[] = entries.map((entry) => {
+    const {
+      symbol,
+      notes,
+      color,
+      response,
+      growthSummary,
+      observationStartYield,
+    } = entry;
+    const findMetric = (name: string) =>
+      response.metrics.find((m) => m.metricName === name);
 
-    const findMetric = (name: MetricNames) =>
-      allMetrics.find((m: any) => m.metricName === name);
-
-    const usdYieldMetric = findMetric("USD Yield");
-    const observationStartReturnMetric = findMetric("Observation Start Yield");
-    const selectedGrowthMetric = findMetric("Selected growth median");
+    const usdYieldMetric = findMetric("Total USD Yield");
     const evOiMetric = findMetric("EV / operating income");
     const evNiMetric = findMetric("EV / net income");
     const netDebtMetric = findMetric("Net debt / operating income");
     const mvBvMetric = findMetric("Market value / book value");
 
-    const evToOperatingIncome = evOiMetric?.current;
-    const ttmGrowth = selectedGrowthMetric?.["TTM growth"];
-    const yearlyGrowth = selectedGrowthMetric?.["Yearly growth"];
+    const evToOperatingIncome = evOiMetric?.current ?? null;
+    const { ttmGrowth, yearlyGrowth } = growthSummary;
 
-    if (
-      evToOperatingIncome == null ||
-      ttmGrowth == null ||
-      yearlyGrowth == null
-    ) {
-      throw new Error("Missing critical data for " + stockConfig.stockSymbol);
-    }
+    const ratioTo = (growth: number | "N/A" | null): number | "N/A" =>
+      typeof evToOperatingIncome === "number" &&
+      typeof growth === "number" &&
+      growth > 0
+        ? evToOperatingIncome / growth
+        : "N/A";
 
-    const flat: StockSummary = {
-      stockName: stockConfig.stockSymbol,
+    return {
+      stockName: symbol,
       Notes: notes?.length ? notes.join("|") : null,
       color: color || null,
-      "Observation Start Yield": observationStartReturnMetric?.current,
-      "Total yield": usdYieldMetric?.["Total growth"],
-      "TTM yield": usdYieldMetric?.["TTM growth"],
+      "Observation Start Yield": observationStartYield,
+      "Total yield": usdYieldMetric?.totalGrowth ?? null,
+      "TTM yield": usdYieldMetric?.ttmGrowth ?? null,
       "EV / operating income": evToOperatingIncome,
-      "EV / net income": evNiMetric?.current,
-      "Net debt / operating income": netDebtMetric?.current,
+      "EV / net income": evNiMetric?.current ?? null,
       "TTM growth": ttmGrowth,
       "Yearly growth": yearlyGrowth,
-      "Market value / book value": mvBvMetric?.current,
-      "(ev/oi) / ttm growth":
-        typeof evToOperatingIncome === "number" &&
-        typeof ttmGrowth === "number" &&
-        ttmGrowth > 0
-          ? evToOperatingIncome / ttmGrowth
-          : "N/A",
-      "(ev/oi) / yearly growth":
-        typeof evToOperatingIncome === "number" &&
-        typeof yearlyGrowth === "number" &&
-        yearlyGrowth > 0
-          ? evToOperatingIncome / yearlyGrowth
-          : "N/A",
+      "(ev/oi) / ttm growth": ratioTo(ttmGrowth),
+      "(ev/oi) / yearly growth": ratioTo(yearlyGrowth),
+      "Net debt / operating income": netDebtMetric?.current ?? null,
+      "Market value / book value": mvBvMetric?.current ?? null,
     };
-
-    return flat;
   });
 
   return {
-    props: {
-      stocks: stockSummary,
-      ttmNightlyYield: bgpReturn[bgpReturn.length - 1]?.value,
-      region,
-    },
+    props: { stocks: stockSummary, region },
   };
 };
 
@@ -141,7 +123,6 @@ const formatCell = (val: unknown) => {
 const RegionalStocksPage = ({
   stocks,
   region,
-  ttmNightlyYield,
 }: InferGetStaticPropsType<typeof getStaticProps>) => {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "(ev/oi) / ttm growth", desc: false },
@@ -176,12 +157,13 @@ const RegionalStocksPage = ({
     columnHelper.accessor("TTM yield", {
       header: "TTM Yield",
       cell: ({ getValue }) => formatCell(getValue()),
+      sortingFn: numericSort,
     }),
     columnHelper.accessor("Total yield", {
       header: "Total Yield",
       cell: ({ getValue }) => formatCell(getValue()),
+      sortingFn: numericSort,
     }),
-
     columnHelper.accessor("EV / operating income", {
       header: "EV / OI",
       cell: ({ getValue }) => formatCell(getValue()),
@@ -195,6 +177,7 @@ const RegionalStocksPage = ({
     columnHelper.accessor("TTM growth", {
       header: "TTM Growth",
       cell: ({ getValue }) => formatCell(getValue()),
+      sortingFn: numericSort,
     }),
     columnHelper.accessor("(ev/oi) / ttm growth", {
       header: "(EV/OI) / TTM Growth",
@@ -204,6 +187,7 @@ const RegionalStocksPage = ({
     columnHelper.accessor("Yearly growth", {
       header: "Yearly Growth",
       cell: ({ getValue }) => formatCell(getValue()),
+      sortingFn: numericSort,
     }),
     columnHelper.accessor("(ev/oi) / yearly growth", {
       header: "(EV/OI) / Yr Growth",
@@ -213,10 +197,12 @@ const RegionalStocksPage = ({
     columnHelper.accessor("Net debt / operating income", {
       header: "Net Debt / OI",
       cell: ({ getValue }) => formatCell(getValue()),
+      sortingFn: numericSort,
     }),
     columnHelper.accessor("Market value / book value", {
       header: "MV / BV",
       cell: ({ getValue }) => formatCell(getValue()),
+      sortingFn: numericSort,
     }),
     columnHelper.accessor("Notes", {
       header: "Notes",
@@ -235,16 +221,6 @@ const RegionalStocksPage = ({
 
   return (
     <div className="p-4 overflow-x-auto bg-white min-h-screen">
-      <div className="mb-4 text-gray-700">
-        <p>
-          <strong>PPF (BGP) Yield from 2024/12/30:</strong> {ttmNightlyYield}
-        </p>
-        <p>
-          <strong>TCMB House Index:</strong> -0.01
-          <br />
-          <strong>VGK:</strong> ?
-        </p>
-      </div>
       <table className="min-w-full text-sm text-center border-collapse border border-gray-200 shadow-sm">
         <thead className="bg-gray-50">
           {table.getHeaderGroups().map((headerGroup) => (
@@ -290,7 +266,7 @@ const RegionalStocksPage = ({
                     key={cell.id}
                     className={`px-2 py-1 border border-gray-100 ${
                       cell.column.id === "stockName" && row.original.color
-                        ? `stock-name ${row.original.color}` // Ensure .stock-name class handles color or inline style
+                        ? `stock-name ${row.original.color}`
                         : ""
                     } ${isColoredColumn ? "bg-yellow-50" : ""}`}
                   >

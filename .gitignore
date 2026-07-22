@@ -17,3 +17,15 @@ credentials*
 # typescript
 *.tsbuildinfo
 
+# drizzle-kit scratch output (no migration files are tracked - see drizzle.config.ts)
+/drizzle
+
+# local Postgres snapshots (pg_dump) - not meant to be committed
+/backups
+
+# downloaded on first run by extract-financial-values.ts (see ensurePdfBoxJar) - not committed, just a cached download
+/src/extract-pdf/vendor/*.jar
+
+# large local datasets (pdfs, converted text, verify pages, stock CSVs, ...) - not committed
+/local-data
+

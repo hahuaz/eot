@@ -1,4 +1,9 @@
-import { pool } from "@/db/pool";
+import { asc, eq, InferSelectModel } from "drizzle-orm";
+
+import { db } from "@/db/pool";
+import { symbolPrices } from "@/db/schema";
+
+export type SymbolPriceDbRow = InferSelectModel<typeof symbolPrices>;
 
 /**
  * Fetches the full ascending price history for a symbol from the symbol_prices table.
@@ -6,11 +11,11 @@ import { pool } from "@/db/pool";
 export async function getSymbolPriceHistory(
   symbol: string,
 ): Promise<{ date: number; value: number }[]> {
-  const { rows } = await pool.query<{ date: string; value: number }>(
-    `SELECT date, value FROM symbol_prices WHERE symbol = $1 ORDER BY date ASC`,
-    [symbol.toUpperCase()],
-  );
-  return rows.map((row) => ({ date: Number(row.date), value: row.value }));
+  return db
+    .select({ date: symbolPrices.date, value: symbolPrices.value })
+    .from(symbolPrices)
+    .where(eq(symbolPrices.symbol, symbol.toUpperCase()))
+    .orderBy(asc(symbolPrices.date));
 }
 
 /**
@@ -21,10 +26,11 @@ export async function upsertSymbolPrice(
   date: number,
   value: number,
 ): Promise<void> {
-  await pool.query(
-    `INSERT INTO symbol_prices (symbol, date, value)
-     VALUES ($1, $2, $3)
-     ON CONFLICT (symbol, date) DO UPDATE SET value = EXCLUDED.value`,
-    [symbol.toUpperCase(), date, value],
-  );
+  await db
+    .insert(symbolPrices)
+    .values({ symbol: symbol.toUpperCase(), date, value })
+    .onConflictDoUpdate({
+      target: [symbolPrices.symbol, symbolPrices.date],
+      set: { value },
+    });
 }

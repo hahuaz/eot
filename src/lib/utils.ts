@@ -1,6 +1,4 @@
-import fs from "fs";
-
-import { getYearsPassed } from "@/lib";
+import { getDaysBetween, DAYS_IN_YEAR } from "@/lib";
 
 export const wait = (seconds: number): Promise<void> => {
   return new Promise((resolve) => setTimeout(resolve, seconds * 1000));
@@ -24,34 +22,21 @@ export function round(value: number): number {
   return Number(value.toFixed(TO_FIXED_DIGIT));
 }
 
-/**
- * Calculates the yearly growth rate by raising the total growth rate to the power of 1/years passed.
- * Formula: (1 + totalGrowth)^(1/yearsPassed) - 1
- */
+// periodicGrowthRate = (1 + totalGrowth) ^ (1 / periods) - 1
+// periods are years passed in this case
 export function calcYearlyGrowth({
   totalGrowth,
   startDate,
+  endDate,
 }: {
   totalGrowth: number;
-  startDate: string;
+  startDate: number;
+  endDate: number;
 }): number {
-  const yearsPassed = getYearsPassed({ date: startDate });
-  return Math.pow(1 + totalGrowth, 1 / yearsPassed) - 1;
-}
+  const daysPassed = getDaysBetween(startDate, endDate);
+  if (daysPassed <= 0) return 0;
 
-// order given json alphabetically by keys
-export function sortJsonByKeys<T extends Record<string, unknown>>(obj: T): T {
-  const sortedObj = Object.keys(obj)
-    .sort()
-    .reduce((result, key) => {
-      result[key as keyof T] = obj[key as keyof T];
-      return result;
-    }, {} as T);
-  return sortedObj;
-}
+  const period = daysPassed / DAYS_IN_YEAR;
 
-export function sortJsonFile(filePath: string) {
-  const fileContent = JSON.parse(fs.readFileSync(filePath, "utf-8"));
-  const sortedContent = sortJsonByKeys(fileContent);
-  fs.writeFileSync(filePath, JSON.stringify(sortedContent, null, 2));
+  return Math.pow(1 + totalGrowth, 1 / period) - 1;
 }

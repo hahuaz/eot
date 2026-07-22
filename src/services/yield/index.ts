@@ -3,52 +3,66 @@ import {
   getDaysBetween,
   MS_IN_DAY,
   DAYS_IN_YEAR,
+  calcYearlyGrowth,
   round,
 } from "@/lib";
-import {
-  CumulativeYield,
-  YoyYield,
-  symbolConfig,
-  allSymbols,
-  SYMBOL_USDTRY,
-} from "@eot/shared";
-import { BadRequestError } from "@/lib/errors";
+import { CumulativeYield, YoyYield, YieldSymbolData } from "@eot/shared";
+import { getYieldSymbols } from "@/db/symbols.repository";
 import { getSymbolData } from "@/services/yield/symbol-data-cache";
 import {
   getClosestEntry,
-  annualizeRatio,
   computeNetYield,
   applyBenchmarkAdjustment,
 } from "@/services/yield/yield-math";
 
-const BENCH_SYMBOL = SYMBOL_USDTRY;
+// Fixed benchmark every genUsdBench composite is adjusted against - just the
+// name of the FX rate used for the adjustment, not itself per-symbol config.
+const BENCH_SYMBOL = "USDTRY";
 
-export function requireSymbol(symbol: unknown): string {
-  if (typeof symbol !== "string" || !symbol) {
-    throw new BadRequestError(`Invalid symbol: ${symbol}`);
-  }
-  const normalizedSymbol = symbol.toUpperCase();
-  if (!allSymbols.includes(normalizedSymbol)) {
-    throw new BadRequestError(`Symbol not supported: ${symbol}`);
-  }
-  return normalizedSymbol;
+type DerivedYieldSymbol = {
+  key: string; // requestable name, e.g. "TP2" or the composite "TP2_USDTRY"
+  symbol: string; // underlying symbol_prices key price data is read from
+  withholdingTax: number;
+  isUsdBench: boolean;
+};
+
+/**
+ * Derives all yield calculated symbols. base symbols + usd benched.
+ */
+async function deriveYieldSymbols(): Promise<DerivedYieldSymbol[]> {
+  const yieldSymbols = await getYieldSymbols();
+
+  return yieldSymbols.flatMap(({ symbol, withholdingTax, genUsdBench }) => {
+    const base: DerivedYieldSymbol = {
+      key: symbol,
+      symbol,
+      withholdingTax,
+      isUsdBench: false,
+    };
+    if (!genUsdBench) return [base];
+
+    const usdBenched: DerivedYieldSymbol = {
+      key: `${symbol}_${BENCH_SYMBOL}`,
+      symbol,
+      withholdingTax,
+      isUsdBench: true,
+    };
+    return [base, usdBenched];
+  });
 }
 
-export async function getCumulativeYields(
-  symbol: string,
+async function computeCumulativeYields(
+  config: DerivedYieldSymbol,
 ): Promise<CumulativeYield[]> {
-  const config = symbolConfig[symbol];
-  const { withholdingTax } = config;
+  const { symbol, withholdingTax, isUsdBench } = config;
 
-  const symbolData = await getSymbolData(config.symbol);
+  const symbolData = await getSymbolData(symbol);
   const symbolStartIndex = symbolData.priceHistory.findIndex(
     (entry) => entry.date === OBSERVATION_START_DATE,
   );
   const symbolStartEntry = symbolData.priceHistory[symbolStartIndex];
 
-  const benchData = config.isUsdBench
-    ? await getSymbolData(BENCH_SYMBOL)
-    : null;
+  const benchData = isUsdBench ? await getSymbolData(BENCH_SYMBOL) : null;
   const benchStartEntry = benchData
     ? benchData.priceHistory.find(
         (entry) => entry.date === OBSERVATION_START_DATE,
@@ -85,14 +99,13 @@ export async function getCumulativeYields(
     });
 }
 
-export async function getYoyYields(symbol: string): Promise<YoyYield[]> {
-  const config = symbolConfig[symbol];
-  const { withholdingTax } = config;
+async function computeYoyYields(
+  config: DerivedYieldSymbol,
+): Promise<YoyYield[]> {
+  const { symbol, withholdingTax, isUsdBench } = config;
 
-  const symbolData = await getSymbolData(config.symbol);
-  const benchData = config.isUsdBench
-    ? await getSymbolData(BENCH_SYMBOL)
-    : null;
+  const symbolData = await getSymbolData(symbol);
+  const benchData = isUsdBench ? await getSymbolData(BENCH_SYMBOL) : null;
 
   return symbolData.priceHistory.slice(1).flatMap((currentEntry, index) => {
     const targetDate = currentEntry.date - DAYS_IN_YEAR * MS_IN_DAY;
@@ -132,8 +145,11 @@ export async function getYoyYields(symbol: string): Promise<YoyYield[]> {
     }
 
     const daysPassed = getDaysBetween(baseEntry.date, currentEntry.date);
-    const yoyYieldPercent =
-      daysPassed > 0 ? annualizeRatio(1 + netYield, daysPassed) : 0;
+    const yoyYieldPercent = calcYearlyGrowth({
+      totalGrowth: netYield,
+      startDate: baseEntry.date,
+      endDate: currentEntry.date,
+    });
 
     return [
       {
@@ -144,4 +160,23 @@ export async function getYoyYields(symbol: string): Promise<YoyYield[]> {
       },
     ];
   });
+}
+
+/**
+ * Cumulative + YoY yields for every yield-included symbol (base symbols
+ * plus their generated USD-adjusted composites) - computed server-side so
+ * callers (the frontend) don't need to know the symbol list up front.
+ */
+export async function getAllYieldData(): Promise<YieldSymbolData[]> {
+  const allSymbols = await deriveYieldSymbols();
+
+  return Promise.all(
+    allSymbols.map(async (config): Promise<YieldSymbolData> => {
+      const [cumulativeYields, yoyYields] = await Promise.all([
+        computeCumulativeYields(config),
+        computeYoyYields(config),
+      ]);
+      return { symbol: config.key, cumulativeYields, yoyYields };
+    }),
+  );
 }

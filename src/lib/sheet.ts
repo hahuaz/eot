@@ -1,14 +1,11 @@
-import fs from "fs";
-import path from "path";
-
 import { google } from "googleapis";
 
-import type { ScrapeResult } from "@/types";
+import type { ScrapeItem } from "@/types";
 import { APP_CONFIG } from "@/config";
 
 const { SHEETS } = APP_CONFIG;
 
-export async function updateScrapeSheet(scrapeResult: ScrapeResult) {
+export async function updateSheetSymbols(scrapeResult: ScrapeItem[]) {
   // find invest sheet
   const investSheetConfig = SHEETS.find((sheet) => sheet.name === "invest");
   if (!investSheetConfig) {
@@ -70,97 +67,5 @@ export async function updateScrapeSheet(scrapeResult: ScrapeResult) {
     });
   } catch (error) {
     console.error("Error updating sheet:", error);
-  }
-}
-
-export async function getTrStockSheets(sheetName: string) {
-  console.log(`\n--- Retrieving from Google Sheet [${sheetName}]---`);
-
-  // find tr-stocks sheet config
-  const sheetConfig = SHEETS.find((sheet) => sheet.name === "tr-stocks");
-  if (!sheetConfig) {
-    throw new Error(
-      "TR Stocks sheet configuration not found in APP_CONFIG.SHEETS",
-    );
-  }
-
-  const spreadsheetId = sheetConfig.id;
-
-  const auth = new google.auth.GoogleAuth({
-    keyFile: sheetConfig.credentialPath,
-    scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
-  });
-  const sheetsApi = google.sheets({ version: "v4", auth });
-
-  try {
-    // 1. Get spreadsheet metadata to find the exact sheet name (case-insensitive match)
-    const spreadsheet = await sheetsApi.spreadsheets.get({
-      spreadsheetId: spreadsheetId,
-    });
-
-    const sheet = (spreadsheet.data.sheets || []).find(
-      (s) => s.properties?.title?.toLowerCase() === sheetName.toLowerCase(),
-    );
-
-    if (!sheet) {
-      console.warn(`Sheet "${sheetName}" not found in spreadsheet.`);
-      return null;
-    }
-
-    const actualSheetName = sheet.properties!.title!;
-    // Set the range strictly from A1 to L15
-    const range = `'${actualSheetName}'!A1:L15`;
-
-    // 2. Read existing data
-    const response = await sheetsApi.spreadsheets.values.get({
-      spreadsheetId: spreadsheetId,
-      range: range,
-    });
-
-    const rows = response.data.values || [];
-    if (rows.length === 0) {
-      console.warn(`No data found in sheet "${actualSheetName}".`);
-      return null;
-    }
-
-    // --- Save retrieved range to sheets directory as CSV ---
-    const maxColumns = Math.max(...rows.map((row) => row.length));
-
-    const csvContent = rows
-      .map((row) => {
-        // Create a new array of length `maxColumns` and fill missing cells with empty strings
-        const paddedRow = Array.from(
-          { length: maxColumns },
-          (_, i) => row[i] ?? "",
-        );
-
-        return paddedRow
-          .map((cell) => {
-            const str = String(cell);
-            // Escape cell values if they contain commas, quotes, or newlines
-            if (str.includes(",") || str.includes('"') || str.includes("\n")) {
-              return `"${str.replace(/"/g, '""')}"`;
-            }
-            return str;
-          })
-          .join(",");
-      })
-      .join("\r\n");
-
-    const sheetsDir = path.join(process.cwd(), "local-data", "stocks", "tr");
-    if (!fs.existsSync(sheetsDir)) {
-      fs.mkdirSync(sheetsDir, { recursive: true });
-    }
-    fs.writeFileSync(
-      path.join(sheetsDir, `${actualSheetName}.csv`),
-      csvContent,
-    );
-    console.log(`💾 Saved sheet data to: sheets/${actualSheetName}.csv`);
-  } catch (error: any) {
-    console.error(
-      `❌ Error retrieving from Google Sheet ${sheetName}:`,
-      error.message,
-    );
-    return null;
   }
 }

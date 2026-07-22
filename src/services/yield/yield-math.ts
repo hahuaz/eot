@@ -1,4 +1,3 @@
-import { DAYS_IN_YEAR } from "@/lib";
 import { SymbolPrice } from "@/types";
 
 /**
@@ -17,14 +16,6 @@ export function getClosestEntry(
       ? entry
       : closest,
   );
-}
-
-/**
- * Annualizes a return ratio over a given number of days.
- */
-export function annualizeRatio(ratio: number, days: number): number {
-  if (days <= 0) return 0;
-  return Math.pow(ratio, DAYS_IN_YEAR / days) - 1;
 }
 
 /**

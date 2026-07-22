@@ -1,6 +1,4 @@
-import { allSymbols } from "@eot/shared";
-
-export const API_URL = "http://localhost:5555/";
+export const API_URL = "http://localhost:3333/";
 
 export const DEFAULT_RETURN_SYMBOLS = ["BGP_USDTRY", "TP2_USDTRY", "GOLD"];
 
@@ -12,10 +10,14 @@ function colorForIndex(index: number, total: number): string {
   return `hsl(${hue}, 65%, 45%)`;
 }
 
-export const returnSymbolColors = allSymbols.reduce(
-  (acc, symbol, index) => {
-    acc[symbol] = colorForIndex(index, allSymbols.length);
-    return acc;
-  },
-  {} as Record<(typeof allSymbols)[number], string>,
-);
+// The yield symbol list is DB-driven (see YieldService.getAllYieldData), so
+// colors are derived per-page from whatever symbols the API actually
+// returns, rather than from a static import.
+export function colorsForSymbols(symbols: string[]): Record<string, string> {
+  return Object.fromEntries(
+    symbols.map((symbol, index) => [
+      symbol,
+      colorForIndex(index, symbols.length),
+    ]),
+  );
+}

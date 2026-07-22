@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import { allSymbols } from "@eot/shared";
 import { YieldService } from "@/services";
 
 const DATE_THRESHOLD = 1780261200000;
@@ -13,19 +12,20 @@ function filterByDateThreshold<T extends { date: number }>(
 }
 
 describe("Yield regression snapshots", () => {
-  it.each(allSymbols)(
-    "%s cumulative + YoY yields match snapshot",
-    async (symbol) => {
-      const cumulativeYields = filterByDateThreshold(
-        await YieldService.getCumulativeYields(symbol),
-        DATE_THRESHOLD,
-      );
-      const yoyYields = filterByDateThreshold(
-        await YieldService.getYoyYields(symbol),
-        DATE_THRESHOLD,
-      );
+  it("all yield-included symbols' cumulative + YoY yields match snapshot", async () => {
+    const allYieldData = await YieldService.getAllYieldData();
 
-      expect({ cumulativeYields, yoyYields }).toMatchSnapshot();
-    },
-  );
+    const filtered = allYieldData.map(
+      ({ symbol, cumulativeYields, yoyYields }) => ({
+        symbol,
+        cumulativeYields: filterByDateThreshold(
+          cumulativeYields,
+          DATE_THRESHOLD,
+        ),
+        yoyYields: filterByDateThreshold(yoyYields, DATE_THRESHOLD),
+      }),
+    );
+
+    expect(filtered).toMatchSnapshot();
+  });
 });

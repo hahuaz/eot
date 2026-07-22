@@ -5,10 +5,10 @@ import type { InferGetStaticPropsType, GetStaticProps } from "next";
 import {
   API_URL,
   DEFAULT_RETURN_SYMBOLS,
-  returnSymbolColors,
+  colorsForSymbols,
   formatDate,
 } from "@/lib";
-import { CumulativeYield, allSymbols } from "@eot/shared";
+import { CumulativeYield, YieldSymbolData } from "@eot/shared";
 import {
   ChartConfig,
   ChartContainer,
@@ -24,20 +24,23 @@ interface CumulativeYieldsProps {
 
 export const getStaticProps: GetStaticProps<{
   cumulativeYields: CumulativeYieldsProps;
+  allowedSymbols: string[];
 }> = async () => {
-  // Fetch data for all base and composite symbols
-  const symbolData: Record<string, CumulativeYield[]> = {};
+  const allYieldData: YieldSymbolData[] = await fetch(
+    `${API_URL}api/yield/all`,
+  ).then((res) => res.json());
 
-  for (const symbol of allSymbols) {
-    const data = await fetch(
-      `${API_URL}api/yield/cumulative?symbol=${symbol}`,
-    ).then((res) => res.json());
-    symbolData[symbol] = data;
-  }
+  const symbolData = Object.fromEntries(
+    allYieldData.map(({ symbol, cumulativeYields }) => [
+      symbol,
+      cumulativeYields,
+    ]),
+  );
 
   return {
     props: {
       cumulativeYields: symbolData,
+      allowedSymbols: allYieldData.map(({ symbol }) => symbol),
     },
   };
 };
@@ -79,6 +82,7 @@ const alignTimeSeriesData = (
 
 const CumulativeYieldsChart = ({
   cumulativeYields,
+  allowedSymbols,
 }: InferGetStaticPropsType<typeof getStaticProps>) => {
   const allData = alignTimeSeriesData(cumulativeYields);
   const allDates = [...new Set(allData.map((d) => d.date))].sort(
@@ -95,11 +99,13 @@ const CumulativeYieldsChart = ({
   });
   console.log("Filtered data for chart:", filteredData);
 
-  // pre-determined symbols (keys from CumulativeYields)
-  const allowedSymbols = allSymbols;
-
   const [selectedSymbols, setSelectedSymbols] = useState<string[]>(
     DEFAULT_RETURN_SYMBOLS,
+  );
+
+  const symbolColors = useMemo(
+    () => colorsForSymbols(allowedSymbols),
+    [allowedSymbols],
   );
 
   const chartConfig = useMemo<ChartConfig>(
@@ -107,10 +113,10 @@ const CumulativeYieldsChart = ({
       Object.fromEntries(
         selectedSymbols.map((symbol) => [
           symbol,
-          { label: symbol, color: returnSymbolColors[symbol] },
+          { label: symbol, color: symbolColors[symbol] },
         ]),
       ),
-    [selectedSymbols],
+    [selectedSymbols, symbolColors],
   );
 
   return (

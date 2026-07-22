@@ -5,10 +5,10 @@ import type { InferGetStaticPropsType, GetStaticProps } from "next";
 import {
   API_URL,
   DEFAULT_RETURN_SYMBOLS,
-  returnSymbolColors,
+  colorsForSymbols,
   formatDate,
 } from "@/lib";
-import { YoyYield, allSymbols } from "@eot/shared";
+import { YieldSymbolData, YoyYield } from "@eot/shared";
 import {
   ChartConfig,
   ChartContainer,
@@ -24,25 +24,20 @@ interface YoyReturnsData {
 
 export const getStaticProps: GetStaticProps<{
   yoyReturnsData: YoyReturnsData;
+  allowedSymbols: string[];
 }> = async () => {
-  // Fetch data for all base and composite symbols
-  const symbolData: Record<string, YoyYield[]> = {};
+  const allYieldData: YieldSymbolData[] = await fetch(
+    `${API_URL}api/yield/all`,
+  ).then((res) => res.json());
 
-  for (const symbol of allSymbols) {
-    try {
-      const data = await fetch(`${API_URL}api/yield/yoy?symbol=${symbol}`).then(
-        (res) => res.json(),
-      );
-      symbolData[symbol] = data;
-    } catch (error) {
-      console.error(`Failed to fetch YoY returns for ${symbol}:`, error);
-      symbolData[symbol] = [];
-    }
-  }
+  const symbolData = Object.fromEntries(
+    allYieldData.map(({ symbol, yoyYields }) => [symbol, yoyYields]),
+  );
 
   return {
     props: {
       yoyReturnsData: symbolData,
+      allowedSymbols: allYieldData.map(({ symbol }) => symbol),
     },
   };
 };
@@ -95,6 +90,7 @@ const alignTimeSeriesData = (
 
 const YoyReturnsChart = ({
   yoyReturnsData,
+  allowedSymbols,
 }: InferGetStaticPropsType<typeof getStaticProps>) => {
   const allData = alignTimeSeriesData(yoyReturnsData);
   const allDates = [...new Set(allData.map((d) => d.date))].sort(
@@ -111,11 +107,13 @@ const YoyReturnsChart = ({
     return date >= startDate;
   });
 
-  // Available symbols
-  const allowedSymbols = allSymbols;
-
   const [selectedSymbols, setSelectedSymbols] = useState<string[]>(
     DEFAULT_RETURN_SYMBOLS,
+  );
+
+  const symbolColors = useMemo(
+    () => colorsForSymbols(allowedSymbols),
+    [allowedSymbols],
   );
 
   const chartConfig = useMemo<ChartConfig>(
@@ -123,10 +121,10 @@ const YoyReturnsChart = ({
       Object.fromEntries(
         selectedSymbols.map((symbol) => [
           symbol,
-          { label: symbol.toUpperCase(), color: returnSymbolColors[symbol] },
+          { label: symbol.toUpperCase(), color: symbolColors[symbol] },
         ]),
       ),
-    [selectedSymbols],
+    [selectedSymbols, symbolColors],
   );
 
   return (

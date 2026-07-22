@@ -1,6 +1,6 @@
 {
   "explorer.fileNesting.enabled": true,
   "explorer.fileNesting.patterns": {
-    "package.json": "package-lock.json, pnpm-lock.yaml, pnpm-workspace.yaml, tsconfig*, vitest.config.ts, oxlint.config.ts, .prettierrc, .prettierignore, .gitignore, .gitattributes, .env*, example.env"
+    "package.json": "package-lock.json, pnpm-lock.yaml, pnpm-workspace.yaml, tsconfig*, vitest.config.ts, oxlint.config.ts, .prettierrc, .prettierignore, .gitignore, .gitattributes, .env*, example.env, docker-compose.yml, drizzle.config.ts"
   }
 }

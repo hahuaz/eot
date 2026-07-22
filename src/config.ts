@@ -1,6 +1,13 @@
 import * as dotenv from "dotenv";
 import * as path from "path";
 
+// Pin the process to UTC so local-timezone Date accessors (getFullYear,
+// getMonth, setHours, ...) can't silently disagree with their getUTC*
+// counterparts depending on what machine/container this runs on - every
+// entry point (server + scripts) loads this file first, before any Date
+// parsing happens.
+process.env.TZ = "UTC";
+
 // Load environment variables based on NODE_ENV
 dotenv.config({
   path: `.env.${process.env.NODE_ENV || "development"}`,
@@ -27,18 +34,13 @@ function getEnv(key: string, required: boolean = true): string {
 
 export const APP_CONFIG: AppConfig = {
   NODE_ENV: getEnv("NODE_ENV", false) || "development",
-  APP_PORT: Number(getEnv("PORT", false)) || 5555,
+  APP_PORT: Number(getEnv("BACKEND_PORT", false)) || 3333,
   DATABASE_URL: getEnv("DATABASE_URL"),
   SHEETS: [
     {
       name: "invest",
       id: getEnv("INVEST_SHEET_ID"),
       credentialPath: path.join(process.cwd(), "credentials", "invest.json"),
-    },
-    {
-      name: "tr-stocks",
-      id: getEnv("TR_STOCKS_SHEET_ID"),
-      credentialPath: path.join(process.cwd(), "credentials", "tr-stocks.json"),
     },
   ],
 };
