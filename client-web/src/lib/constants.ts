@@ -9,19 +9,19 @@ export type SymbolTheme = { light: string; dark: string };
 // by position, never generated/cycled, so a symbol's color stays stable as
 // the checkbox selection changes and doesn't depend on how many are selected.
 const CATEGORICAL_PALETTE: SymbolTheme[] = [
-  { light: "#2a78d6", dark: "#3987e5" }, // blue
-  { light: "#eb6834", dark: "#d95926" }, // orange
-  { light: "#1baf7a", dark: "#199e70" }, // aqua
-  { light: "#eda100", dark: "#c98500" }, // yellow
-  { light: "#e87ba4", dark: "#d55181" }, // magenta
-  { light: "#008300", dark: "#008300" }, // green
-  { light: "#4a3aa7", dark: "#9085e9" }, // violet
-  { light: "#e34948", dark: "#e66767" }, // red
+  { light: "#2a78d6", dark: "#58a6ff" }, // blue
+  { light: "#eb6834", dark: "#db6d28" }, // orange
+  { light: "#1baf7a", dark: "#39c5cf" }, // aqua
+  { light: "#eda100", dark: "#e3b341" }, // yellow
+  { light: "#e87ba4", dark: "#f778ba" }, // magenta
+  { light: "#008300", dark: "#3fb950" }, // green
+  { light: "#4a3aa7", dark: "#ab7df8" }, // violet
+  { light: "#e34948", dark: "#f85149" }, // red
 ];
 
 // Symbols past the 8 validated slots fall back to a neutral muted tone
 // rather than an unvalidated generated hue.
-const FALLBACK_COLOR: SymbolTheme = { light: "#898781", dark: "#898781" };
+const FALLBACK_COLOR: SymbolTheme = { light: "#898781", dark: "#8b949e" };
 
 // The yield symbol list is DB-driven (see YieldService.getAllYieldData), so
 // colors are derived per-page from whatever symbols the API actually
