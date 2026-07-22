@@ -546,7 +546,12 @@ async function renderVerifyScreenshots(
     `Rendering page screenshot(s) [${pageNumbers.join(", ")}] for ${symbol}...`,
   );
   try {
-    renderPageScreenshots(pdfPath, verifyScreenshotsDir, symbol, pageNumbers);
+    await renderPageScreenshots(
+      pdfPath,
+      verifyScreenshotsDir,
+      symbol,
+      pageNumbers,
+    );
   } catch (error: any) {
     console.error(`Error rendering verify screenshots: ${error.message}`);
   }
@@ -1764,6 +1769,31 @@ function applyManualCorrections(
   quarter: string,
   resolvedValues: Record<string, string>,
 ): void {
+  // tursg (Türkiye Sigorta) is an insurance company, so its financial
+  // statements follow SEDDK's insurance-specific chart of accounts rather
+  // than the general BIST balance sheet / income statement layout every
+  // configured keyword above targets - e.g. "nakit ve nakit benzerleri"
+  // reads "a- nakit ve nakit benzeri varlıklar", there's no "esas faaliyet
+  // karı" concept, and each row is prefixed with a "a-"/"b-"/... enum letter
+  // that the normal label matcher doesn't strip - none of it matches. Rather
+  // than build out a whole second section config for one exceptional
+  // report, pull just the current-period (31 mart 2026) equity/total-assets
+  // /income-statement figures the report already totals for us. Cash and
+  // debt line items are intentionally left unmapped (stay "0") - not needed
+  // yet.
+  if (baseName === "tursg" && quarter === "2026Q1") {
+    resolvedValues["ana ortaklığa ait özkaynaklar"] = "54.752.015.449"; // özsermaye toplamı
+    resolvedValues["toplam kaynaklar"] = "181.850.807.021"; // özsermaye ve yükümlülükler toplamı (== varlıklar toplamı)
+    // "genel teknik bölüm dengesi" (c+f+ı) is the sum of all technical
+    // department balances (non-life + life + pension) - the closest
+    // insurance-sector analog to a revenue/operating-result figure, per
+    // user direction to treat it as such. There's no separate line that
+    // cleanly maps to "esas faaliyet karı", so that field is left at its
+    // default "0" rather than guessed.
+    resolvedValues["hasılat"] = "6.891.106.879";
+    resolvedValues["ana ortaklık payları"] = "6.451.802.119"; // dönem net karı veya zararı
+  }
+
   // this bdf is broken. it has no ToUnicode mapping.
   if (baseName === "bsoke" && quarter === "2025Q2") {
     resolvedValues["nakit ve nakit benzerleri"] = "2.613.490";

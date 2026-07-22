@@ -1,6 +1,5 @@
 import fs from "fs";
 import path from "path";
-import * as mupdf from "mupdf";
 
 // Matches the resolution used elsewhere isn't a concern here - this is only
 // for human eyeballing in verify.md, so a middling resolution keeps file
@@ -13,13 +12,21 @@ const SCALE = RESOLUTION / 72;
  * "<symbol>-p<page_number>.png" under `outputDir`. Skips any page whose PNG
  * already exists, so re-running the pipeline doesn't re-render pages that
  * haven't changed.
+ *
+ * mupdf ships as a pure-ESM package with a top-level await (see its
+ * dist/mupdf.js) - a static `import` compiles to `require()` under this
+ * project's commonjs module target, which tsx can only satisfy by
+ * transforming the module to CJS via esbuild, and esbuild rejects
+ * top-level await in CJS output. A dynamic `import()` sidesteps that
+ * entirely: Node loads the ESM module natively instead of going through
+ * tsx's require-transform path.
  */
-export function renderPageScreenshots(
+export async function renderPageScreenshots(
   pdfPath: string,
   outputDir: string,
   symbol: string,
   pageNumbers: number[],
-): void {
+): Promise<void> {
   fs.mkdirSync(outputDir, { recursive: true });
 
   const missingPages = pageNumbers.filter(
@@ -28,6 +35,7 @@ export function renderPageScreenshots(
   );
   if (missingPages.length === 0) return;
 
+  const mupdf = await import("mupdf");
   const doc = mupdf.Document.openDocument(pdfPath);
   const pageCount = doc.countPages();
   const matrix = mupdf.Matrix.scale(SCALE, SCALE);
