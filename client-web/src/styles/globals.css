@@ -36,6 +36,11 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  /* Precomputed, opaque equivalent of muted/50-over-background. Solid rather
+     than translucent so a sticky cell's own background and a row's hover
+     background never composite on top of each other and drift apart in
+     color (see stock table's sticky stockName column). */
+  --row-hover: color-mix(in srgb, var(--muted) 50%, var(--background));
 }
 
 @theme inline {

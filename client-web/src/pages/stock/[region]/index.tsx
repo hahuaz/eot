@@ -370,7 +370,7 @@ const RegionalStocksPage = ({
                     className={cn(
                       "whitespace-nowrap px-2 py-1",
                       cell.column.id === "stockName" &&
-                        "sticky left-0 z-10 bg-background transition-colors group-hover:bg-muted/50",
+                        "sticky left-0 z-10 bg-background transition-colors group-hover:bg-[var(--row-hover)]",
                       isText ? "text-left" : "text-right",
                       SIGNED_COLUMNS.has(cell.column.id) &&
                         signedColor(cell.getValue()),
