@@ -130,8 +130,8 @@ const GrowthLabel = ({ growth }: { growth: number | null }) => {
     growth > 0 ? "text-green-600" : growth < 0 ? "text-red-600" : "";
 
   return (
-    <span className={`ml-1 text-[10px] ${colorClass}`}>
-      ({formatNumber({ num: growth, digits: 2 })})
+    <span className={`text-[10px] ${colorClass}`}>
+      %{formatNumber({ num: growth, digits: 2 })}
     </span>
   );
 };
@@ -162,8 +162,11 @@ const StockDetailPage = ({
         <TableBody>
           {Object.entries(SECTIONS).map(([sectionName, metricNames]) => (
             <React.Fragment key={sectionName}>
-              <TableRow>
-                <TableCell className="text-left font-bold" colSpan={1}>
+              <TableRow className="hover:bg-transparent">
+                <TableCell
+                  className="bg-muted/50 text-left font-bold"
+                  colSpan={4 + quarters.length + 1}
+                >
                   {sectionName}
                 </TableCell>
               </TableRow>
@@ -196,12 +199,16 @@ const StockDetailPage = ({
                     </TableCell>
                     {quarters.map((quarter) => (
                       <TableCell key={quarter} className="text-right">
-                        {formatMetricValue(
-                          metric.values[quarter],
-                          metric.metricName,
-                          digits,
-                        )}
-                        <GrowthLabel growth={metric.qoqGrowth[quarter]} />
+                        <div className="flex flex-col items-end leading-tight">
+                          <span>
+                            {formatMetricValue(
+                              metric.values[quarter],
+                              metric.metricName,
+                              digits,
+                            )}
+                          </span>
+                          <GrowthLabel growth={metric.qoqGrowth[quarter]} />
+                        </div>
                       </TableCell>
                     ))}
                   </TableRow>

@@ -17,6 +17,15 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { YieldFilters } from "@/components/yield-filters";
 
 interface YoyReturnsData {
   [key: string]: YoyYield[];
@@ -121,201 +130,152 @@ const YoyReturnsChart = ({
       Object.fromEntries(
         selectedSymbols.map((symbol) => [
           symbol,
-          { label: symbol.toUpperCase(), color: symbolColors[symbol] },
+          { label: symbol, theme: symbolColors[symbol] },
         ]),
       ),
     [selectedSymbols, symbolColors],
   );
 
+  const toggleSymbol = (symbol: string) =>
+    setSelectedSymbols((prev) =>
+      prev.includes(symbol)
+        ? prev.filter((p) => p !== symbol)
+        : [...prev, symbol],
+    );
+
+  const tableRows = filteredData.slice(-20);
+
   return (
-    <div className="w-full">
-      <div>
-        <h1>Year-over-Year Returns</h1>
-      </div>
+    <div className="flex flex-col gap-4 p-4">
+      <h1 className="text-2xl font-semibold tracking-tight">
+        Year-over-Year Returns
+      </h1>
 
-      {/* Controls */}
-      <div className="">
-        {/* Date range selector */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            marginBottom: 12,
-          }}
-        >
-          <label style={{ fontSize: 12 }}>Start Date:</label>
-          <select
-            style={{ fontSize: 12, padding: "4px 8px" }}
-            value={selectedStartDate}
-            onChange={(e) => setSelectedStartDate(Number(e.target.value))}
-          >
-            {allDates.map((date) => (
-              <option key={date} value={date}>
-                {formatDate(date)}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            Select Symbols:
-          </label>
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-            {allowedSymbols.map((symbol) => (
-              <label key={symbol} className="flex items-center text-sm">
-                <input
-                  type="checkbox"
-                  checked={selectedSymbols.includes(symbol)}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedSymbols([...selectedSymbols, symbol]);
-                    } else {
-                      setSelectedSymbols(
-                        selectedSymbols.filter((s) => s !== symbol),
-                      );
-                    }
-                  }}
-                  className="mr-2"
-                />
-                <span className="capitalize">{symbol}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Chart */}
-      <div className="mt-6 bg-white rounded-lg shadow p-4">
-        <ChartContainer
-          config={chartConfig}
-          className="aspect-auto h-[1000px] w-full"
-        >
-          <LineChart data={filteredData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis
-              dataKey="date"
-              tickFormatter={(date) =>
-                new Date(date).toLocaleDateString("en-US", {
-                  month: "short",
-                  year: "2-digit",
-                })
-              }
-              tick={{ fontSize: 12 }}
-            />
-            <YAxis
-              tickFormatter={(value) => `${(value * 100).toFixed(1)}%`}
-              tick={{ fontSize: 12 }}
-            />
-            <ChartTooltip
-              content={({ active, payload, label }) => (
-                <ChartTooltipContent
-                  active={active}
-                  label={label}
-                  // recharts' itemSorter is ignored when a custom `content`
-                  // is used, so sort the payload ourselves (descending).
-                  payload={
-                    payload
-                      ? [...payload].sort(
-                          (a, b) =>
-                            (Number(b.value) || 0) - (Number(a.value) || 0),
-                        )
-                      : payload
-                  }
-                  labelFormatter={(_, payload) =>
-                    formatDate(
-                      (payload?.[0]?.payload as { date: number })?.date,
-                    )
-                  }
-                  formatter={(value, name) => (
-                    <>
-                      <div
-                        className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
-                        style={{ backgroundColor: `var(--color-${name})` }}
-                      />
-                      <div className="flex flex-1 items-center justify-between leading-none">
-                        <span className="text-muted-foreground">{name}</span>
-                        <span className="font-mono font-medium tabular-nums text-foreground">
-                          {typeof value === "number"
-                            ? `${(value * 100).toFixed(2)}%`
-                            : "N/A"}
-                        </span>
-                      </div>
-                    </>
-                  )}
-                />
-              )}
-            />
-            <ChartLegend content={<ChartLegendContent />} />
-            {selectedSymbols.map((symbol) => (
-              <Line
-                key={symbol}
-                type="monotone"
-                dataKey={symbol}
-                stroke={`var(--color-${symbol})`}
-                connectNulls
-                isAnimationActive={false}
-                dot={false}
-                name={symbol.toUpperCase()}
+      <ChartContainer
+        config={chartConfig}
+        className="aspect-auto h-[800px] w-full"
+      >
+        <LineChart data={filteredData}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis
+            dataKey="date"
+            tickFormatter={(date) =>
+              new Date(date).toLocaleDateString("en-US", {
+                month: "short",
+                year: "2-digit",
+              })
+            }
+            tick={{ fontSize: 12 }}
+          />
+          <YAxis
+            tickFormatter={(value) => `${(value * 100).toFixed(1)}%`}
+            tick={{ fontSize: 12 }}
+          />
+          <ChartTooltip
+            content={({ active, payload, label }) => (
+              <ChartTooltipContent
+                active={active}
+                label={label}
+                // recharts' itemSorter is ignored when a custom `content`
+                // is used, so sort the payload ourselves (descending).
+                payload={
+                  payload
+                    ? [...payload].sort(
+                        (a, b) =>
+                          (Number(b.value) || 0) - (Number(a.value) || 0),
+                      )
+                    : payload
+                }
+                labelFormatter={(_, payload) =>
+                  formatDate((payload?.[0]?.payload as { date: number })?.date)
+                }
+                formatter={(value, name) => (
+                  <>
+                    <div
+                      className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
+                      style={{ backgroundColor: `var(--color-${name})` }}
+                    />
+                    <div className="flex flex-1 items-center justify-between leading-none">
+                      <span className="text-muted-foreground">{name}</span>
+                      <span className="font-mono font-medium tabular-nums text-foreground">
+                        {typeof value === "number"
+                          ? `${(value * 100).toFixed(2)}%`
+                          : "N/A"}
+                      </span>
+                    </div>
+                  </>
+                )}
               />
-            ))}
-          </LineChart>
-        </ChartContainer>
-      </div>
+            )}
+          />
+          <ChartLegend content={<ChartLegendContent />} />
+          {selectedSymbols.map((symbol) => (
+            <Line
+              key={symbol}
+              type="monotone"
+              dataKey={symbol}
+              stroke={`var(--color-${symbol})`}
+              connectNulls
+              isAnimationActive={false}
+              dot={false}
+              name={symbol}
+            />
+          ))}
+        </LineChart>
+      </ChartContainer>
 
-      {/* Data Table */}
-      <div className="mt-6 bg-white rounded-lg shadow overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b">
-              <tr>
-                <th className="px-4 py-3 text-left font-semibold text-gray-700">
-                  Date
-                </th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-700">
-                  Baseline Date
-                </th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-700">
-                  Days Passed
-                </th>
-                {selectedSymbols.map((symbol) => (
-                  <th
-                    key={symbol}
-                    className="px-4 py-3 text-right font-semibold text-gray-700"
-                  >
-                    {symbol.toUpperCase()}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredData.slice(-20).map((row, idx) => (
-                <tr key={idx} className="border-b hover:bg-gray-50">
-                  <td className="px-4 py-3 text-gray-600">
-                    {formatDate(row.date)}
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">
-                    {row.baselineDate ? formatDate(row.baselineDate) : "N/A"}
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">
-                    {row.daysPassed ?? "N/A"}
-                  </td>
-                  {selectedSymbols.map((symbol) => (
-                    <td
-                      key={symbol}
-                      className="px-4 py-3 text-right font-mono text-gray-600"
-                    >
-                      {row[symbol] !== undefined
-                        ? `${((row[symbol] as number) * 100).toFixed(2)}%`
-                        : "-"}
-                    </td>
-                  ))}
-                </tr>
+      <YieldFilters
+        allDates={allDates}
+        selectedStartDate={selectedStartDate}
+        onStartDateChange={setSelectedStartDate}
+        allowedSymbols={allowedSymbols}
+        selectedSymbols={selectedSymbols}
+        onToggleSymbol={toggleSymbol}
+        symbolColors={symbolColors}
+      />
+
+      <div>
+        <h2 className="text-base font-medium">History</h2>
+        <p className="text-sm text-muted-foreground">
+          Showing the last {tableRows.length} of {filteredData.length} rows
+        </p>
+        <Table className="mt-2">
+          <TableHeader>
+            <TableRow>
+              <TableHead>Date</TableHead>
+              <TableHead>Baseline Date</TableHead>
+              <TableHead className="text-right">Days Passed</TableHead>
+              {selectedSymbols.map((symbol) => (
+                <TableHead key={symbol} className="text-right">
+                  {symbol}
+                </TableHead>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {tableRows.map((row) => (
+              <TableRow key={row.date}>
+                <TableCell>{formatDate(row.date)}</TableCell>
+                <TableCell>
+                  {row.baselineDate ? formatDate(row.baselineDate) : "N/A"}
+                </TableCell>
+                <TableCell className="text-right">
+                  {row.daysPassed ?? "N/A"}
+                </TableCell>
+                {selectedSymbols.map((symbol) => (
+                  <TableCell
+                    key={symbol}
+                    className="text-right font-mono tabular-nums"
+                  >
+                    {row[symbol] !== undefined
+                      ? `${((row[symbol] as number) * 100).toFixed(2)}%`
+                      : "-"}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </div>
     </div>
   );

@@ -17,6 +17,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { YieldFilters } from "@/components/yield-filters";
 
 interface CumulativeYieldsProps {
   [key: string]: CumulativeYield[];
@@ -97,7 +98,6 @@ const CumulativeYieldsChart = ({
     const startDate = new Date(selectedStartDate).setHours(0, 0, 0, 0);
     return date >= startDate;
   });
-  console.log("Filtered data for chart:", filteredData);
 
   const [selectedSymbols, setSelectedSymbols] = useState<string[]>(
     DEFAULT_RETURN_SYMBOLS,
@@ -113,62 +113,28 @@ const CumulativeYieldsChart = ({
       Object.fromEntries(
         selectedSymbols.map((symbol) => [
           symbol,
-          { label: symbol, color: symbolColors[symbol] },
+          { label: symbol, theme: symbolColors[symbol] },
         ]),
       ),
     [selectedSymbols, symbolColors],
   );
 
-  return (
-    <div className="w-full h-[500px]">
-      {/* Controls: checkboxes to include symbols in the chart */}
-      <div
-        style={{ display: "flex", gap: 12, marginBottom: 12, flexWrap: "wrap" }}
-      >
-        {allowedSymbols.map((key) => (
-          <label key={key} style={{ fontSize: 12 }}>
-            <input
-              type="checkbox"
-              checked={selectedSymbols.includes(key)}
-              onChange={() =>
-                setSelectedSymbols((prev) =>
-                  prev.includes(key)
-                    ? prev.filter((p) => p !== key)
-                    : [...prev, key],
-                )
-              }
-            />{" "}
-            {key}
-          </label>
-        ))}
-      </div>
+  const toggleSymbol = (symbol: string) =>
+    setSelectedSymbols((prev) =>
+      prev.includes(symbol)
+        ? prev.filter((p) => p !== symbol)
+        : [...prev, symbol],
+    );
 
-      {/* Date range selector */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          marginBottom: 12,
-        }}
-      >
-        <label style={{ fontSize: 12 }}>Start Date:</label>
-        <select
-          style={{ fontSize: 12, padding: "4px 8px" }}
-          value={selectedStartDate}
-          onChange={(e) => setSelectedStartDate(Number(e.target.value))}
-        >
-          {allDates.map((date) => (
-            <option key={date} value={date}>
-              {formatDate(date)}
-            </option>
-          ))}
-        </select>
-      </div>
+  return (
+    <div className="flex flex-col gap-4 p-4">
+      <h1 className="text-2xl font-semibold tracking-tight">
+        Cumulative Yields
+      </h1>
 
       <ChartContainer
         config={chartConfig}
-        className="aspect-auto h-full w-full"
+        className="aspect-auto h-[800px] w-full"
       >
         <LineChart data={filteredData}>
           <CartesianGrid strokeDasharray="3 3" />
@@ -232,6 +198,16 @@ const CumulativeYieldsChart = ({
             ))}
         </LineChart>
       </ChartContainer>
+
+      <YieldFilters
+        allDates={allDates}
+        selectedStartDate={selectedStartDate}
+        onStartDateChange={setSelectedStartDate}
+        allowedSymbols={allowedSymbols}
+        selectedSymbols={selectedSymbols}
+        onToggleSymbol={toggleSymbol}
+        symbolColors={symbolColors}
+      />
     </div>
   );
 };

@@ -13,7 +13,22 @@ import {
   flexRender,
   SortingState,
 } from "@tanstack/react-table";
-import { API_URL, formatNumber } from "@/lib";
+import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react";
+import { API_URL, cn, formatNumber } from "@/lib";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { StockSummaryEntry } from "@eot/shared";
 
 // One-row-per-stock summary/screener, sourced from GET /api/stock/:region
@@ -31,7 +46,7 @@ interface StockSummary {
   "(ev/oi) / yearly growth": number | "N/A";
   "Net debt / operating income": number | "N/A" | null;
   "Market value / book value": number | "N/A" | null;
-  Notes: string | null;
+  Notes: string[] | null;
   color: string | null;
 }
 
@@ -86,7 +101,7 @@ export const getStaticProps: GetStaticProps<{
 
     return {
       stockName: symbol,
-      Notes: notes?.length ? notes.join("|") : null,
+      Notes: notes?.length ? notes : null,
       color: color || null,
       "Observation Start Yield": observationStartYield,
       "Total yield": usdYieldMetric?.totalGrowth ?? null,
@@ -120,6 +135,44 @@ const formatCell = (val: unknown) => {
   return val;
 };
 
+// Columns whose sign is itself the signal (growth/return figures) - colored
+// green/red so the reader can scan for winners/losers without reading digits.
+const SIGNED_COLUMNS = new Set([
+  "TTM growth",
+  "(ev/oi) / ttm growth",
+  "Yearly growth",
+  "(ev/oi) / yearly growth",
+]);
+
+const signedColor = (val: unknown) => {
+  if (typeof val !== "number") return "";
+  if (val > 0) return "text-green-600 dark:text-green-500";
+  if (val < 0) return "text-red-600 dark:text-red-500";
+  return "";
+};
+
+const FLAG_LABEL: Record<string, string> = {
+  red: "Flagged: red",
+  green: "Flagged: green",
+  yellow: "Flagged: yellow",
+};
+
+const FLAG_DOT_CLASS: Record<string, string> = {
+  red: "bg-red-500",
+  green: "bg-green-500",
+  yellow: "bg-yellow-400",
+};
+
+const SortIcon = ({ isSorted }: { isSorted: false | "asc" | "desc" }) => {
+  if (isSorted === "asc")
+    return <ArrowUp className="size-4 shrink-0" strokeWidth={2.75} />;
+  if (isSorted === "desc")
+    return <ArrowDown className="size-4 shrink-0" strokeWidth={2.75} />;
+  return (
+    <ChevronsUpDown className="size-3.5 shrink-0 opacity-0 group-hover:opacity-40" />
+  );
+};
+
 const RegionalStocksPage = ({
   stocks,
   region,
@@ -140,14 +193,35 @@ const RegionalStocksPage = ({
     }),
     columnHelper.accessor("stockName", {
       header: "Stock Name",
-      cell: ({ getValue }) => (
-        <Link
-          href={`/stock/${region}/${getValue()}`}
-          className="hover:underline text-blue-600"
-        >
-          {getValue()}
-        </Link>
-      ),
+      cell: ({ getValue, row }) => {
+        const color = row.original.color;
+        const link = (
+          <Link
+            href={`/stock/${region}/${getValue()}`}
+            className="hover:underline"
+          >
+            {getValue()}
+          </Link>
+        );
+        if (!color) return link;
+        return (
+          <span className="inline-flex items-center gap-1.5">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className={cn(
+                    "inline-block size-2 shrink-0 rounded-full",
+                    FLAG_DOT_CLASS[color],
+                  )}
+                />
+              </TooltipTrigger>
+              <TooltipContent>{FLAG_LABEL[color] ?? color}</TooltipContent>
+            </Tooltip>
+            {link}
+          </span>
+        );
+      },
     }),
     columnHelper.accessor("Observation Start Yield", {
       header: "Obs. Start Return",
@@ -206,7 +280,19 @@ const RegionalStocksPage = ({
     }),
     columnHelper.accessor("Notes", {
       header: "Notes",
-      cell: ({ getValue }) => getValue() ?? "",
+      cell: ({ getValue }) => {
+        const notes = getValue();
+        if (!notes?.length) return null;
+        return (
+          <div className="flex flex-wrap justify-start gap-1">
+            {notes.map((note, i) => (
+              <Badge key={i} variant="secondary" className="font-normal">
+                {note}
+              </Badge>
+            ))}
+          </div>
+        );
+      },
     }),
   ];
 
@@ -220,81 +306,84 @@ const RegionalStocksPage = ({
   });
 
   return (
-    <div className="p-4 overflow-x-auto bg-white min-h-screen">
-      <table className="min-w-full text-sm text-center border-collapse border border-gray-200 shadow-sm">
-        <thead className="bg-gray-50">
+    <div className="p-4">
+      <Table>
+        <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
-            <tr key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
-                <th
-                  key={header.id}
-                  onClick={header.column.getToggleSortingHandler()}
-                  className={`px-3 py-2 border border-gray-200 cursor-pointer select-none hover:bg-gray-100 ${
-                    header.column.id === "Notes" ? "w-[300px]" : "w-[110px]"
-                  }`}
-                >
-                  <div className="flex items-center justify-center gap-1">
-                    {flexRender(
-                      header.column.columnDef.header,
-                      header.getContext(),
-                    )}
-                    <span>
-                      {{
-                        asc: " 🔼",
-                        desc: " 🔽",
-                      }[header.column.getIsSorted() as string] ?? null}
-                    </span>
-                  </div>
-                </th>
-              ))}
-            </tr>
-          ))}
-        </thead>
-        <tbody>
-          {table.getSortedRowModel().rows.map((row) => (
-            <tr key={row.id} className="hover:bg-gray-50 transition-colors">
-              {row.getVisibleCells().map((cell) => {
-                const isColoredColumn = [
-                  "TTM growth",
-                  "(ev/oi) / ttm growth",
-                  "Yearly growth",
-                  "(ev/oi) / yearly growth",
-                ].includes(cell.column.id);
-
+            <TableRow key={headerGroup.id}>
+              {headerGroup.headers.map((header) => {
+                const isText = ["rowIndex", "stockName", "Notes"].includes(
+                  header.column.id,
+                );
+                const isSorted = header.column.getIsSorted();
+                const label = flexRender(
+                  header.column.columnDef.header,
+                  header.getContext(),
+                );
+                const icon = <SortIcon isSorted={isSorted} />;
                 return (
-                  <td
-                    key={cell.id}
-                    className={`px-2 py-1 border border-gray-100 ${
-                      cell.column.id === "stockName" && row.original.color
-                        ? `stock-name ${row.original.color}`
-                        : ""
-                    } ${isColoredColumn ? "bg-yellow-50" : ""}`}
+                  <TableHead
+                    key={header.id}
+                    onClick={header.column.getToggleSortingHandler()}
+                    className={cn(
+                      "group cursor-pointer select-none whitespace-nowrap px-2 transition-colors",
+                      header.column.id === "stockName" &&
+                        "sticky left-0 z-20 bg-background",
+                      isSorted && "bg-accent/60 font-semibold",
+                      isText ? "text-left" : "text-right",
+                    )}
                   >
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
+                    <div
+                      className={cn(
+                        "flex items-center gap-1",
+                        isText ? "justify-start" : "justify-end",
+                      )}
+                    >
+                      {isText ? (
+                        <>
+                          {label}
+                          {icon}
+                        </>
+                      ) : (
+                        <>
+                          {icon}
+                          {label}
+                        </>
+                      )}
+                    </div>
+                  </TableHead>
                 );
               })}
-            </tr>
+            </TableRow>
           ))}
-        </tbody>
-        <tfoot className="bg-gray-50 font-medium">
-          {table.getFooterGroups().map((footerGroup) => (
-            <tr key={footerGroup.id}>
-              {footerGroup.headers.map((header) => (
-                <th
-                  key={header.id}
-                  className="px-3 py-2 border border-gray-200 text-left"
-                >
-                  {flexRender(
-                    header.column.columnDef.footer,
-                    header.getContext(),
-                  )}
-                </th>
-              ))}
-            </tr>
+        </TableHeader>
+        <TableBody>
+          {table.getSortedRowModel().rows.map((row) => (
+            <TableRow key={row.id} className="group">
+              {row.getVisibleCells().map((cell) => {
+                const isText = ["rowIndex", "stockName", "Notes"].includes(
+                  cell.column.id,
+                );
+                return (
+                  <TableCell
+                    key={cell.id}
+                    className={cn(
+                      "whitespace-nowrap px-2 py-1",
+                      cell.column.id === "stockName" &&
+                        "sticky left-0 z-10 bg-background transition-colors group-hover:bg-muted/50",
+                      isText ? "text-left" : "text-right",
+                      SIGNED_COLUMNS.has(cell.column.id) &&
+                        signedColor(cell.getValue()),
+                    )}
+                  >
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </TableCell>
+                );
+              })}
+            </TableRow>
           ))}
-        </tfoot>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 };

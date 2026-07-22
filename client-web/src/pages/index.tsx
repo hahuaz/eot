@@ -1,15 +1,7 @@
-import Link from "next/link";
-
 export default function Home() {
   return (
-    <div>
-      <Link href="/stock/us">View US Stocks</Link>
-      <br />
-      <Link href="/stock/tr">View TR Stocks</Link>
-      <br />
-      <Link href="/cumulative-yields">Cumulative Yields</Link>
-      <br />
-      <Link href="/yoy-yields">YoY Yields</Link>
+    <div className="flex min-h-[calc(100svh-3rem)] items-center justify-center text-muted-foreground">
+      Pick a page from the sidebar to get started.
     </div>
   );
 }
