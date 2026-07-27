@@ -23,7 +23,7 @@ const BASE_URL = "https://fintables.com";
 // month, not quarter number: 3/6/9/12 -> Q1/Q2/Q3/Q4) and the local folder
 // name are both derived from it below, rather than tracked as separate
 // hand-maintained constants that could drift out of sync with each other.
-const TARGET_QUARTER = "2025q1";
+const TARGET_QUARTER = "2024q4";
 const [, TARGET_YEAR, QUARTER_NUMBER] =
   TARGET_QUARTER.match(/^(\d{4})Q(\d)$/i)!;
 const TARGET_MONTH = String(Number(QUARTER_NUMBER) * 3);

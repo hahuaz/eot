@@ -12,15 +12,17 @@ import { SectionsConfig } from "./types";
  * string). So this doesn't build on bank.ts at all, same reasoning as
  * bank/insurance not building on ./general.
  *
- * Shares two of bank.ts's structural quirks, both handled the same way
- * outside this file (see extract-financial-values.ts):
+ * Shares two of bank.ts's structural quirks, both handled by
+ * ../pipelines/finance.ts's own splitLabelAndTokens rather than here (this
+ * file only holds the keyword/section data, not parsing logic - see
+ * pipelines/general.ts's doc comment for why each pdfType's pipeline owns
+ * a full independent copy of that):
  *  - Balance-sheet rows (equity, total assets) carry the same 6 trailing
- *    TP | YP | Toplam × current/prior columns as banks - see
- *    PDF_TYPE_CONFIGS's balanceSheetValueIndexOverride in ./index.
+ *    TP | YP | Toplam × current/prior columns as banks - fixed column
+ *    index, not auto-detected.
  *  - Every row is numbered with roman numerals ("ı.", "xıv."), and totals
  *    restate their own derivation in a trailing parenthetical ("dönem net
- *    karı/zararı (xv+xx)") - both stripped generically by
- *    isEnumerationMarker/trimTrailingFormulaRecap.
+ *    karı/zararı (xv+xx)").
  */
 export const financeSections: SectionsConfig = {
   equity: {
@@ -58,7 +60,16 @@ export const financeSections: SectionsConfig = {
     keywordSchemas: [
       {
         chosenLabel: "hasılat",
-        keyword: ["esas faaliyet gelirleri"],
+        // "esas faaliyet gelirleri"'s own row is sometimes left blank ("--
+        // --"), with the real figure only ever stated on one specific
+        // sub-item beneath it instead (2024Q1 ktlev: parent row blank,
+        // "tasarruf finansman gelirleri" carries the actual total - this
+        // company only does savings-finance business, so every *other*
+        // sub-category is legitimately zero and this one sub-line already
+        // equals what the parent total would have been). Listed second so
+        // reports that DO state the parent directly (2026Q1 ktlev) keep
+        // using that.
+        keyword: ["esas faaliyet gelirleri", "tasarruf finansman gelirleri"],
       },
       {
         // The operating-result line that already nets in funding costs,
@@ -76,8 +87,14 @@ export const financeSections: SectionsConfig = {
         // (the consolidated total including non-controlling interest) -
         // "ana ortaklığa ait kar/zarar" is specifically the parent-only
         // split-out (2026Q1 ktlev: 3.361.411.828, matching equity's own
-        // "dönem net kâr veya zararı" line exactly).
-        keyword: ["ana ortaklığa ait kar/zarar"],
+        // "dönem net kâr veya zararı" line exactly). Some reports never
+        // print that split-out row at all (2024Q1 ktlev - no "kontrol gücü
+        // olmayan paylar"/non-controlling-interest concept shown anywhere
+        // that quarter either), so "dönem net karı/zararı" itself - the
+        // consolidated total - is listed as a fallback: safe here since
+        // with no minority interest to split out, consolidated already
+        // equals parent-only.
+        keyword: ["ana ortaklığa ait kar/zarar", "dönem net karı/zararı"],
       },
     ],
   },
