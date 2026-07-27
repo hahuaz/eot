@@ -17,12 +17,27 @@
  *   4. Print a human-readable summary, then write the detailed CSV.
  *
  */
+import "@/config";
+
 import fs from "fs";
 import path from "path";
 import { spawn } from "child_process";
 import prettier from "prettier";
+import { pool } from "@/db/pool";
+import { getPdfTypeMap } from "@/db/stock-info.repository";
 import { ensureDirectories, logger } from "./lib";
 import { renderPageScreenshots } from "./render-page-screenshots";
+import {
+  generalSections,
+  getPdfTypeConfig,
+  SectionsConfig,
+  isEnumerationMarker,
+  stripGluedLetterMarker,
+  trimTrailingFormulaRecap,
+  normalizeCommaThousands,
+} from "./sections";
+
+const REGION = "tr";
 
 const ROOT_DIR = __dirname;
 
@@ -93,235 +108,14 @@ function discoverQuarters(): string[] {
 }
 
 // --- Section / keyword configuration ---
-const sections = {
-  currentAssets: {
-    sectionStartKeys: ["nakit ve nakit benzerleri"],
-    sectionEndKeys: [
-      "toplam dönen varlıklar",
-      "dönen varlıklar",
-      "duran varlıklar",
-    ],
-    /**
-     * For some reports, we can't detect section start because they don't include headers, etc. Thus we utilize nextSection chaining, if current section end is detected.
-     */
-    nextSection: "noncurrentAssets",
-    /**
-     * Whether a keyword's own row is allowed to resolve by summing its detail rows when it carries no value (see sumFollowingDetailLines).
-     */
-    allowDetailSum: true,
-    keywordPrefixes: [],
-    keywordSchemas: [
-      {
-        chosenLabel: "nakit ve nakit benzerleri",
-        keyword: ["nakit ve nakit benzerleri"],
-      },
-      {
-        chosenLabel: "finansal yatırımlar",
-        keyword: ["finansal yatırımlar", "Finansal varlıklar"],
-      },
-    ],
-  },
-  noncurrentAssets: {
-    sectionStartKeys: [],
-    sectionEndKeys: ["toplam varlıklar", "toplam kaynaklar"],
-    nextSection: "shortDebts",
-    allowDetailSum: true,
-    keywordPrefixes: [],
-    keywordSchemas: [
-      {
-        chosenLabel: "duran finansal yatırımlar",
-        keyword: ["finansal yatırımlar", "Finansal varlıklar"],
-      },
-    ],
-  },
-  shortDebts: {
-    sectionStartKeys: [
-      "kısa vadeli borçlanmalar",
-      "kısa vadeli yükümlülükler",
-      "Kısa vadeli yükümlülükler:",
-    ],
-    sectionEndKeys: ["TOPLAM KISA VADELİ YÜKÜMLÜLÜKLER"],
-    nextSection: "longDebts",
-    allowDetailSum: true,
-    // this feature only effects ttkom and ttrak.
-    // Some reports split a debt line into  "İlişkili taraflardan <keyword>" rows. We include those rows in our calculations but we don't want to produce seperate output keys, which makes verification harder. So we introduced keywordPrefixes
-    keywordPrefixes: ["İlişkili taraflardan", "İlişkili olmayan taraflardan"],
-    keywordSchemas: [
-      {
-        chosenLabel: "kısa vadeli borçlanmalar",
-        keyword: ["kısa vadeli borçlanmalar", "Banka kredileri"],
-      },
-      {
-        chosenLabel: "uzun vadeli borçlanmaların kısa vadeli kısımları",
-        keyword: [
-          "uzun vadeli borçlanmaların kısa vadeli kısımları",
-          "Uzun vadeli borçlanmaların kısa vadeli kısmı",
-          "uzun vadeli finansal borçların kısa vadeli kısımları",
-        ],
-      },
-      {
-        chosenLabel: "kısa dönem kira yükümlülükleri",
-        keyword: [
-          "Kiralama işlemlerinden kaynaklanan yükümlülükler",
-          "Kısa vadeli kiralama işlemlerinden borçlar",
-          "Kısa Vadeli Kiralama Borçları",
-          "kısa vadeli kiralama yükümlülükleri",
-          "Kiralama işlemlerinden borçların kısa vadeli kısımları",
-          "kiralama yükümlülükleri",
-          "kiralama işlemlerinden kısa vadeli yükümlülükler",
-          "kiralama işlemlerinden borçlar",
-          "finansal kiralama işlemlerinden borçlar",
-        ],
-      },
-    ],
-  },
-  longDebts: {
-    sectionStartKeys: [
-      "Uzun vadeli borçlanmalar",
-      "Uzun vadeli yükümlülükler",
-      "Uzun vadeli yükümlülükler:",
-    ],
-    sectionEndKeys: ["TOPLAM UZUN VADELİ YÜKÜMLÜLÜKLER"],
-    nextSection: "equity",
-    allowDetailSum: true,
-    keywordPrefixes: ["İlişkili taraflardan", "İlişkili olmayan taraflardan"],
-    keywordSchemas: [
-      {
-        chosenLabel: "uzun vadeli borçlanmalar",
-        keyword: ["uzun vadeli borçlanmalar", "Banka kredileri"],
-      },
-      {
-        chosenLabel: "uzun dönem kira yükümlülükleri",
-        keyword: [
-          "Kiralama işlemlerinden kaynaklanan yükümlülükler",
-          "Uzun vadeli kiralama işlemlerinden borçlar",
-          "Uzun Vadeli Kiralama Borçları",
-          "uzun vadeli kiralama yükümlülükleri",
-          "kiralama yükümlülükleri",
-          "kiralama işlemlerinden uzun vadeli yükümlülükler",
-          "kiralama işlemlerinden borçlar",
-          "finansal kiralama işlemlerinden borçlar",
-        ],
-      },
-    ],
-  },
-
-  equity: {
-    sectionStartKeys: [
-      "özkaynaklar",
-      "ana ortaklığa ait özkaynaklar",
-      "ana ortaklığa ait özkaynaklar:",
-      "Ana ortaklığa ait özkaynaklar toplamı",
-      "toplam özkaynaklar",
-    ],
-    sectionEndKeys: [
-      "toplam kaynaklar",
-      "toplam yükümlülükler ve özkaynaklar",
-      "TOPLAM YÜKÜMLÜLÜKLER VE ÖZKAYNAK",
-      "Toplam özkaynaklar ve yükümlülükler",
-    ],
-    // TODO nextsection doens't work since between equity and revenue section there is always #page-end# (equity page is finished). when equity ended, revenue section starts by force chain but then middle #page-end# ends the revenue.
-    // nextSection: "revenue",
-    allowDetailSum: false,
-    keywordPrefixes: [],
-    keywordSchemas: [
-      {
-        chosenLabel: "ana ortaklığa ait özkaynaklar",
-        keyword: [
-          "ana ortaklığa ait özkaynaklar",
-          "ana ortaklığa ait özkaynaklar:",
-          "Ana ortaklığa ait özkaynaklar toplamı",
-          "özkaynaklar",
-          "toplam özkaynaklar",
-          "toplam özkaynak",
-        ],
-      },
-      {
-        chosenLabel: "toplam kaynaklar",
-        keyword: [
-          "toplam kaynaklar",
-          "toplam yükümlülükler ve özkaynaklar",
-          "TOPLAM YÜKÜMLÜLÜKLER VE ÖZKAYNAK",
-          "toplam yükümlülük ve özkaynaklar",
-          "Toplam özkaynaklar ve yükümlülükler",
-          "toplam kaynaklar ve özkaynaklar",
-        ],
-      },
-    ],
-  },
-  revenue: {
-    sectionStartKeys: ["hasılat", "Hasılat (net)", "Satışlar", "gelirler"],
-    sectionEndKeys: [
-      "DİĞER KAPSAMLI GELİRLER",
-      "diğer kapsamlı gelirler",
-      "DİĞER KAPSAMLI GİDER/GELİR",
-      "diğer kapsamlı gelir/(gider)",
-      "diğer kapsamlı gider/gelir",
-      "diğer kapsamlı gelirler:",
-      "Pay Başına Kazanç (Zarar)",
-      "#page-end#",
-    ],
-    allowDetailSum: false,
-    keywordPrefixes: [],
-    keywordSchemas: [
-      {
-        chosenLabel: "hasılat",
-        keyword: ["hasılat", "Hasılat (net)", "Satışlar", "gelirler"],
-      },
-      {
-        chosenLabel: "esas faaliyet karı",
-        keyword: [
-          "esas faaliyet karı",
-          "esas faaliyet kârı",
-          "esas faaliyet karı veya (zararı)",
-          "esas faaliyet karı/(zararı)",
-          "esas faaliyet (zararı) / karı",
-          "Esas faaliyet (zararı) karı",
-          "Esas faaliyet (zararı)",
-          "faaliyet karı / (zararı)",
-          "Esas Faaliyet Karı/Zararı",
-          "esas faaliyet zararı",
-          "ESAS FAALİYET KAR / (ZARARI)",
-          "ESAS FAALİYET KARI (ZARARI)",
-          "Esas faaliyet karı/zararı",
-          "Esas Faaliyet Kârı/Zararı",
-          "ESAS FAALİYET KÂRI / (ZARARI)",
-          "esas faaliyet kârı / (zararı)",
-          "Esas Faaliyet Karı / Zararı (-)",
-          "Esas faaliyet kar (zararı)",
-          "ESAS FAALİYET ZARARI",
-          "faaliyet karı",
-        ],
-      },
-      {
-        chosenLabel: "ana ortaklık payları",
-        keyword: [
-          "ana ortaklık payları",
-          "-ana ortaklık payları",
-          "- ana ortaklık payları",
-          "kontrol gücü olmayan paylar ana ortaklık payları",
-          "net dönem karı",
-          "dönem zararı",
-          "dönem net karı",
-          "dönem karı",
-          "dönem karı (zararı)",
-          "Dönem karı / (zararı)",
-          "dönem karı veya (zararı)",
-          "dönem net karı/(zararı)",
-          "Dönem Net Karı/Zararı",
-          "Net dönem kârı",
-          "net dönem karı / (zararı)",
-          "DÖNEM KARI (ZARARI)",
-          "DÖNEM KARI/ZARARI",
-          "Sürdürülen Faaliyetler Net Dönem Karı",
-          "Sürdürülen faaliyetler dönem karı",
-          "sürdürülen faaliyetler dönem karı (zararı)",
-          "Sürdürülen faaliyetler net dönem karı/(zararı)",
-        ],
-      },
-    ],
-  },
-};
+//
+// Each sector's keyword config is its own standalone file under ./sections
+// (general/insurance/bank - see imports above) rather than one shared
+// object - none of the three vocabularies overlap, so a bank/insurer
+// variant built by cloning and pushing onto the general config only cost
+// readability (a decision you can't see without tracing every .push()
+// call) while dragging along dead sections (cash/debt) that sector never
+// populates.
 
 // --- Text helpers ---
 
@@ -508,9 +302,11 @@ async function convertPdfToMd(pdfPath: string, mdPath: string) {
     const mainContent = pages
       .slice(PDF_SCAN_START_PAGE - 1)
       .join("\n#page-end#\n");
-    const output = hasFirstPageWarning
-      ? `#first-page-warning:${FIRST_PAGE_WARNING_KEYWORD}#\n${mainContent}`
-      : mainContent;
+    const output = normalizeCommaThousands(
+      hasFirstPageWarning
+        ? `#first-page-warning:${FIRST_PAGE_WARNING_KEYWORD}#\n${mainContent}`
+        : mainContent,
+    );
 
     fs.mkdirSync(path.dirname(mdPath), { recursive: true });
     fs.writeFileSync(mdPath, output);
@@ -659,17 +455,58 @@ function isBareDigitMidRun(
   );
 }
 
+// Every report here has at least this many real trailing value columns
+// (current + prior period) - see mergeTwoPieceSplitNumber's use below.
+const MIN_TRAILING_VALUE_COLUMNS = 2;
+
+/** How many tokens, counting from the end, are already complete/valid numbers on their own - i.e. how many trailing value columns a row has without merging anything. */
+function countTrailingCompleteNumbers(tokens: string[]): number {
+  let count = 0;
+  for (let i = tokens.length - 1; i >= 0; i--) {
+    if (!COMPLETE_NUMBER_RE.test(tokens[i])) break;
+    count++;
+  }
+  return count;
+}
+
+/**
+ * `trailingCompleteCount` is countTrailingCompleteNumbers over every token
+ * after `next` - passed in rather than computed here since the caller
+ * already has the full row's tokens and this needs to stay a pure
+ * token+token+flag decision.
+ *
+ * A bank/insurance dipnot reference ("4.9", "5.2.13") fails
+ * COMPLETE_NUMBER_RE the exact same way a genuinely broken split-number
+ * fragment does (that's the whole primary-candidate check below), so shape
+ * alone can't tell "footnote index" from "value cut short mid-group" apart
+ * - e.g. 2026Q1 ykbnk's "dönem net karı/zararı" row, whose dipnot ref "4.9"
+ * otherwise concatenates with the real value "20.294.752" into a
+ * plausible-looking but wrong "4.920.294.752". What does distinguish them:
+ * merging is only ever *needed* to reach MIN_TRAILING_VALUE_COLUMNS - if
+ * the tokens after this candidate already provide that many complete
+ * numbers on their own (ykbnk: "20.294.752"/"11.418.148", 2 already), this
+ * one isn't a fragment to repair. isBareDigitMidRun candidates are exempt
+ * from this - that path already requires hasSeenGroupedValue, a narrower,
+ * separately-verified condition (see its own doc comment, e.g. 2024Q3
+ * ttrak/cimsa) that predates and isn't about this specific ambiguity.
+ */
 function mergeTwoPieceSplitNumber(
   token: string,
   next: string,
   hasSeenGroupedValue: boolean,
+  trailingCompleteCount: number,
 ): string | null {
   if (!isConsistNumber(token) || !isConsistNumber(next)) return null;
 
-  const isMergeCandidate =
-    !COMPLETE_NUMBER_RE.test(token) ||
-    isBareDigitMidRun(token, hasSeenGroupedValue);
-  if (!isMergeCandidate) return null;
+  const isBareDigitCandidate = isBareDigitMidRun(token, hasSeenGroupedValue);
+  const isPrimaryCandidate = !COMPLETE_NUMBER_RE.test(token);
+  if (!isPrimaryCandidate && !isBareDigitCandidate) return null;
+  if (
+    isPrimaryCandidate &&
+    trailingCompleteCount >= MIN_TRAILING_VALUE_COLUMNS
+  ) {
+    return null;
+  }
 
   return COMPLETE_NUMBER_RE.test(token + next) ? token + next : null;
 }
@@ -718,7 +555,12 @@ function mergeSplitNumberTokens(tokens: string[]): string[] {
 
     const twoPieceMerge =
       next !== undefined &&
-      mergeTwoPieceSplitNumber(token, next, hasSeenGroupedValue);
+      mergeTwoPieceSplitNumber(
+        token,
+        next,
+        hasSeenGroupedValue,
+        countTrailingCompleteNumbers(tokens.slice(i + 1)),
+      );
     if (twoPieceMerge) {
       merged.push(twoPieceMerge);
       hasSeenGroupedValue ||= isGroupedNumber(twoPieceMerge);
@@ -762,6 +604,10 @@ function isValueToken(token: string): boolean {
   return true;
 }
 
+// isEnumerationMarker / trimTrailingFormulaRecap (bank/insurance-only label
+// quirks, applied unconditionally - see their doc comments in
+// ./sections/sector-parsing for why) imported above from ./sections.
+
 /** Splits a line into tokens and the leading "label" portion (everything before the numeric columns start). */
 function splitLabelAndTokens(line: string): {
   label: string;
@@ -769,16 +615,44 @@ function splitLabelAndTokens(line: string): {
 } {
   const tokens = mergeSplitNumberTokens(line.trim().split(/\s+/));
 
-  let labelLastIndex = 0;
-  for (let i = 0; i <= tokens.length - 1; i++) {
+  let labelStartIndex = 0;
+  while (
+    labelStartIndex < tokens.length &&
+    isEnumerationMarker(tokens[labelStartIndex])
+  ) {
+    labelStartIndex++;
+  }
+  // A marker can also be glued directly onto the label's own first word
+  // with no space at all (see stripGluedLetterMarker) - isEnumerationMarker
+  // only strips one sitting in its own token, so this handles what's left.
+  if (labelStartIndex < tokens.length) {
+    tokens[labelStartIndex] = stripGluedLetterMarker(tokens[labelStartIndex]);
+  }
+
+  let labelLastIndex = labelStartIndex;
+  for (let i = labelStartIndex; i <= tokens.length - 1; i++) {
     if (!isConsistNumber(tokens[i])) {
       labelLastIndex = i;
     } else {
       break;
     }
   }
+  // A line can be nothing but marker(s) (e.g. 2025Q4 ktlev: a roman numeral
+  // sitting alone on its own line, with the actual label text wrapping onto
+  // the next line instead) - labelStartIndex then walks all the way to
+  // tokens.length, one past the last valid index, with no label token left
+  // to trim a recap from. Skip the trim entirely rather than indexing
+  // tokens[tokens.length] (undefined) - label ends up "" either way, same
+  // as any other row with no usable label.
+  if (labelStartIndex < tokens.length) {
+    labelLastIndex = trimTrailingFormulaRecap(
+      tokens,
+      labelStartIndex,
+      labelLastIndex,
+    );
+  }
 
-  const label = tokens.slice(0, labelLastIndex + 1).join(" ");
+  const label = tokens.slice(labelStartIndex, labelLastIndex + 1).join(" ");
   return { label, tokens };
 }
 
@@ -900,9 +774,15 @@ function mergeSplitLabelValueLines(lines: string[]): string[] {
 }
 
 // Page range convertPdfToMd extracts (1-indexed, inclusive) - matches this
-// project's original pdf_to_md.py range.
+// project's original pdf_to_md.py range, plus headroom added for annual
+// (year-end) bank filings specifically: a full-year audit opinion runs
+// noticeably longer than an interim quarter's limited-review report, which
+// can push the real balance sheet/income statement a few pages later than
+// usual (2025Q4 garan: income statement starts on page 17, entirely missing
+// under the original end page of 15 - "faiz gelirleri" absent from the
+// converted text at all, not just misplaced).
 const PDF_SCAN_START_PAGE = 2;
-const PDF_EXTRACT_END_PAGE = 15;
+const PDF_EXTRACT_END_PAGE = 20;
 
 // Matches the bare "#first-page-warning:<keyword>#" line convertPdfToMd
 // prepends to mdPath when page 1 hits FIRST_PAGE_WARNING_KEYWORD - see that
@@ -1087,22 +967,29 @@ function detectTlColumnOffset(
  * EUR/USD side by side) can further widen the column count on top of that;
  * detectTlColumnOffset locates the TL sub-column when that's the case.
  */
-const REVENUE_ROW_LABELS = new Set(
-  sections.revenue.keywordSchemas
-    .find((schema) => schema.chosenLabel === "hasılat")!
-    .keyword.map(normalizeText),
-);
+function buildRevenueRowLabels(sections: SectionsConfig): Set<string> {
+  const schema = sections.revenue.keywordSchemas.find(
+    (s) => s.chosenLabel === "hasılat",
+  );
+  return new Set((schema?.keyword ?? []).map(normalizeText));
+}
 
 /**
  * Anchor for balance sheet rows - "nakit ve nakit benzerleri" is the first
  * line item of every balance sheet and is a mandatory sectionStartKey, so
- * it's always present and always carries a real value on its own row.
+ * it's always present and always carries a real value on its own row (for
+ * the general template only - bank/insurance sections don't define a
+ * currentAssets section at all, since neither touches cash yet; returns an
+ * empty set in that case, and detectValueColumnIndex just falls back to
+ * its own default, same as if the anchor were merely absent from a given
+ * report).
  */
-const BALANCE_SHEET_ROW_LABELS = new Set(
-  sections.currentAssets.keywordSchemas
-    .find((schema) => schema.chosenLabel === "nakit ve nakit benzerleri")!
-    .keyword.map(normalizeText),
-);
+function buildBalanceSheetRowLabels(sections: SectionsConfig): Set<string> {
+  const schema = sections.currentAssets?.keywordSchemas.find(
+    (s) => s.chosenLabel === "nakit ve nakit benzerleri",
+  );
+  return new Set((schema?.keyword ?? []).map(normalizeText));
+}
 
 function detectValueColumnIndex(
   lines: string[],
@@ -1373,6 +1260,7 @@ function matchWrappedLabel(
 }
 
 function equityKeywordsFullyResolved(
+  sections: SectionsConfig,
   foundValues: Record<string, string | null>,
 ): boolean {
   return sections.equity.keywordSchemas.every((schema) =>
@@ -1383,7 +1271,7 @@ function equityKeywordsFullyResolved(
 }
 
 /** Step 2b: builds normalizedKey -> sectionName maps used to track which section the scan is currently inside. */
-function buildSectionKeyMaps(): {
+function buildSectionKeyMaps(sections: SectionsConfig): {
   sectionStartKeyMap: Record<string, string>;
   sectionEndKeyMap: Record<string, string>;
 } {
@@ -1430,6 +1318,7 @@ function pageNumberForLineIndex(
 }
 
 function matchKeywordsInLines(
+  sections: SectionsConfig,
   lines: string[],
   getValueIndexForSection: (sectionName: string) => number,
   sectionStartKeyMap: Record<string, string>,
@@ -1449,6 +1338,9 @@ function matchKeywordsInLines(
     for (const schema of sectionDef.keywordSchemas) {
       for (const key of schema.keyword) {
         foundValues[`${sectionName}_${schema.chosenLabel}_${key}`] = null;
+      }
+      if (schema.sumFallbackKeywords) {
+        foundValues[`${sectionName}_${schema.chosenLabel}_FALLBACK`] = null;
       }
       for (const prefix of sectionDef.keywordPrefixes) {
         prefixFoundValues[
@@ -1487,7 +1379,8 @@ function matchKeywordsInLines(
       // hasn't resolved all its own keywords yet. Every other section
       // switch goes through untouched.
       const allowSwitch =
-        !isEquityToRevenue || equityKeywordsFullyResolved(foundValues);
+        !isEquityToRevenue ||
+        equityKeywordsFullyResolved(sections, foundValues);
       if (allowSwitch) {
         currentSection = targetSection;
         logger.info(`###Section START: "${currentSection}" (${trimmed})`);
@@ -1533,7 +1426,11 @@ function matchKeywordsInLines(
         for (const key of schema.keyword) {
           const normalizedKey = normalizeText(key);
           const uniqueKey = `${sectionName}_${schema.chosenLabel}_${key}`;
-          if (foundValues[uniqueKey] !== null) continue;
+          // sumAllMatches schemas (e.g. insurance's "hasılat") deliberately
+          // keep matching every later occurrence of this same key instead of
+          // stopping at the first - see KeywordSchema.sumAllMatches.
+          if (!schema.sumAllMatches && foundValues[uniqueKey] !== null)
+            continue;
 
           // A keyword's label can itself wrap across lines before any value
           // appears - so
@@ -1556,8 +1453,23 @@ function matchKeywordsInLines(
           // isValueToken guards against lines like "özkaynaklar 19" where the keyword is used as section and should be ignored
           if (value && (isZeroPlaceholder(value) || isValueToken(value))) {
             const resolvedValue = isZeroPlaceholder(value) ? "0" : value;
-            foundValues[uniqueKey] = resolvedValue;
-            const matchedLine = `MATCHED [${key}] (section: "${currentSection}"): label="${label}" val="${resolvedValue}" (full line: "${trimmed}")`;
+            if (schema.sumAllMatches) {
+              // Insurers split "kazanılmış primler" across business segments
+              // (hayat dışı / hayat), each its own repeat of this same row -
+              // accumulate rather than overwrite, so both segments count
+              // (see e.g. 2026Q1 agesa/anhyt, whose life-segment premium
+              // dwarfs or matches the non-life one - taking just the first
+              // occurrence silently drops the other segment entirely).
+              const priorTotal = foundValues[uniqueKey]
+                ? parseTurkishNumber(foundValues[uniqueKey]!)
+                : 0;
+              foundValues[uniqueKey] = formatSummedNumber(
+                priorTotal + parseTurkishNumber(resolvedValue),
+              );
+            } else {
+              foundValues[uniqueKey] = resolvedValue;
+            }
+            const matchedLine = `MATCHED [${key}] (section: "${currentSection}"): label="${label}" val="${foundValues[uniqueKey]}" (full line: "${trimmed}")`;
             logger.info(matchedLine);
             foundValuePages[uniqueKey] = pageNumberForLineIndex(
               lines,
@@ -1654,6 +1566,50 @@ function matchKeywordsInLines(
           }
         }
       }
+
+      // --- Fallback-sum keyword matching (see KeywordSchema.sumFallbackKeywords) ---
+      // Always scanned, whether or not the schema's primary `keyword` list
+      // ends up resolving - resolveValuesFromMatches only uses this
+      // accumulator when the primary list never resolves, so there's no
+      // double-counting risk if a report happens to have both.
+      for (const schema of sectionDef.keywordSchemas) {
+        if (!schema.sumFallbackKeywords) continue;
+        const fallbackKey = `${sectionName}_${schema.chosenLabel}_FALLBACK`;
+
+        for (const key of schema.sumFallbackKeywords) {
+          const wrapLineCount = matchWrappedLabel(
+            lines,
+            lineIndex,
+            normalizeText(key),
+          );
+          if (wrapLineCount === 0) continue;
+
+          const lastWrapLineIndex = lineIndex + wrapLineCount - 1;
+          const { tokens: wrapTokens } = splitLabelAndTokens(
+            lines[lastWrapLineIndex],
+          );
+          const value = wrapTokens.at(extractValueIndex);
+          if (!value || !(isZeroPlaceholder(value) || isValueToken(value)))
+            continue;
+
+          const resolvedValue = isZeroPlaceholder(value) ? "0" : value;
+          const priorTotal = foundValues[fallbackKey]
+            ? parseTurkishNumber(foundValues[fallbackKey]!)
+            : 0;
+          foundValues[fallbackKey] = formatSummedNumber(
+            priorTotal + parseTurkishNumber(resolvedValue),
+          );
+          const matchedLine = `MATCHED [fallback:${key}] (section: "${currentSection}"): label="${label}" val="${foundValues[fallbackKey]}" (full line: "${trimmed}")`;
+          logger.info(matchedLine);
+          foundValuePages[fallbackKey] = pageNumberForLineIndex(
+            lines,
+            lastWrapLineIndex,
+            startPage,
+          );
+          lineIndex = lastWrapLineIndex;
+          break;
+        }
+      }
     }
 
     // finished with line. if it was section ending move to next section
@@ -1701,6 +1657,7 @@ function matchKeywordsInLines(
  * There can be reports that outside of these two patterns. We need to find and state here just to design better flow.
  */
 function resolveValuesFromMatches(
+  sections: SectionsConfig,
   foundValues: Record<string, string | null>,
   prefixFoundValues: Record<string, string | null>,
   foundValuePages: Record<string, number>,
@@ -1731,6 +1688,18 @@ function resolveValuesFromMatches(
         }
       }
 
+      // No keyword resolved, but a sumFallbackKeywords accumulator did (see
+      // KeywordSchema.sumFallbackKeywords) - e.g. insurers whose annual
+      // report never states a combined "genel teknik bölüm dengesi" total
+      // and only prints one row per business segment instead.
+      if (!valToWrite && schema.sumFallbackKeywords) {
+        const fallbackKey = `${sectionName}_${schema.chosenLabel}_FALLBACK`;
+        if (foundValues[fallbackKey]) {
+          valToWrite = foundValues[fallbackKey];
+          valPage = foundValuePages[fallbackKey];
+        }
+      }
+
       let prefixedTotal = 0;
       const prefixPages = new Set<number>();
       for (const prefix of sectionDef.keywordPrefixes) {
@@ -1743,9 +1712,25 @@ function resolveValuesFromMatches(
         }
       }
 
-      resolvedValues[schema.chosenLabel] =
+      const newValue =
         valToWrite ||
         (prefixedTotal !== 0 ? formatSummedNumber(prefixedTotal) : "0");
+
+      // A chosenLabel can be defined in two different sections, one as a
+      // fallback source for the other (insurance.ts's "ana ortaklık
+      // payları": revenue's own income-statement row is the primary
+      // source, but some annual reports never restate net income there and
+      // only print it once, inside the equity roll-forward's current-
+      // period-profit line - equity defines the same chosenLabel there as
+      // a fallback). Sections resolve in object-key order, so don't let a
+      // later section's unmatched "0" default clobber an earlier section's
+      // already-resolved value for the same chosenLabel.
+      const alreadyResolved =
+        resolvedValues[schema.chosenLabel] !== undefined &&
+        resolvedValues[schema.chosenLabel] !== "0";
+      if (alreadyResolved && newValue === "0") continue;
+
+      resolvedValues[schema.chosenLabel] = newValue;
 
       const pages = valToWrite
         ? valPage !== undefined
@@ -1769,31 +1754,6 @@ function applyManualCorrections(
   quarter: string,
   resolvedValues: Record<string, string>,
 ): void {
-  // tursg (Türkiye Sigorta) is an insurance company, so its financial
-  // statements follow SEDDK's insurance-specific chart of accounts rather
-  // than the general BIST balance sheet / income statement layout every
-  // configured keyword above targets - e.g. "nakit ve nakit benzerleri"
-  // reads "a- nakit ve nakit benzeri varlıklar", there's no "esas faaliyet
-  // karı" concept, and each row is prefixed with a "a-"/"b-"/... enum letter
-  // that the normal label matcher doesn't strip - none of it matches. Rather
-  // than build out a whole second section config for one exceptional
-  // report, pull just the current-period (31 mart 2026) equity/total-assets
-  // /income-statement figures the report already totals for us. Cash and
-  // debt line items are intentionally left unmapped (stay "0") - not needed
-  // yet.
-  if (baseName === "tursg" && quarter === "2026Q1") {
-    resolvedValues["ana ortaklığa ait özkaynaklar"] = "54.752.015.449"; // özsermaye toplamı
-    resolvedValues["toplam kaynaklar"] = "181.850.807.021"; // özsermaye ve yükümlülükler toplamı (== varlıklar toplamı)
-    // "genel teknik bölüm dengesi" (c+f+ı) is the sum of all technical
-    // department balances (non-life + life + pension) - the closest
-    // insurance-sector analog to a revenue/operating-result figure, per
-    // user direction to treat it as such. There's no separate line that
-    // cleanly maps to "esas faaliyet karı", so that field is left at its
-    // default "0" rather than guessed.
-    resolvedValues["hasılat"] = "6.891.106.879";
-    resolvedValues["ana ortaklık payları"] = "6.451.802.119"; // dönem net karı veya zararı
-  }
-
   // this bdf is broken. it has no ToUnicode mapping.
   if (baseName === "bsoke" && quarter === "2025Q2") {
     resolvedValues["nakit ve nakit benzerleri"] = "2.613.490";
@@ -1876,17 +1836,26 @@ async function writePagesManifest(
   fs.writeFileSync(pagesManifestPath, formatted);
 }
 
-/** Step 4: writes the final per-label values as a two-column CSV. */
+/**
+ * Step 4: writes the final per-label values as a two-column CSV. Always
+ * iterates generalSections rather than whichever pdfType config actually
+ * matched the report, so every symbol's CSV has the same fixed set of
+ * "Kalem" rows in the same order - bank/insurance configs don't define a
+ * currentAssets/shortDebts/longDebts section at all (see ./sections), so
+ * resolvedValues simply won't have those labels for those symbols; they're
+ * written out as "0" rather than skipped, same as any other unmatched
+ * label.
+ */
 function writeDetailedCsv(
   outputCsv: string,
   resolvedValues: Record<string, string>,
   quarter: string,
 ): void {
   let csvOutput = `Kalem,${quarter}\n`;
-  for (const sectionDef of Object.values(sections)) {
+  for (const sectionDef of Object.values(generalSections)) {
     for (const schema of sectionDef.keywordSchemas) {
       const value = stripThousandsSeparators(
-        resolvedValues[schema.chosenLabel],
+        resolvedValues[schema.chosenLabel] ?? "0",
       );
       csvOutput += `${schema.chosenLabel},${value}\n`;
     }
@@ -1896,7 +1865,11 @@ function writeDetailedCsv(
 
 // --- Main Pipeline ---
 
-async function processPdfFile(file: string, quarterPaths: QuarterPaths) {
+async function processPdfFile(
+  file: string,
+  quarterPaths: QuarterPaths,
+  pdfType: string | null | undefined,
+) {
   const {
     quarter,
     pdfDir,
@@ -1910,7 +1883,12 @@ async function processPdfFile(file: string, quarterPaths: QuarterPaths) {
   const mdPath = path.join(convertedDir, `${baseName}.txt`);
   const outputCsv = path.join(resultsDir, `${baseName}.csv`);
 
-  logger.info(`Starting basic processing for ${file} (${quarter})`);
+  const pdfTypeConfig = getPdfTypeConfig(pdfType);
+  const { sections } = pdfTypeConfig;
+
+  logger.info(
+    `Starting basic processing for ${file} (${quarter}, pdfType=${pdfType ?? "normal"})`,
+  );
 
   const { lines, startPage, firstPageWarning } = await loadReportLines(
     file,
@@ -1922,11 +1900,13 @@ async function processPdfFile(file: string, quarterPaths: QuarterPaths) {
       `${file}: page 1 contains "${firstPageWarning}" - possibly the wrong document (e.g. a faaliyet raporu instead of financial statements)`,
     );
   }
-  const balanceSheetValueIndex = detectValueColumnIndex(
+  const balanceSheetValueIndex =
+    pdfTypeConfig.balanceSheetValueIndexOverride ??
+    detectValueColumnIndex(lines, buildBalanceSheetRowLabels(sections));
+  const revenueValueIndex = detectValueColumnIndex(
     lines,
-    BALANCE_SHEET_ROW_LABELS,
+    buildRevenueRowLabels(sections),
   );
-  const revenueValueIndex = detectValueColumnIndex(lines, REVENUE_ROW_LABELS);
   // Revenue is the only section whose value columns come from the income
   // statement; every other configured section lives on the balance sheet.
   //
@@ -1942,13 +1922,15 @@ async function processPdfFile(file: string, quarterPaths: QuarterPaths) {
   // downstream from these saved YTD values when pushed to the db, not here.
   const getValueIndexForSection = (sectionName: string): number =>
     sectionName === "revenue" ? revenueValueIndex : balanceSheetValueIndex;
-  const { sectionStartKeyMap, sectionEndKeyMap } = buildSectionKeyMaps();
+  const { sectionStartKeyMap, sectionEndKeyMap } =
+    buildSectionKeyMaps(sections);
   const {
     foundValues,
     prefixFoundValues,
     foundValuePages,
     prefixFoundValuePages,
   } = matchKeywordsInLines(
+    sections,
     lines,
     getValueIndexForSection,
     sectionStartKeyMap,
@@ -1957,6 +1939,7 @@ async function processPdfFile(file: string, quarterPaths: QuarterPaths) {
   );
 
   const { resolvedValues, labelPages } = resolveValuesFromMatches(
+    sections,
     foundValues,
     prefixFoundValues,
     foundValuePages,
@@ -2001,9 +1984,9 @@ async function processTasksConcurrently(tasks: PdfTask[], concurrency: number) {
 
   async function runSlot() {
     while (nextIndex < tasks.length) {
-      const { file, quarterPaths } = tasks[nextIndex++];
+      const { file, quarterPaths, pdfType } = tasks[nextIndex++];
       try {
-        await processPdfFile(file, quarterPaths);
+        await processPdfFile(file, quarterPaths, pdfType);
       } catch (err: any) {
         logger.error(`Error processing file ${file}`, err.message);
       }
@@ -2026,6 +2009,9 @@ const DEFAULT_CONCURRENCY = 8;
 interface PdfTask {
   file: string;
   quarterPaths: QuarterPaths;
+  // Looked up from stock_info.pdf_type (see getPdfTypeConfig) - null/absent
+  // for the vast majority of symbols, which use the general template.
+  pdfType: string | null | undefined;
 }
 
 const QUARTER_ARG_PATTERN = /^\d{4}q[1-4]$/i;
@@ -2042,7 +2028,10 @@ const CONCURRENCY_ARG_PATTERN = /^\d+$/;
  * temporarily hardcoding a single file+quarter while debugging one report's
  * extraction, without editing the source.
  */
-function discoverTasks(): { tasks: PdfTask[]; concurrency: number } {
+function discoverTasks(pdfTypeMap: Record<string, string | null>): {
+  tasks: PdfTask[];
+  concurrency: number;
+} {
   const quarters = discoverQuarters();
   const args = process.argv.slice(2);
 
@@ -2092,7 +2081,8 @@ function discoverTasks(): { tasks: PdfTask[]; concurrency: number } {
     }
 
     for (const file of pdfFiles) {
-      tasks.push({ file, quarterPaths });
+      const symbol = path.parse(file).name.toLowerCase();
+      tasks.push({ file, quarterPaths, pdfType: pdfTypeMap[symbol] });
     }
   }
   return { tasks, concurrency };
@@ -2130,7 +2120,11 @@ function runGenerateVerifyHtml(): Promise<void> {
 }
 
 async function runPipeline() {
-  const { tasks, concurrency } = discoverTasks();
+  // Which sector-specific config each symbol needs (see getPdfTypeConfig) -
+  // fetched once, up front, rather than per-file, since it's the same one
+  // DB round-trip either way.
+  const pdfTypeMap = await getPdfTypeMap(REGION);
+  const { tasks, concurrency } = discoverTasks(pdfTypeMap);
 
   if (tasks.length === 0) {
     logger.info(`No PDFs to process under '${PDFS_ROOT_DIR}'.`);
@@ -2155,4 +2149,6 @@ async function runPipeline() {
   }
 }
 
-runPipeline().catch((err) => logger.error("Fatal error in pipeline:", err));
+runPipeline()
+  .catch((err) => logger.error("Fatal error in pipeline:", err))
+  .finally(() => pool.end());

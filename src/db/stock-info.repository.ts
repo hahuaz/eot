@@ -1,7 +1,7 @@
 import { and, asc, eq, InferSelectModel } from "drizzle-orm";
 
 import { db } from "@/db/pool";
-import { stockInfo } from "@/db/schema";
+import { PdfType, stockInfo } from "@/db/schema";
 
 export type StockInfoDbRow = InferSelectModel<typeof stockInfo>;
 
@@ -111,6 +111,7 @@ export async function upsertStockInfo(
     notes?: string[];
     outstandingShares?: number;
     trimDigit?: number;
+    pdfType?: PdfType;
   },
 ): Promise<void> {
   const fields: Partial<{
@@ -118,6 +119,7 @@ export async function upsertStockInfo(
     notes: string[];
     outstandingShares: number;
     trimDigit: number;
+    pdfType: PdfType;
   }> = {};
   if (data.color !== undefined) fields.color = data.color;
   if (data.notes !== undefined) fields.notes = data.notes;
@@ -125,6 +127,7 @@ export async function upsertStockInfo(
     fields.outstandingShares = data.outstandingShares;
   }
   if (data.trimDigit !== undefined) fields.trimDigit = data.trimDigit;
+  if (data.pdfType !== undefined) fields.pdfType = data.pdfType;
 
   await db
     .insert(stockInfo)
@@ -133,6 +136,17 @@ export async function upsertStockInfo(
       target: [stockInfo.region, stockInfo.symbol],
       set: fields,
     });
+}
+
+export async function getPdfTypeMap(
+  region: string,
+): Promise<Record<string, PdfType | null>> {
+  const rows = await db
+    .select({ symbol: stockInfo.symbol, pdfType: stockInfo.pdfType })
+    .from(stockInfo)
+    .where(eq(stockInfo.region, region));
+
+  return Object.fromEntries(rows.map((row) => [row.symbol, row.pdfType]));
 }
 
 /**

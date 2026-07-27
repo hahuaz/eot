@@ -21,6 +21,28 @@ vi.mock("@/db/quarterly-stock-prices.repository", async (importOriginal) => {
   };
 });
 
+// Same idea, one level down: "USD Price"/"Total USD Yield"'s live figure
+// (buildPriceMetrics's currentUsdPrice) divides the pinned TL price above by
+// the latest USDTRY quote (see usd-conversion.ts's getUsdTryHistory ->
+// this), which without this stub still comes live from the DB and drifts
+// the snapshot exactly like the unpinned TL price did. Only the latest
+// entry needs stubbing - every historical quarter's rate lookup matches by
+// closest date within 10 days (see usd-conversion.ts) and none of the
+// financial-report quarters here land within 10 days of today, so they
+// keep using real historical rates untouched.
+vi.mock("@/db/yield-prices.repository", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@/db/yield-prices.repository")>();
+  return {
+    ...actual,
+    getSymbolPriceHistory: async (symbol: string) => {
+      const real = await actual.getSymbolPriceHistory(symbol);
+      if (symbol.toUpperCase() !== "USDTRY" || real.length === 0) return real;
+      return [...real.slice(0, -1), { ...real[real.length - 1], value: 47.35 }];
+    },
+  };
+});
+
 import { getStockData, requireRegion, requireStockSymbol } from "@/services";
 
 describe("StockService regression snapshot", () => {

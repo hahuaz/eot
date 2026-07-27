@@ -18,17 +18,20 @@ import { getSymbols } from "@/db/stock-info.repository";
 // One navigation unlocks that page for every ticker's API call afterwards,
 // not just the ticker whose URL was loaded.
 const BASE_URL = "https://fintables.com";
-// fintables' own period label, e.g. "2024/3" for the report whose
-// period-end month is March (period-end month, not quarter number:
-// 3/6/9/12 -> Q1/Q2/Q3/Q4). Split into year/month for the API call below.
-const TARGET_PERIOD = "2024/12";
-const [TARGET_YEAR, TARGET_MONTH] = TARGET_PERIOD.split("/");
-// Local folder name for these downloads - kept separate from TARGET_PERIOD
-// since that string contains "/" and would otherwise be split into nested
-// "2024"/"3" directories by path.join, and separate from the shared
-// QUARTER export (lib/constants.ts) since that's a different period used
-// by the main extraction pipeline.
-const LOCAL_QUARTER_DIR = "2024Q4";
+// The quarter to download, e.g. "2025Q4" - the only thing to change per
+// run. fintables' own period label (year/month, month being the period-end
+// month, not quarter number: 3/6/9/12 -> Q1/Q2/Q3/Q4) and the local folder
+// name are both derived from it below, rather than tracked as separate
+// hand-maintained constants that could drift out of sync with each other.
+const TARGET_QUARTER = "2025q1";
+const [, TARGET_YEAR, QUARTER_NUMBER] =
+  TARGET_QUARTER.match(/^(\d{4})Q(\d)$/i)!;
+const TARGET_MONTH = String(Number(QUARTER_NUMBER) * 3);
+// Local folder name for these downloads, e.g. "2025Q4" - kept separate from
+// the fintables year/month values above (which get sent to the API as-is)
+// and from the shared QUARTER export (lib/constants.ts), since that's a
+// different period used by the main extraction pipeline.
+const LOCAL_QUARTER_DIR = `${TARGET_YEAR}Q${QUARTER_NUMBER}`;
 const PDFS_DIR = path.join(
   __dirname,
   "..",

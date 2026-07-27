@@ -410,7 +410,7 @@ exports[`StockService regression snapshot > froto (tr) metrics match snapshot 1`
       "yearlyGrowth": null,
     },
     {
-      "current": 2.236080030893936,
+      "current": 2.2280887011615627,
       "metricName": "USD Price",
       "qoqGrowth": {
         "2024Q1": null,
@@ -468,7 +468,7 @@ exports[`StockService regression snapshot > froto (tr) metrics match snapshot 1`
       "yearlyGrowth": null,
     },
     {
-      "current": -0.01631,
+      "current": -0.01983,
       "metricName": "Total USD Yield",
       "qoqGrowth": {
         "2024Q1": null,
@@ -481,8 +481,8 @@ exports[`StockService regression snapshot > froto (tr) metrics match snapshot 1`
         "2025Q4": null,
         "2026Q1": null,
       },
-      "totalGrowth": -0.25227,
-      "ttmGrowth": -0.10585,
+      "totalGrowth": -0.25495,
+      "ttmGrowth": -0.10905,
       "values": {
         "2024Q1": null,
         "2024Q2": 0.01273,
@@ -494,7 +494,7 @@ exports[`StockService regression snapshot > froto (tr) metrics match snapshot 1`
         "2025Q4": -0.03902,
         "2026Q1": 0.08451,
       },
-      "yearlyGrowth": -0.13529,
+      "yearlyGrowth": -0.13684,
     },
   ],
   "quarters": [

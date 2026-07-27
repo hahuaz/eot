@@ -8,6 +8,20 @@ import {
   text,
 } from "drizzle-orm/pg-core";
 
+// Which financial-statement template a symbol's quarterly PDF follows -
+// null (the vast majority of symbols) means the general CMB/BIST template
+// extract-financial-values.ts's base `sections` config targets. Banks
+// (BDDK-regulated), insurers (SEDDK-regulated), and "finance" companies
+// (BDDK-regulated factoring/leasing/consumer-finance/savings-finance firms,
+// e.g. ktlev - a different BDDK chart of accounts than banks despite the
+// same regulator) file under entirely different regulatory chart-of-accounts
+// templates - different line-item vocabulary, different section structure,
+// and (banks/finance specifically) different number formatting - so
+// extraction needs to pick a matching keyword config per symbol rather than
+// trying to make one shared config understand every template at once.
+export const PDF_TYPES = ["bank", "insurance", "finance"] as const;
+export type PdfType = (typeof PDF_TYPES)[number];
+
 export const stockInfo = pgTable(
   "stock_info",
   {
@@ -17,6 +31,7 @@ export const stockInfo = pgTable(
     notes: text("notes").array(),
     outstandingShares: doublePrecision("outstanding_shares"),
     trimDigit: doublePrecision("trim_digit"),
+    pdfType: text("pdf_type").$type<PdfType>(),
   },
   (table) => [primaryKey({ columns: [table.region, table.symbol] })],
 );
