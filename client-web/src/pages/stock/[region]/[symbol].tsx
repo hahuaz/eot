@@ -122,16 +122,34 @@ const formatMetricValue = (
     ? formatAbbreviatedNumber({ num })
     : formatNumber({ num, digits });
 
-/** Growth cell, colored green/red for positive/negative, blank when null (no prior quarter to compare against, or not comparable). */
-const GrowthLabel = ({ growth }: { growth: number | null }) => {
+// Debt rows are "bad news when they go up" - an increase is unfavorable,
+// so their growth color is the inverse of every other metric's.
+const INVERTED_GROWTH_METRIC_NAMES = new Set<StockMetricName>([
+  "Short term debt",
+  "Long term debt",
+]);
+
+/** Growth cell, colored green/red for favorable/unfavorable change (inverted for debt rows), blank when null (no prior quarter to compare against, or not comparable). */
+const GrowthLabel = ({
+  growth,
+  invert,
+}: {
+  growth: number | null;
+  invert?: boolean;
+}) => {
   if (growth == null) return null;
 
-  const colorClass =
-    growth > 0 ? "text-green-600" : growth < 0 ? "text-red-600" : "";
+  const isFavorable = invert ? growth < 0 : growth > 0;
+  const isUnfavorable = invert ? growth > 0 : growth < 0;
+  const colorClass = isFavorable
+    ? "text-green-600"
+    : isUnfavorable
+      ? "text-red-600"
+      : "";
 
   return (
     <span className={`text-[10px] ${colorClass}`}>
-      %{formatNumber({ num: growth, digits: 2 })}
+      {formatNumber({ num: growth * 100, digits: 0 })}%
     </span>
   );
 };
@@ -207,7 +225,14 @@ const StockDetailPage = ({
                               digits,
                             )}
                           </span>
-                          <GrowthLabel growth={metric.qoqGrowth[quarter]} />
+                          {sectionName !== "Valuation" && (
+                            <GrowthLabel
+                              growth={metric.qoqGrowth[quarter]}
+                              invert={INVERTED_GROWTH_METRIC_NAMES.has(
+                                metric.metricName,
+                              )}
+                            />
+                          )}
                         </div>
                       </TableCell>
                     ))}

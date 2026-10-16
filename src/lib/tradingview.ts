@@ -14,6 +14,7 @@ const SYMBOL_CODES: Record<string, string> = {
   "BIST-ALTIN": "BIST:ALTIN",
   GOLD: "TVC:GOLD",
   "AMEX-GLD": "AMEX:GLD",
+  DMLKT: "BIST:DMLKT",
 };
 
 /**

@@ -1,11 +1,7 @@
 import type { StockMetric } from "@eot/shared";
 
 import { round } from "@/lib/utils";
-import {
-  NO_GROWTH,
-  Value,
-  qoqGrowthValue,
-} from "@/services/stock/growth-columns";
+import { NO_GROWTH, Value, noQoqGrowth } from "@/services/stock/growth-columns";
 
 /**
  * Builds the enterprise-value family of metrics:
@@ -159,52 +155,41 @@ export function buildEnterpriseValueMetrics({
       ? null
       : plainRatio(currentPrice * outstandingShares, equityValues[lastQuarter]);
 
-  const growthOf = (
-    values: Record<string, Value>,
-  ): Record<string, number | null> =>
-    Object.fromEntries(
-      quartersAscending.map((quarter, i) => [
-        quarter,
-        qoqGrowthValue(
-          values[quarter],
-          i > 0 ? values[quartersAscending[i - 1]] : null,
-        ),
-      ]),
-    );
-
+  // None of these get a QoQ figure - Valuation-section metrics never show
+  // one in the UI (see noQoqGrowth).
   return [
     {
       metricName: "Enterprise value",
       values: evValues,
-      qoqGrowth: growthOf(evValues),
+      qoqGrowth: noQoqGrowth(quartersAscending),
       current: currentEv,
       ...NO_GROWTH,
     },
     {
       metricName: "Net debt / operating income",
       values: netDebtOiValues,
-      qoqGrowth: growthOf(netDebtOiValues),
+      qoqGrowth: noQoqGrowth(quartersAscending),
       current: currentNetDebtOi,
       ...NO_GROWTH,
     },
     {
       metricName: "EV / operating income",
       values: evOiValues,
-      qoqGrowth: growthOf(evOiValues),
+      qoqGrowth: noQoqGrowth(quartersAscending),
       current: currentEvOi,
       ...NO_GROWTH,
     },
     {
       metricName: "EV / net income",
       values: evNiValues,
-      qoqGrowth: growthOf(evNiValues),
+      qoqGrowth: noQoqGrowth(quartersAscending),
       current: currentEvNi,
       ...NO_GROWTH,
     },
     {
       metricName: "Market value / book value",
       values: mvBvValues,
-      qoqGrowth: growthOf(mvBvValues),
+      qoqGrowth: noQoqGrowth(quartersAscending),
       current: currentMvBv,
       ...NO_GROWTH,
     },

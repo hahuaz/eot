@@ -162,7 +162,7 @@ const YoyReturnsChart = ({
             tickFormatter={(date) =>
               new Date(date).toLocaleDateString("en-US", {
                 month: "short",
-                year: "2-digit",
+                day: "numeric",
               })
             }
             tick={{ fontSize: 12 }}

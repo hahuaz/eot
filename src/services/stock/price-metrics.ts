@@ -6,7 +6,7 @@ import { round } from "@/lib/utils";
 import {
   NO_GROWTH,
   computeUsdYieldGrowthColumns,
-  qoqGrowthValue,
+  noQoqGrowth,
 } from "@/services/stock/growth-columns";
 import { UsdTryHistory, toUsdValue } from "@/services/stock/usd-conversion";
 
@@ -89,19 +89,6 @@ export function buildPriceMetrics(
     usdYieldValues[quarter] = round(usdPriceYield + netDividendYield);
   });
 
-  const growthOf = (
-    values: Record<string, number | null>,
-  ): Record<string, number | null> =>
-    Object.fromEntries(
-      quartersAscending.map((quarter, i) => [
-        quarter,
-        qoqGrowthValue(
-          values[quarter],
-          i > 0 ? values[quartersAscending[i - 1]] : null,
-        ),
-      ]),
-    );
-
   // Latest defined USDTRY rate in the DB, not necessarily "today" - whatever
   // the most recent daily quote happens to be, per usdTryHistory's own
   // ascending date order
@@ -122,34 +109,36 @@ export function buildPriceMetrics(
       ? null
       : round((currentUsdPrice - lastUsdPrice) / lastUsdPrice);
 
+  // None of these get a QoQ figure - Valuation-section metrics never show
+  // one in the UI (see noQoqGrowth).
   const metrics: StockMetric[] = [
     {
       metricName: "Price",
       values: priceValues,
-      qoqGrowth: growthOf(priceValues),
+      qoqGrowth: noQoqGrowth(quartersAscending),
       current: currentPrice,
       ...NO_GROWTH,
     },
     {
       metricName: "USD Price",
       values: usdPriceValues,
-      qoqGrowth: growthOf(usdPriceValues),
+      qoqGrowth: noQoqGrowth(quartersAscending),
       current: currentUsdPrice,
       ...NO_GROWTH,
     },
     {
       metricName: "Dividend Yield",
       values: dividendValues,
-      qoqGrowth: growthOf(dividendValues),
+      qoqGrowth: noQoqGrowth(quartersAscending),
       current: null,
       ...NO_GROWTH,
     },
-    // Total USD Yield is itself already a period-over-period return, so put qoqGrowth as null.
-    // Its Total/Yearly/TTM growth columns, unlike the QoQ one, ARE meaningful - see computeUsdYieldGrowthColumns.
+    // Total/Yearly/TTM growth columns, unlike the QoQ one, ARE meaningful for
+    // Total USD Yield - see computeUsdYieldGrowthColumns.
     {
       metricName: "Total USD Yield",
       values: usdYieldValues,
-      qoqGrowth: Object.fromEntries(quartersAscending.map((q) => [q, null])),
+      qoqGrowth: noQoqGrowth(quartersAscending),
       current: currentUsdYield,
       ...computeUsdYieldGrowthColumns(
         usdYieldValues,

@@ -194,6 +194,9 @@ const CumulativeYieldsChart = ({
                 stroke={`var(--color-${key})`}
                 name={key}
                 dot={false}
+                // a missing day (e.g. a failed scrape) is a gap in the data, not a
+                // break in the series - bridge it so the line keeps going
+                connectNulls
               />
             ))}
         </LineChart>

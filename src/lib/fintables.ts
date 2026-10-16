@@ -36,8 +36,15 @@ export async function fetchFintables(
       try {
         await page.setUserAgent(USER_AGENT);
 
+        // markets.fintables.com is cross-origin to the page, so the browser
+        // sends a CORS preflight (OPTIONS) to the same URL before the real
+        // GET. The preflight has no body - calling .json() on it throws
+        // "Could not load response body ... preflight request" - so match
+        // only the actual successful GET.
         const historyResponsePromise = page.waitForResponse(
           (res) =>
+            res.request().method() === "GET" &&
+            res.ok() &&
             res.url().includes("/barbar/udf/history") &&
             res.url().includes(`symbol=${code}`),
           { timeout: 55000 },

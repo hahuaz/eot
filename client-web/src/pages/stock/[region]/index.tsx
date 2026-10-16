@@ -180,6 +180,7 @@ const RegionalStocksPage = ({
   const [sorting, setSorting] = useState<SortingState>([
     { id: "(ev/oi) / ttm growth", desc: false },
   ]);
+  const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
 
   const columnHelper = createColumnHelper<StockSummary>();
 
@@ -307,7 +308,7 @@ const RegionalStocksPage = ({
 
   return (
     <div className="p-4">
-      <Table>
+      <Table containerClassName="max-h-[calc(100vh-6rem)] overflow-y-auto">
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
@@ -326,9 +327,8 @@ const RegionalStocksPage = ({
                     key={header.id}
                     onClick={header.column.getToggleSortingHandler()}
                     className={cn(
-                      "group cursor-pointer select-none whitespace-nowrap px-2 transition-colors",
-                      header.column.id === "stockName" &&
-                        "sticky left-0 z-20 bg-background",
+                      "group sticky top-0 z-20 cursor-pointer select-none whitespace-nowrap bg-background px-2 transition-colors",
+                      header.column.id === "stockName" && "left-0 z-30",
                       isSorted && "bg-accent/60 font-semibold",
                       isText ? "text-left" : "text-right",
                     )}
@@ -358,30 +358,50 @@ const RegionalStocksPage = ({
           ))}
         </TableHeader>
         <TableBody>
-          {table.getSortedRowModel().rows.map((row) => (
-            <TableRow key={row.id} className="group">
-              {row.getVisibleCells().map((cell) => {
-                const isText = ["rowIndex", "stockName", "Notes"].includes(
-                  cell.column.id,
-                );
-                return (
-                  <TableCell
-                    key={cell.id}
-                    className={cn(
-                      "whitespace-nowrap px-2 py-1",
-                      cell.column.id === "stockName" &&
-                        "sticky left-0 z-10 bg-background transition-colors group-hover:bg-[var(--row-hover)]",
-                      isText ? "text-left" : "text-right",
-                      SIGNED_COLUMNS.has(cell.column.id) &&
-                        signedColor(cell.getValue()),
-                    )}
-                  >
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                );
-              })}
-            </TableRow>
-          ))}
+          {table.getSortedRowModel().rows.map((row) => {
+            const isSelected = selectedRowId === row.id;
+            return (
+              <TableRow
+                key={row.id}
+                className={cn(
+                  "group cursor-pointer",
+                  isSelected && "bg-blue-50 dark:bg-blue-950/40",
+                )}
+                onClick={() =>
+                  setSelectedRowId((prev) => (prev === row.id ? null : row.id))
+                }
+              >
+                {row.getVisibleCells().map((cell) => {
+                  const isText = ["rowIndex", "stockName", "Notes"].includes(
+                    cell.column.id,
+                  );
+                  return (
+                    <TableCell
+                      key={cell.id}
+                      className={cn(
+                        "whitespace-nowrap px-2 py-1",
+                        cell.column.id === "stockName" &&
+                          cn(
+                            "sticky left-0 z-10 transition-colors group-hover:bg-[var(--row-hover)]",
+                            isSelected
+                              ? "bg-blue-50 dark:bg-blue-950/40"
+                              : "bg-background",
+                          ),
+                        isText ? "text-left" : "text-right",
+                        SIGNED_COLUMNS.has(cell.column.id) &&
+                          signedColor(cell.getValue()),
+                      )}
+                    >
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
+                    </TableCell>
+                  );
+                })}
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>

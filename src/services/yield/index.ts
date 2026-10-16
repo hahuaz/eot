@@ -20,7 +20,7 @@ import {
 const BENCH_SYMBOL = "USDTRY";
 
 type DerivedYieldSymbol = {
-  key: string; // requestable name, e.g. "TP2" or the composite "TP2_USDTRY"
+  key: string; // requestable name, e.g. "BGP" or the composite "BGP_USDTRY"
   symbol: string; // underlying symbol_prices key price data is read from
   withholdingTax: number;
   isUsdBench: boolean;

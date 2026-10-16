@@ -16,6 +16,12 @@ export const NO_GROWTH: GrowthColumns = {
   ttmGrowth: null,
 };
 
+/** All-null QoQ growth map, for metrics whose UI never shows a QoQ figure (currently: every Valuation-section metric). */
+export const noQoqGrowth = (
+  quartersAscending: string[],
+): Record<string, number | null> =>
+  Object.fromEntries(quartersAscending.map((quarter) => [quarter, null]));
+
 /** Plain QoQ growth: (value - previousValue) / |previousValue|, or null when either side is missing/"N/A"/zero. */
 export function qoqGrowthValue(
   value: Value,

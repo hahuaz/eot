@@ -1,6 +1,6 @@
 export const API_URL = "http://localhost:3333/";
 
-export const DEFAULT_RETURN_SYMBOLS = ["BGP_USDTRY", "TP2_USDTRY", "GOLD"];
+export const DEFAULT_RETURN_SYMBOLS = ["BGP_USDTRY", "GOLD"];
 
 export type SymbolTheme = { light: string; dark: string };
 
