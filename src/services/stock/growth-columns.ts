@@ -1,4 +1,8 @@
-import { quarterOneYearBefore, yearsBetweenQuarters } from "@/lib/dates";
+import {
+  quarterOneYearBefore,
+  yearsBetweenQuarters,
+  yearsSinceQuarterEnd,
+} from "@/lib/dates";
 import { round } from "@/lib/utils";
 import { toUsdValue, UsdTryHistory } from "@/services/stock/usd-conversion";
 
@@ -106,11 +110,17 @@ export function computeValueGrowthColumns(
  * yield (return from the newest known quarter to the live price) - rather
  * than diffing two level values like computeValueGrowthColumns, since Total
  * USD Yield is already a period return.
+ *
+ * Yearly annualizes Total over the span it actually covers: from
+ * `firstPriceQuarter`'s close (not quartersAscending[0] - a late IPO has no
+ * price for its earliest report quarters) to now when the live period is
+ * included, else to the newest quarter.
  */
 export function computeUsdYieldGrowthColumns(
   usdYieldValues: Record<string, number | null>,
   quartersAscending: string[],
   currentYield: number | null,
+  firstPriceQuarter: string | undefined,
 ): GrowthColumns {
   if (quartersAscending.length === 0) return NO_GROWTH;
 
@@ -126,9 +136,13 @@ export function computeUsdYieldGrowthColumns(
   ];
   const totalGrowth = compound(allYields);
 
-  const firstQuarter = quartersAscending[0];
   const lastQuarter = quartersAscending[quartersAscending.length - 1];
-  const yearsPassed = yearsBetweenQuarters(firstQuarter, lastQuarter);
+  const yearsPassed =
+    firstPriceQuarter == null
+      ? 0
+      : currentYield != null
+        ? yearsSinceQuarterEnd(firstPriceQuarter, Date.now())
+        : yearsBetweenQuarters(firstPriceQuarter, lastQuarter);
   const yearlyGrowth =
     totalGrowth != null && yearsPassed > 0
       ? round(Math.pow(1 + totalGrowth, 1 / yearsPassed) - 1)

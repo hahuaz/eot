@@ -494,7 +494,7 @@ exports[`StockService regression snapshot > froto (tr) metrics match snapshot 1`
         "2025Q4": -0.03902,
         "2026Q1": 0.08451,
       },
-      "yearlyGrowth": -0.13684,
+      "yearlyGrowth": -0.10875,
     },
   ],
   "quarters": [

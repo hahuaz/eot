@@ -80,6 +80,12 @@ const KNOWN_SPLIT_TIMING_FIXES: Record<
     // the theoretical ex-rights price (33.40 -> 17.18) on 2025-12-01 - 8
     // days early. Same empirical-ratio caveat as BSOKE above.
     kontr: { appliedFrom: "2025-12-01", factor: 1.9439635754803675 },
+    // CVKMD's paid-in capital went 1.4B -> 3.78B TL (2.7x shares, per KAP's
+    // paid-in capital page), and its price drops 37.82 -> 14.42 on
+    // 2026-08-03 - but unlike the cases above, Yahoo never adjusted for it
+    // at all (no split event in its chart API), rather than adjusting from
+    // the wrong date. Same fix either way: divide everything before the drop.
+    cvkmd: { appliedFrom: "2026-08-03", factor: 2.7 },
   },
 };
 

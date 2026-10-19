@@ -45,6 +45,12 @@ vi.mock("@/db/yield-prices.repository", async (importOriginal) => {
 
 import { getStockData, requireRegion, requireStockSymbol } from "@/services";
 
+// And the clock: Total USD Yield's Yearly figure annualizes over the time
+// from the first price to now (see computeUsdYieldGrowthColumns). Only Date
+// is faked - real timers stay so DB I/O isn't affected.
+vi.useFakeTimers({ toFake: ["Date"] });
+vi.setSystemTime(new Date("2026-10-20T00:00:00Z"));
+
 describe("StockService regression snapshot", () => {
   it("froto (tr) metrics match snapshot", async () => {
     const data = await getStockData(

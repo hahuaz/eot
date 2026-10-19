@@ -46,6 +46,13 @@ export function quarterOneYearBefore(quarter: string): string {
   return `${year - 1}Q${q}`;
 }
 
+/** Fractional years from a quarter's last day (e.g. "2024Q1" -> 2024-03-31) to `now`. */
+export function yearsSinceQuarterEnd(quarter: string, now: number): number {
+  const { year, q } = parseQuarter(quarter);
+  const quarterEnd = Date.UTC(year, q * 3, 0);
+  return (now - quarterEnd) / MS_IN_DAY / DAYS_IN_YEAR;
+}
+
 /** Whole/fractional years between two quarters (e.g. "2024Q1" -> "2026Q1" is 2), for annualizing growth - quarters here are always uniformly quarterly, so this is exact. */
 export function yearsBetweenQuarters(
   fromQuarter: string,

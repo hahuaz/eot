@@ -144,6 +144,7 @@ export function buildPriceMetrics(
         usdYieldValues,
         quartersAscending,
         currentUsdYield,
+        quartersAscending.find((quarter) => usdPriceValues[quarter] != null),
       ),
     },
   ];

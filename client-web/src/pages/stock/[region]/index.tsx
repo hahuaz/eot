@@ -36,7 +36,7 @@ import { StockSummaryEntry } from "@eot/shared";
 interface StockSummary {
   stockName: string;
   "Observation Start Yield": number | null;
-  "Total yield": number | "N/A" | null;
+  "Yearly yield": number | "N/A" | null;
   "TTM yield": number | "N/A" | null;
   "EV / operating income": number | "N/A" | null;
   "EV / net income": number | "N/A" | null;
@@ -104,7 +104,7 @@ export const getStaticProps: GetStaticProps<{
       Notes: notes?.length ? notes : null,
       color: color || null,
       "Observation Start Yield": observationStartYield,
-      "Total yield": usdYieldMetric?.totalGrowth ?? null,
+      "Yearly yield": usdYieldMetric?.yearlyGrowth ?? null,
       "TTM yield": usdYieldMetric?.ttmGrowth ?? null,
       "EV / operating income": evToOperatingIncome,
       "EV / net income": evNiMetric?.current ?? null,
@@ -234,8 +234,8 @@ const RegionalStocksPage = ({
       cell: ({ getValue }) => formatCell(getValue()),
       sortingFn: numericSort,
     }),
-    columnHelper.accessor("Total yield", {
-      header: "Total Yield",
+    columnHelper.accessor("Yearly yield", {
+      header: "Yearly Yield",
       cell: ({ getValue }) => formatCell(getValue()),
       sortingFn: numericSort,
     }),
