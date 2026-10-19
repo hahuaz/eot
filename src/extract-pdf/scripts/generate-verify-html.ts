@@ -24,7 +24,8 @@ import { PDF_SERVER_PORT } from "./constants";
 
 const ROOT_DIR = path.join(__dirname, "..");
 // Large per-quarter data lives outside the repo under local-data/
-// (gitignored) rather than under assets/, which stays for small tracked
+// (the private data-repo submodule - see docs/maintain.md) rather than
+// under assets/, which stays for small tracked
 // outputs like results/.
 const LOCAL_DATA_DIR = path.join(
   ROOT_DIR,

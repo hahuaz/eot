@@ -1,0 +1,3 @@
+[submodule "local-data"]
+	path = local-data
+	url = git@github-hahuaz:hahuaz/eot-private.git
